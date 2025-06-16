@@ -1,0 +1,68 @@
+FROM --platform=linux/amd64 oraclelinux:9
+
+# # Instalar o Python 3.12 e o gerenciador de pacotes
+# RUN dnf install python3.12 -y && dnf install python3.12-pip -y
+
+# # Instalar ferramentas e bibliotecas
+# RUN dnf install unzip gcc libaio libnsl*
+# RUN dnf module install -y python3.12 && \
+#     dnf install -y python3.12-pip unzip gcc libaio libnsl* && \
+#     # Criar link simbólico para python3.12
+#     alternatives --set python /usr/bin/python3.12 && \
+#     ln -s /usr/bin/python3.12 /usr/local/bin/python3.12 && \
+#     ln -s /usr/bin/python3.12 /usr/local/bin/python3
+RUN dnf clean all && \
+    rm -rf /var/cache/dnf
+
+RUN dnf install -y oracle-epel-release-el9
+RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+RUN dnf install -y dnf-plugins-core
+RUN dnf config-manager --set-enabled ol9_codeready_builder
+
+RUN dnf install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel make
+RUN curl -o Python-3.12.0.tar.xz https://www.python.org/ftp/python/3.12.0/Python-3.12.0.tar.xz && \
+    tar -xf Python-3.12.0.tar.xz && \
+    cd Python-3.12.0 && \
+    ./configure --enable-optimizations && \
+    make -j $(nproc) altinstall && \
+    cd .. && \
+    rm -rf Python-3.12.0 Python-3.12.0.tar.xz
+
+RUN ln -s /usr/local/bin/python3.12 /usr/bin/python3.12 && \
+    ln -s /usr/local/bin/python3.12 /usr/bin/python3 && \
+    ln -s /usr/local/bin/pip3.12 /usr/bin/pip3
+
+RUN dnf install -y unzip gcc libaio libnsl* 
+
+# Instalar o Oracle Instant Client 19.3 e as ferramentas
+RUN mkdir -p /opt/oracle && \
+    cd /opt/oracle && \
+    curl -O https://download.oracle.com/otn_software/linux/instantclient/1923000/instantclient-basic-linux.x64-19.23.0.0.0dbru.zip && \
+    unzip instantclient-basic-linux.x64-19.23.0.0.0dbru.zip && \
+    rm instantclient-basic-linux.x64-19.23.0.0.0dbru.zip && \
+    mkdir -p /opt/oracle/tools && \    
+    cd /opt/oracle/tools && \
+    curl -O https://download.oracle.com/otn_software/linux/instantclient/1923000/instantclient-tools-linux.x64-19.23.0.0.0dbru.zip && \
+    unzip instantclient-tools-linux.x64-19.23.0.0.0dbru.zip && \
+    rm instantclient-tools-linux.x64-19.23.0.0.0dbru.zip && \
+    cd instantclient_19_23 && \
+    chmod 777 expdp impdp sqlldr imp exp && \
+    mv -f * /opt/oracle/instantclient_19_23/.
+
+# Instalar o Oracle Instant Client 19.3 e as ferramentas
+ENV LD_LIBRARY_PATH /opt/oracle/instantclient_19_23
+ENV PATH="/opt/oracle/instantclient_19_23:${PATH}"
+
+# Diretório de trabalho
+WORKDIR /usr/app
+
+# arquivos de requisitos e instalacao das dependências
+COPY requirements.txt .
+RUN pip3.12 install --no-cache-dir -r requirements.txt
+
+# Copiar o projeto para o contêiner
+COPY . .
+
+# Executar o servidor Django
+# CMD ["python3.12", "main.py"]
+CMD ["/usr/local/bin/python3.12", "main.py"]
