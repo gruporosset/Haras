@@ -4,10 +4,14 @@ from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_jwt_token, generate_reset_token
 from app.models.user import User
 from app.schemas.user import UserLogin, UserResetPassword, UserResponse, UserCreate, UserForgotPassword
+from app.schemas.mfa import MFASetupResponse, MFAVerifyRequest, MFASetupRequest
 from app.services.email_service import EmailService
 from datetime import datetime, timedelta
-import aiosmtplib
 from email.message import EmailMessage
+import pyotp
+import qrcode
+import io
+import base64
 
 router = APIRouter()
 
@@ -84,3 +88,58 @@ async def reset_password(data: UserResetPassword, db: Session = Depends(get_db))
     db.commit()
 
     return {"message": "Senha redefinida com sucesso"}
+
+
+@router.post("/mfa/setup", response_model=MFASetupResponse)
+async def setup_mfa(data: MFASetupRequest, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.ID == data.user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    
+    # Gerar segredo TOTP
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(name=db_user.EMAIL, issuer_name="Haras System")
+    
+    # Gerar QR code
+    qr = qrcode.QRCode()
+    qr.add_data(provisioning_uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    qr_code_url = f"data:image/png;base64,{qr_code_base64}"
+    
+    # Salvar segredo no banco
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == data.user_id).first()
+    if mfa_config:
+        mfa_config.SEGREDO_TOTP = secret
+        mfa_config.DATA_CADASTRO = func.sysdate()
+    else:
+        mfa_config = MFAConfig(ID_USUARIO=data.user_id, SEGREDO_TOTP=secret, ATIVO=True)
+        db.add(mfa_config)
+    db.commit()
+    
+    return {"secret": secret, "qr_code_url": qr_code_url}
+
+@router.post("/mfa/verify")
+async def verify_mfa(data: MFAVerifyRequest, user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.ID == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == user_id, MFAConfig.ATIVO == True).first()
+    if not mfa_config:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MFA não configurado")
+    
+    totp = pyotp.TOTP(mfa_config.SEGREDO_TOTP)
+    if not totp.verify(data.code):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Código TOTP inválido")
+    
+    db_user.DATA_ULTIMO_LOGIN = datetime.utcnow()
+    db_user.TENTATIVAS_LOGIN = 0
+    db.commit()
+    
+    token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    return {"token": token, "user": db_user}
