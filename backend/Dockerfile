@@ -28,5 +28,6 @@ RUN pip3.12 install --no-cache-dir -r requirements.txt
 # Copiar o projeto para o contêiner
 COPY . .
 
-# Executar o servidor Django
-CMD ["python", "main.py"]
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

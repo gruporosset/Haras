@@ -1,3 +1,3 @@
 from time import sleep
 
-sleep(50)
+sleep(20)
