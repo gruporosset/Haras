@@ -94,7 +94,7 @@ export default {
       try {
         await authStore.login(email.value, password.value);
         if (!authStore.requiresMfa) {
-          $q.notify({ type: 'positive', message: 'Login realizado com sucesso2!' });
+          $q.notify({ type: 'positive', message: 'Login realizado com sucesso!' });
           router.push('/dashboard');
         }
       } catch (err) {

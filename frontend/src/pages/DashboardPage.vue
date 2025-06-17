@@ -1,13 +1,22 @@
 <template>
-  <q-page padding>
-    <h1>Bem-vindo, {{ authStore.user?.name }}</h1>
-    <q-btn 
-      color="negative" 
-      label="Sair" 
-      @click="handleLogout" 
-    />
+  <q-page class="q-pa-md">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Bem-vindo, {{ authStore.user?.NOME_COMPLETO || 'Usuário' }}</div>
+        <div class="text-subtitle1">Painel de Controle</div>
+      </q-card-section>
+      <q-card-section>
+        <p>Este é o painel inicial do sistema Haras. Escolha uma opção no menu para continuar.</p>
+        <q-btn 
+          color="negative" 
+          label="Sair" 
+          @click="handleLogout" 
+        />
+      </q-card-section>
+    </q-card>
   </q-page>
 </template>
+
 
 <script>
 import { useAuthStore } from '../stores/auth';
@@ -30,3 +39,4 @@ export default {
   }
 };
 </script>
+

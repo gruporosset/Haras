@@ -13,13 +13,11 @@ export default defineRouter(function () {
     const authStore = useAuthStore()
     
     if (to.meta.requiresAuth && !authStore.token) {
-      next('/')
-    } else if (!to.meta.requiresAuth && authStore.token) {
-      next('/dashboard')
+      next('/login');
     } else {
-      next()
-    }
-  })
+      next();
+    } 
+ })
 
   return Router
 })

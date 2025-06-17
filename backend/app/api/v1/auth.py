@@ -78,8 +78,8 @@ async def forgot_password(user: UserForgotPassword, db: Session = Depends(get_db
     email_service = EmailService()
 
     await email_service.send_template_email(
-        # to_email="adriano@rosset.com.br",
-        to_email=user.EMAIL,
+        to_email="adriano@rosset.com.br",
+        # to_email=user.EMAIL,
         subject="Redefinição de Senha",
         template_name="reset_password.txt",
         context={"token": token}

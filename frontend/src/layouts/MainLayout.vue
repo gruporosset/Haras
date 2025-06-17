@@ -3,7 +3,7 @@
     <q-header elevated v-if="!isLoginPage">
       <q-toolbar>
         <q-toolbar-title>
-        <q-img src="/public/logo.png" width="40px" />
+        <q-img src="/logo.png" width="40px" />
           Haras System
         </q-toolbar-title>
         <q-btn 

@@ -1,18 +1,34 @@
-import Login from "../pages/LoginPage.vue"
-import Dashboard from "../pages/DashboardPage.vue"
+import LoginPage from "../pages/LoginPage.vue"
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
+import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
+import DashboardPage from "../pages/DashboardPage.vue"
 
 const routes = [
   {
-    path: '/',
+    path: '/login',
     name: 'Login',
-    component: Login,
+    component: LoginPage,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: ForgotPasswordPage,
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPasswordPage,
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: Dashboard,
+    component: DashboardPage,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/',
+    redirect: '/login',
   },
   {
     path: '/:catchAll(.*)*',
