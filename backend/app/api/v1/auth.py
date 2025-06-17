@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_jwt_token, generate_reset_token
 from app.models.user import User
@@ -61,7 +62,7 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     db.commit()
     
     token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
-    return db_user
+    return {"token": token, "user": db_user}
 
 @router.post("/forgot-password")
 async def forgot_password(user: UserForgotPassword, db: Session = Depends(get_db)):
@@ -127,7 +128,7 @@ async def setup_mfa(data: MFASetupRequest, db: Session = Depends(get_db)):
     mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == data.user_id).first()
     if mfa_config:
         mfa_config.SEGREDO_TOTP = secret
-        mfa_config.DATA_CADASTRO = func.sysdate()
+        mfa_config.DATA_CADASTRO = func.now()
     else:
         mfa_config = MFAConfig(ID_USUARIO=data.user_id, SEGREDO_TOTP=secret, ATIVO='S')
         db.add(mfa_config)

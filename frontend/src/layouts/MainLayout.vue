@@ -1,44 +1,19 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+    <q-header elevated v-if="!isLoginPage">
       <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
-        />
-
         <q-toolbar-title>
-          Quasar App
+        <q-img src="/public/logo.png" width="40px" />
+          Haras System
         </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
+        <q-btn 
+          v-if="authStore.token" 
+          flat 
+          label="Sair" 
+          @click="handleLogout" 
+        />
       </q-toolbar>
     </q-header>
-
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-    >
-      <q-list>
-        <q-item-label
-          header
-        >
-          Essential Links
-        </q-item-label>
-
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-        />
-      </q-list>
-    </q-drawer>
-
     <q-page-container>
       <router-view />
     </q-page-container>
@@ -46,72 +21,28 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
+import { useAuthStore } from 'src/stores/auth';
+import { useQuasar } from 'quasar';
+import { useRouter, useRoute } from 'vue-router';
+import { computed } from 'vue';
 
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
-  }
-]
-
-export default defineComponent({
+export default {
   name: 'MainLayout',
+  setup() {
+    const authStore = useAuthStore();
+    const $q = useQuasar();
+    const router = useRouter();
+    const route = useRoute();
 
-  components: {
-    EssentialLink
-  },
+    const isLoginPage = computed(() => route.path === '/');
 
-  data () {
-    return {
-      linksList,
-      leftDrawerOpen: false
-    }
-  },
+    const handleLogout = () => {
+      authStore.logout();
+      $q.notify({ type: 'positive', message: 'Logout realizado com sucesso!' });
+      router.push('/');
+    };
 
-  methods: {
-    toggleLeftDrawer () {
-      this.leftDrawerOpen = !this.leftDrawerOpen
-    }
+    return { authStore, handleLogout, isLoginPage };
   }
-})
+};
 </script>

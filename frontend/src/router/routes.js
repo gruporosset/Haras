@@ -1,14 +1,19 @@
+import Login from "../pages/LoginPage.vue"
+import Dashboard from "../pages/DashboardPage.vue"
+
 const routes = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [
-      { path: '', component: () => import('pages/IndexPage.vue') }
-    ]
+    name: 'Login',
+    component: Login,
+    meta: { requiresAuth: false }
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
+  },
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
