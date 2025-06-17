@@ -8,4 +8,5 @@ class MFASetupResponse(BaseModel):
     qr_code_url: str
 
 class MFAVerifyRequest(BaseModel):
+    user_id: int
     code: str

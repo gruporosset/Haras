@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_jwt_token, generate_reset_token
 from app.models.user import User
+from app.models.mfa import MFAConfig
 from app.schemas.user import UserLogin, UserResetPassword, UserResponse, UserCreate, UserForgotPassword
 from app.schemas.mfa import MFASetupResponse, MFAVerifyRequest, MFASetupRequest
 from app.services.email_service import EmailService
@@ -36,14 +37,25 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login")
 async def login(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.EMAIL == user.EMAIL, User.ATIVO == 'S').first()
-    if not db_user or not verify_password(user.SENHA, db_user.SENHA_HASH):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
-    if db_user.BLOQUEADO_ATE and db_user.BLOQUEADO_ATE > datetime.utcnow():
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário bloqueado")
     
+    if not db_user or not verify_password(user.SENHA, db_user.SENHA_HASH):
+        db_user.TENTATIVAS_LOGIN += 1
+        if db_user.TENTATIVAS_LOGIN >= 5:
+            db_user.BLOQUEADO_ATE = datetime.utcnow() + timedelta(minutes=30)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
+    
+    if db_user.BLOQUEADO_ATE and db_user.BLOQUEADO_ATE > datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário bloqueado")    
+
+    # Verificar se MFA está configurado
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == db_user.ID, MFAConfig.ATIVO == 'S').first()
+    if mfa_config:
+       return {"message": "MFA necessário", "user_id": db_user.ID, "requires_mfa": True}
+
     db_user.DATA_ULTIMO_LOGIN = datetime.utcnow()
     db_user.TENTATIVAS_LOGIN = 0
     db.commit()
@@ -107,7 +119,7 @@ async def setup_mfa(data: MFASetupRequest, db: Session = Depends(get_db)):
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
+    img.save(buffer, "PNG")
     qr_code_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
     qr_code_url = f"data:image/png;base64,{qr_code_base64}"
     
@@ -117,19 +129,20 @@ async def setup_mfa(data: MFASetupRequest, db: Session = Depends(get_db)):
         mfa_config.SEGREDO_TOTP = secret
         mfa_config.DATA_CADASTRO = func.sysdate()
     else:
-        mfa_config = MFAConfig(ID_USUARIO=data.user_id, SEGREDO_TOTP=secret, ATIVO=True)
+        mfa_config = MFAConfig(ID_USUARIO=data.user_id, SEGREDO_TOTP=secret, ATIVO='S')
         db.add(mfa_config)
     db.commit()
     
     return {"secret": secret, "qr_code_url": qr_code_url}
 
 @router.post("/mfa/verify")
-async def verify_mfa(data: MFAVerifyRequest, user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.ID == user_id).first()
+async def verify_mfa(data: MFAVerifyRequest, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.ID == data.user_id).first()
+    
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
     
-    mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == user_id, MFAConfig.ATIVO == True).first()
+    mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == data.user_id, MFAConfig.ATIVO == 'S').first()
     if not mfa_config:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MFA não configurado")
     
