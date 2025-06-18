@@ -33,37 +33,49 @@
             aria-label="Cadastrar novo terreno"
           />
         </div>
-        <q-table
-          :rows="terrenos"
-          :columns="columns"
-          row-key="ID"
-          :loading="loading"
-          :pagination="pagination"
-          @request="onRequest"
-          binary-state-sort
-          aria-label="Tabela de terrenos"
-        >
-          <template v-slot:body-cell-acoes="props">
-            <q-td :props="props">
-              <q-btn
-                flat
-                round
-                color="primary"
-                icon="edit"
-                @click="openDialog(props.row)"
-                aria-label="Editar terreno"
-              />
-              <q-btn
-                flat
-                round
-                color="negative"
-                icon="delete"
-                @click="confirmDelete(props.row)"
-                aria-label="Excluir terreno"
-              />
-            </q-td>
-          </template>
-        </q-table>
+        
+        <q-tabs v-model="activeTab" class="q-mb-md">
+          <q-tab name="table" label="Tabela" aria-label="Exibir tabela de terrenos" />
+          <q-tab name="map" label="Mapa" aria-label="Exibir mapa de terrenos" />
+        </q-tabs>
+        <q-tab-panels v-model="activeTab" animated>
+            <q-tab-panel name="table">
+                <q-table
+                :rows="terrenos"
+                :columns="columns"
+                row-key="ID"
+                :loading="loading"
+                :pagination="pagination"
+                @request="onRequest"
+                binary-state-sort
+                aria-label="Tabela de terrenos"
+                >
+                <template v-slot:body-cell-acoes="props">
+                    <q-td :props="props">
+                    <q-btn
+                        flat
+                        round
+                        color="primary"
+                        icon="edit"
+                        @click="openDialog(props.row)"
+                        aria-label="Editar terreno"
+                    />
+                    <q-btn
+                        flat
+                        round
+                        color="negative"
+                        icon="delete"
+                        @click="confirmDelete(props.row)"
+                        aria-label="Excluir terreno"
+                    />
+                    </q-td>
+                </template>
+                </q-table>
+            </q-tab-panel>
+            <q-tab-panel name="map">
+                <terreno-map :terrenos="terrenos" />
+            </q-tab-panel>   
+        </q-tab-panels>   
       </q-card-section>
     </q-card>
 
@@ -205,6 +217,7 @@ import { ref, reactive } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
 import api from '../boot/api';
+import TerrenoMap from '../components/TerrenoMap.vue'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -233,6 +246,9 @@ const columns = [
   { name: 'acoes', label: '', field: 'acoes', align: 'center' }
 ]
 const statusOptions = ['DISPONIVEL', 'OCUPADO', 'MANUTENÇÃO']
+
+// Estado das abas
+const activeTab = ref('table')
 
 // Estado do diálogo de cadastro/edição
 const dialog = ref(false)
