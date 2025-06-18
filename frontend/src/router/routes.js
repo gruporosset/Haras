@@ -3,8 +3,13 @@ import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
 import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
 import DashboardPage from "../pages/DashboardPage.vue"
 import ProfilePage from '../pages/ProfilePage.vue';
+import TerrenosPage from '../pages/TerrenosPage.vue'
 
 const routes = [
+  {
+    path: '/',
+    redirect: '/dashboard',
+  },
   {
     path: '/login',
     name: 'Login',
@@ -34,8 +39,10 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/',
-    redirect: '/dashboard',
+    path: '/terrenos',
+    name: 'Terrenos',
+    component: TerrenosPage,
+    meta: { requiresAuth: true },
   },
   {
     path: '/:catchAll(.*)*',

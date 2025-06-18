@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_jwt_token, generate_reset_token
+from app.core.security import hash_password, verify_password, create_jwt_token, create_refresh_token, generate_reset_token, validate_refresh_token
 from app.models.user import User
 from app.models.mfa import MFAConfig
+from app.models.sessao import Sessao
 from app.schemas.user import UserLogin, UserResetPassword, UserResponse, UserCreate, UserForgotPassword, LoginResponse
 from app.schemas.mfa import MFASetupResponse, MFAVerifyRequest, MFASetupRequest, MFAVerifyResponse, MFADisableResponse
+from app.schemas.sessao import SessaoRefreshTokenRequest
 from app.services.email_service import EmailService
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -61,14 +63,46 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
     # Verificar se MFA está configurado
     mfa_config = db.query(MFAConfig).filter(MFAConfig.ID_USUARIO == db_user.ID, MFAConfig.ATIVO == 'S').first()
     
-    token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    # token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    access_token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    refresh_token = create_refresh_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})    
+
+    # Salvar refresh token na tabela SESSOES
+    sessao = Sessao(
+        ID_USUARIO=db_user.ID,
+        TOKEN_SESSAO=refresh_token,
+        IP_ORIGEM=user.IP_ORIGEM if hasattr(user, 'IP_ORIGEM') else None,
+        USER_AGENT=user.USER_AGENT if hasattr(user, 'USER_AGENT') else None,
+        DATA_EXPIRACAO=datetime.utcnow() + timedelta(days=7),
+        ATIVA='S'
+    )
+    db.add(sessao)
+    db.commit()
 
     return {
-        "token": token, 
+        # "token": token, 
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "user": db_user, 
         "requires_mfa": bool(mfa_config),
         "user_id": db_user.ID
     }
+
+@router.post("/refresh")
+async def refresh_token(data: SessaoRefreshTokenRequest, db: Session = Depends(get_db)):
+    user = await validate_refresh_token(data.refresh_token, db)
+    
+    new_access_token = create_jwt_token({"sub": str(user.ID), "perfil": user.PERFIL})
+    
+    return {"access_token": new_access_token}
+
+@router.post("/logout")
+async def logout(data: SessaoRefreshTokenRequest, db: Session = Depends(get_db)):
+    sessao = db.query(Sessao).filter(Sessao.TOKEN_SESSAO == data.refresh_token, Sessao.ATIVA == 'S').first()
+    if sessao:
+        sessao.ATIVA = 'N'
+        db.commit()
+    return {"message": "Logout realizado com sucesso"}
 
 @router.post("/forgot-password")
 async def forgot_password(user: UserForgotPassword, db: Session = Depends(get_db)):
@@ -165,10 +199,28 @@ async def verify_mfa(data: MFAVerifyRequest, db: Session = Depends(get_db)):
     db_user.DATA_ULTIMO_LOGIN = datetime.utcnow()
     db_user.TENTATIVAS_LOGIN = 0
     db.commit()
-    
-    token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
 
-    return {"token": token, "user": db_user}
+    access_token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    refresh_token = create_refresh_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    # token = create_jwt_token({"sub": str(db_user.ID), "perfil": db_user.PERFIL})
+    
+    # Salvar novo refresh token
+    sessao = Sessao(
+        ID_USUARIO=db_user.ID,
+        TOKEN_SESSAO=refresh_token,
+        IP_ORIGEM=data.IP_ORIGEM if hasattr(data, 'IP_ORIGEM') else None,
+        USER_AGENT=data.USER_AGENT if hasattr(data, 'USER_AGENT') else None,
+        DATA_EXPIRACAO=datetime.utcnow() + timedelta(days=7),
+        ATIVA='S'
+    )
+    db.add(sessao)
+    db.commit()
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": db_user
+    }
 
 @router.post("/mfa/disable", response_model=MFADisableResponse)
 async def disable_mfa(data: MFASetupRequest, db: Session = Depends(get_db)):

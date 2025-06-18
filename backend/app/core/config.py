@@ -11,8 +11,9 @@ class Settings(BaseSettings):
     MAIL_FROM_ADDRESS: str
     MAIL_FROM_NAME: str = "HarasSystem"
     JWT_SECRET: str
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 30
+    JWT_ALGORITHM: str 
+    JWT_EXPIRATION_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int 
 
     class Config:
         env_file = ".env"

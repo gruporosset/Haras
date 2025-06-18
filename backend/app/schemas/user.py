@@ -59,7 +59,8 @@ class UserResponse(UserBase):
         from_attributes = True
 
 class LoginResponse(BaseModel):
-    token: str
+    access_token: str
+    refresh_token: str
     user: UserResponse
     requires_mfa: bool
     user_id: int

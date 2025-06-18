@@ -11,7 +11,8 @@ class MFASetupResponse(BaseModel):
     user: UserResponse
 
 class MFAVerifyResponse(BaseModel):
-    token: str
+    access_token: str
+    refresh_token: str
     user: UserResponse
 
 class MFAVerifyRequest(BaseModel):

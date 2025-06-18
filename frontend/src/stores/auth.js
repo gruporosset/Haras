@@ -4,7 +4,8 @@ import api from '../boot/api'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: null,
+    access_token: null,
+    refresh_token: null,
     requiresMfa: false,
     mfaUserId: null,
     mfaSetup: null,
@@ -26,26 +27,41 @@ export const useAuthStore = defineStore('auth', {
         throw error.response?.data?.detail || 'Erro ao fazer login';
       }
     },
+    
+    async refreshToken() {
+      try {
+        const response = await api.post('/auth/refresh', { refresh_token: this.refresh_token })
+        this.access_token = response.data.access_token
+        localStorage.setItem('access_token_haras', this.access_token)
+      } catch (error) {
+        this.clearAuthData()
+        throw error.response?.data?.detail || 'Sessão expirada'
+      }
+    },
 
     setAuthData(data) {
       this.user = data.user;
-      this.token = data.token;
+      this.access_token = data.access_token
+      this.refresh_token = data.refresh_token
       this.requiresMfa = false;
       
       localStorage.setItem('user_haras', JSON.stringify(data.user));
-      localStorage.setItem('token_haras', data.token);
+      localStorage.setItem('access_token_haras', data.access_token)
+      localStorage.setItem('refresh_token_haras', data.refresh_token)
     },
     
     clearAuthData() {
       this.user = null;
-      this.token = null;
+      this.access_token = null
+      this.refresh_token = null
       this.requiresMfa = false;
       this.mfaUserId = null;
       this.mfaSetup = null;
       
       // Remove do localStorage
       localStorage.removeItem('user_haras');
-      localStorage.removeItem('token_haras');
+      localStorage.removeItem('access_token_haras')
+      localStorage.removeItem('refresh_token_haras')
     },    
 
     async verifyMfa(userId, code) {
@@ -82,8 +98,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },    
     
-    logout() {
-      this.clearAuthData();
+    async logout() {
+      try {
+        await api.post('/auth/logout', { refresh_token: this.refresh_token })
+      } catch (error) {
+        console.error('Erro ao fazer logout:', error)
+      } finally {
+        this.clearAuthData()
+      }
     },
   },
 });

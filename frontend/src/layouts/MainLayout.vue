@@ -16,7 +16,7 @@
             Haras System
           </q-toolbar-title>
           <q-btn 
-            v-if="authStore.token" 
+            v-if="authStore.access_token" 
             flat 
             label="Sair" 
             @click="handleLogout" 
@@ -45,6 +45,12 @@
             <q-item-section>
               <q-item-label>Perfil</q-item-label>
             </q-item-section>
+          </q-item>
+          <q-item clickable v-ripple to="/terrenos">
+            <q-item-section avatar>
+              <q-icon name="landscape" />
+            </q-item-section>
+            <q-item-section>Terrenos</q-item-section>
           </q-item>
           <!-- Adicionar mais itens conforme necessário -->
         </q-list>
