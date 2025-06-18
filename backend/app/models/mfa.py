@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql import func
-from app.models.user import Base
+from sqlalchemy.ext.declarative import declarative_base
+from .base import Base  # Import da base comum
+
+Base = declarative_base()
 
 class MFAConfig(Base):
     __tablename__ = "CONFIG_MFA"
