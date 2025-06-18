@@ -2,6 +2,7 @@ import LoginPage from "../pages/LoginPage.vue"
 import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
 import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
 import DashboardPage from "../pages/DashboardPage.vue"
+import ProfilePage from '../pages/ProfilePage.vue';
 
 const routes = [
   {
@@ -27,8 +28,14 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfilePage,
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/',
-    redirect: '/login',
+    redirect: '/dashboard',
   },
   {
     path: '/:catchAll(.*)*',

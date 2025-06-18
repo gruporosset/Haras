@@ -48,10 +48,18 @@ class UserResponse(UserBase):
     ID: int
     DATA_CADASTRO: Optional[datetime] = None
     ATIVO: str
+    DATA_ULTIMO_LOGIN: Optional[datetime] = None
+    MFA_ATIVO: str
 
-    @field_serializer('DATA_CADASTRO')
+    @field_serializer('DATA_CADASTRO','DATA_ULTIMO_LOGIN')
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else None
 
     class Config:
         from_attributes = True
+
+class LoginResponse(BaseModel):
+    token: str
+    user: UserResponse
+    requires_mfa: bool
+    user_id: int

@@ -50,20 +50,28 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import api from '../boot/api';
 
 export default {
   setup() {
     const $q = useQuasar();
     const router = useRouter();
+    const route = useRoute();
     const token = ref('');
     const password = ref('');
     const showPassword = ref(false);
     const error = ref('');
     const loading = ref(false);
+
+    // Preencher token automaticamente se presente na URL
+    onMounted(() => {
+      if (route.query.token) {
+        token.value = route.query.token;
+      }
+    });
 
     const handleResetPassword = async () => {
       loading.value = true;

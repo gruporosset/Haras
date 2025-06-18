@@ -11,6 +11,7 @@
             label="E-mail"
             type="email"
             filled
+            aria-label="E-mail"
             :rules="[
               val => !!val || 'E-mail é obrigatório',
               val => /.+@.+\..+/.test(val) || 'E-mail inválido'
@@ -28,12 +29,12 @@
             ]"
           >
             <template v-slot:append>
-                <q-icon
-                  :name="showPassword ? 'visibility_off' : 'visibility'"
-                  class="cursor-pointer"
-                  @click="showPassword = !showPassword"
-                />
-            </template>          
+              <q-icon
+                :name="showPassword ? 'visibility_off' : 'visibility'"
+                class="cursor-pointer"
+                @click="showPassword = !showPassword"
+              />
+            </template>
           </q-input>
           <div class="text-negative" v-if="error">{{ error }}</div>
           <q-btn 
@@ -41,7 +42,15 @@
             type="submit" 
             label="Entrar" 
             :loading="loading" 
+            aria-label="Entrar no sistema"
             class="full-width"
+          />
+          <q-btn
+            flat
+            color="primary"
+            label="Esqueceu a senha?"
+            to="/forgot-password"
+            class="full-width q-mt-sm"
           />
         </q-form>
       </q-card-section>
@@ -54,19 +63,14 @@
             class="q-mb-md"
             :error="!!mfaError"
             :error-message="mfaError"
+            aria-label="Código TOTP"
           />
           <div class="text-negative" v-if="mfaError">{{ mfaError }}</div>
           <q-btn color="primary" type="submit" label="Verificar MFA" :disable="loading" class="full-width" />
         </q-form>
-        <q-btn color="secondary" label="Configurar MFA" @click="handleMfaSetup" class="q-mt-md full-width" />
-      </q-card-section>
-      <q-card-section v-if="authStore.mfaSetup">
-        <div class="text-subtitle1 text-center">Configure o MFA</div>
-        <q-img :src="authStore.mfaSetup.qr_code_url" style="max-width: 200px; margin: auto;" />
-        <div class="q-mt-md text-center">Segredo: {{ authStore.mfaSetup.secret }}</div>
       </q-card-section>
     </q-card>
-  </q-page>  
+  </q-page>
 </template>
 
 <script>
@@ -120,19 +124,8 @@ export default {
       }
     };
 
-    const handleMfaSetup = async () => {
-      loading.value = true;
-      try {
-        await authStore.setupMfa(authStore.mfaUserId);
-        $q.notify({ type: 'positive', message: 'QR code gerado para MFA!' });
-      } catch (err) {
-        $q.notify({ type: 'negative', message: err });
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    return { email, password, mfaCode, error, mfaError, loading, authStore, handleLogin, handleMfaVerify, handleMfaSetup, showPassword };
+    return { email, password, mfaCode, error, mfaError, loading, 
+             authStore, handleLogin, handleMfaVerify, showPassword };
   },
 };
 </script>

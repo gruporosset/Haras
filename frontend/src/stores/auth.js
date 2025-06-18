@@ -32,9 +32,8 @@ export const useAuthStore = defineStore('auth', {
       this.token = data.token;
       this.requiresMfa = false;
       
-      // Armazena no localStorage
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('user_haras', JSON.stringify(data.user));
+      localStorage.setItem('token_haras', data.token);
     },
     
     clearAuthData() {
@@ -45,8 +44,8 @@ export const useAuthStore = defineStore('auth', {
       this.mfaSetup = null;
       
       // Remove do localStorage
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      localStorage.removeItem('user_haras');
+      localStorage.removeItem('token_haras');
     },    
 
     async verifyMfa(userId, code) {
@@ -65,10 +64,24 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/auth/mfa/setup', { user_id: userId });
         this.mfaSetup = response.data;
+        this.user = response.data.user;
+        localStorage.setItem('user_haras', JSON.stringify(this.user));
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao configurar MFA';
       }
     },
+    
+    async disableMfa(userId) {
+      try {
+        const response = await api.post('/auth/mfa/disable', { user_id: userId });
+        this.user = response.data.user;
+        this.mfaSetup = null;
+        localStorage.setItem('user_haras', JSON.stringify(this.user));
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao desativar MFA';
+      }
+    },    
+    
     logout() {
       this.clearAuthData();
     },

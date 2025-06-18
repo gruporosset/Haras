@@ -53,7 +53,7 @@ export default {
       error.value = '';
       try {
         await api.post('/auth/forgot-password', { EMAIL: email.value });
-        $q.notify({ type: 'positive', message: 'E-mail de recuperação enviado!' });
+        $q.notify({ type: 'positive', message: 'E-mail de recuperação enviado! Verifique sua caixa de entrada.' });
         router.push('/login');
       } catch (err) {
         error.value = err.response?.data?.detail || 'Erro ao enviar e-mail';

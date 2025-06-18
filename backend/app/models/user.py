@@ -28,3 +28,4 @@ class User(Base):
     PERFIL = Column(Enum(Perfil), default=Perfil.USER)
     PRIMEIRO_ACESSO = Column(String, default='N')
     ATIVO = Column(String, default='S')
+    MFA_ATIVO = Column(String, default='N')
