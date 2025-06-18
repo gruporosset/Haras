@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.terreno import Terreno
 from app.models.user import User
 from app.schemas.terreno import TerrenoCreate, TerrenoUpdate, TerrenoResponse
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/api/terrenos", tags=["Terrenos"])
 
@@ -24,9 +25,49 @@ async def create_terreno(
     db.refresh(db_terreno)
     return db_terreno
 
-@router.get("/", response_model=List[TerrenoResponse])
-async def list_terrenos(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Terreno).all()
+@router.get("/", response_model=dict)
+async def list_terrenos(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    nome: Optional[str] = Query(None, description="Filtrar por nome do terreno"),
+    status: Optional[str] = Query(None, description="Filtrar por status do terreno"),
+    page: int = Query(1, ge=1, description="Número da página"),
+    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    sort_by: Optional[str] = Query("ID", description="Coluna para ordenação"),
+    order: Optional[str] = Query("asc", description="Ordem: asc ou desc")
+):
+    query = db.query(Terreno)
+    
+    # Aplicar filtros
+    if nome:
+        query = query.filter(Terreno.NOME.ilike(f"%{nome}%"))
+    if status:
+        query = query.filter(Terreno.STATUS_TERRENO == status)
+    
+    # Contar total de registros
+    total = query.count()
+    
+    # Aplicar ordenação
+    if sort_by in ["ID", "NOME", "AREA_HECTARES", "STATUS_TERRENO", "LATITUDE", "LONGITUDE"]:
+        order_column = getattr(Terreno, sort_by)
+        if order.lower() == "desc":
+            query = query.order_by(order_column.desc())
+        else:
+            query = query.order_by(order_column.asc())
+    
+    # Aplicar paginação
+    offset = (page - 1) * limit
+    terrenos = query.offset(offset).limit(limit).all()
+
+     # Converter os objetos SQLAlchemy para modelos Pydantic
+    terrenos_response = [TerrenoResponse.from_orm(terreno) for terreno in terrenos]
+    
+    return {
+        "terrenos": terrenos_response,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 @router.get("/{id}", response_model=TerrenoResponse)
 async def get_terreno(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

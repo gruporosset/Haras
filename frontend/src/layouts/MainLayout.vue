@@ -88,7 +88,7 @@ export default {
     const handleLogout = () => {
       authStore.logout();
       $q.notify({ type: 'positive', message: 'Logout realizado com sucesso!' });
-      router.push('/');
+      router.push('/login');
     };
 
     return { authStore, handleLogout, isLoginPage, toggleLeftDrawer, leftDrawerOpen };

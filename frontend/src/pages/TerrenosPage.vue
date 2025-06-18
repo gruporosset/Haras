@@ -11,7 +11,7 @@
             label="Filtrar por Nome"
             class="q-mr-md"
             clearable
-            @input="fetchTerrenos"
+            @update:model-value="fetchTerrenos"
             :debounce="300"
             aria-label="Filtrar terrenos por nome"
           />
@@ -21,7 +21,7 @@
             label="Filtrar por Status"
             clearable
             class="col-3"
-            @input="fetchTerrenos"
+            @update:model-value="fetchTerrenos"
             aria-label="Filtrar terrenos por status"
           />
           <q-btn
@@ -258,7 +258,7 @@ const terrenoToDelete = ref(null)
 async function fetchTerrenos(props = {}) {
   loading.value = true
   try {
-    const { page, rowsPerPage, sortBy, descending } = props.pagination || pagination
+    const { page, rowsPerPage, sortBy, descending } = props?.pagination || pagination
     const params = {
       page,
       limit: rowsPerPage,
@@ -268,10 +268,10 @@ async function fetchTerrenos(props = {}) {
       status: filters.status
     }
     const response = await api.get('/api/terrenos', { params })
-    terrenos.value = response.data
-    pagination.rowsNumber = response.data.length // Ajustar para total do backend
-    pagination.page = page
-    pagination.rowsPerPage = rowsPerPage
+    terrenos.value = response.data.terrenos
+    pagination.rowsNumber = response.data.total
+    pagination.page = response.data.page
+    pagination.rowsPerPage = response.data.limit
     pagination.sortBy = sortBy
     pagination.descending = descending
   } catch (error) {
@@ -314,10 +314,10 @@ async function saveTerreno() {
   loading.value = true
   try {
     if (form.value.ID) {
-      await api.put(`/terrenos/${form.value.ID}`, form.value)
+      await api.put(`/api/terrenos/${form.value.ID}`, form.value)
       $q.notify({ type: 'positive', message: 'Terreno atualizado com sucesso' })
     } else {
-      await api.post('/terrenos', form.value)
+      await api.post('/api/terrenos', form.value)
       $q.notify({ type: 'positive', message: 'Terreno cadastrado com sucesso' })
     }
     dialog.value = false
@@ -340,7 +340,7 @@ function confirmDelete(terreno) {
 async function deleteTerreno() {
   loading.value = true
   try {
-    await api.delete(`/terrenos/${terrenoToDelete.value.ID}`)
+    await api.delete(`/api/terrenos/${terrenoToDelete.value.ID}`)
     $q.notify({ type: 'positive', message: 'Terreno excluído com sucesso' })
     deleteDialog.value = false
     await fetchTerrenos()
