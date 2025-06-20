@@ -7,7 +7,7 @@
       <q-card-section>
         <div class="row q-gutter-md q-mb-md">
           <q-input
-            v-model="filters.nome"
+            v-model="animalStore.filters.nome"
             label="Filtrar por Nome"
             clearable
             @update:model-value="fetchAnimais"
@@ -16,7 +16,7 @@
             class="col-3"
           />
           <q-select
-            v-model="filters.sexo"
+            v-model="animalStore.filters.sexo"
             :options="sexoOptions"
             label="Sexo"
             clearable
@@ -25,7 +25,7 @@
             class="col-2"
           />
           <q-select
-            v-model="filters.status"
+            v-model="animalStore.filters.status"
             :options="statusOptions"
             label="Status"
             clearable
@@ -34,7 +34,7 @@
             class="col-2"
           />
           <q-input
-            v-model="filters.numero_registro"
+            v-model="animalStore.filters.numero_registro"
             label="Nº Registro"
             clearable
             @update:model-value="fetchAnimais"
@@ -51,11 +51,11 @@
         </div>
         
         <q-table
-          :rows="animais"
+          :rows="animalStore.animais"
           :columns="columns"
           row-key="ID"
-          :loading="loading"
-          :pagination="pagination"
+          :loading="animalStore.loading"
+          :pagination="animalStore.pagination"
           @request="onRequest"
           binary-state-sort
           aria-label="Tabela de animais"
@@ -95,6 +95,14 @@
                 flat
                 round
                 color="info"
+                icon="visibility"
+                @click="viewAnimal(props.row)"
+                aria-label="Visualizar animal"
+              />
+              <q-btn
+                flat
+                round
+                color="secondary"
                 icon="account_tree"
                 @click="showGenealogia(props.row)"
                 aria-label="Ver genealogia"
@@ -129,7 +137,134 @@
       </q-card-section>
     </q-card>
 
-    <!-- Diálogo para Cadastro/Edição -->
+    <!-- Diálogo de Visualização -->
+    <q-dialog v-model="viewDialog" persistent>
+      <q-card style="width: 600px; max-width: 90vw">
+        <q-card-section>
+          <div class="text-h6 flex items-center">
+            <q-avatar v-if="viewAnimalData?.FOTO_PRINCIPAL" size="50px" class="q-mr-md">
+              <img :src="`http://localhost:8000${viewAnimalData.FOTO_PRINCIPAL}`" />
+            </q-avatar>
+            <q-icon v-else name="pets" size="50px" color="primary" class="q-mr-md" />
+            {{ viewAnimalData?.NOME }}
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="row q-gutter-md">
+            <div class="col-12">
+              <q-list>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>ID</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.ID }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Número de Registro</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.NUMERO_REGISTRO || 'Não informado' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Chip de Identificação</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.CHIP_IDENTIFICACAO || 'Não informado' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Sexo</q-item-label>
+                    <q-item-label>
+                      <q-icon 
+                        :name="viewAnimalData?.SEXO === 'M' ? 'male' : 'female'" 
+                        :color="viewAnimalData?.SEXO === 'M' ? 'blue' : 'pink'"
+                        size="sm"
+                        class="q-mr-xs"
+                      />
+                      {{ viewAnimalData?.SEXO === 'M' ? 'Macho' : 'Fêmea' }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Data de Nascimento</q-item-label>
+                    <q-item-label>{{ formatDate(viewAnimalData?.DATA_NASCIMENTO) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Pelagem</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.PELAGEM || 'Não informado' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Status</q-item-label>
+                    <q-item-label>
+                      <q-chip 
+                        :color="getStatusColor(viewAnimalData?.STATUS_ANIMAL)" 
+                        text-color="white" 
+                        dense
+                      >
+                        {{ viewAnimalData?.STATUS_ANIMAL }}
+                      </q-chip>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Origem</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.ORIGEM || 'Não informado' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Peso Atual</q-item-label>
+                    <q-item-label>{{ viewAnimalData?.PESO_ATUAL ? `${viewAnimalData.PESO_ATUAL} kg` : 'Não informado' }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Data de Cadastro</q-item-label>
+                    <q-item-label>{{ formatDate(viewAnimalData?.DATA_CADASTRO) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                
+                <q-item v-if="viewAnimalData?.OBSERVACOES">
+                  <q-item-section>
+                    <q-item-label caption>Observações</q-item-label>
+                    <q-item-label>{{ viewAnimalData.OBSERVACOES }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Editar"
+            color="primary"
+            @click="editFromView"
+          />
+          <q-btn
+            flat
+            label="Fechar"
+            color="gray"
+            @click="viewDialog = false"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <q-dialog v-model="dialog" persistent>
       <q-card style="width: 700px; max-width: 90vw">
         <q-form @submit="saveAnimal">
@@ -185,7 +320,7 @@
             <div class="row q-gutter-md q-mt-sm">
               <q-select
                 v-model="form.ID_PAI"
-                :options="machoOptions"
+                :options="animalStore.parentOptions.machos"
                 label="Pai"
                 clearable
                 use-input
@@ -194,7 +329,7 @@
               />
               <q-select
                 v-model="form.ID_MAE"
-                :options="femeaOptions"
+                :options="animalStore.parentOptions.femeas"
                 label="Mãe"
                 clearable
                 use-input
@@ -237,7 +372,7 @@
               type="submit"
               color="primary"
               label="Salvar"
-              :disable="loading"
+              :disable="animalStore.loading"
             />
           </q-card-actions>
         </q-form>
@@ -432,31 +567,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
-import api from '../boot/api'
+import { useAnimalStore } from '../stores/animais'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-
-// Estado da tabela
-const animais = ref([])
-const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  rowsPerPage: 10,
-  rowsNumber: 10,
-  sortBy: 'ID',
-  descending: false
-})
-
-const filters = reactive({
-  nome: '',
-  sexo: null,
-  status: null,
-  numero_registro: ''
-})
+const animalStore = useAnimalStore()
 
 const columns = [
   { name: 'foto', label: '', field: 'FOTO_PRINCIPAL', align: 'center', style: 'width: 60px' },
@@ -483,6 +601,7 @@ const statusOptions = [
 
 // Estado dos diálogos
 const dialog = ref(false)
+const viewDialog = ref(false)
 const fotoDialog = ref(false)
 const genealogiaDialog = ref(false)
 const deleteDialog = ref(false)
@@ -506,47 +625,26 @@ const form = ref({
 })
 
 const selectedAnimal = ref(null)
+const viewAnimalData = ref(null)
 const animalToDelete = ref(null)
 const genealogiaData = ref(null)
 const newFoto = ref(null)
 
-// Opções para seleção de pais
-const machoOptions = ref([])
-const femeaOptions = ref([])
-
 // Funções
 async function fetchAnimais(props = {}) {
-  loading.value = true
   try {
-    const { page, rowsPerPage, sortBy, descending } = props?.pagination || pagination
-    const params = {
-      page,
-      limit: rowsPerPage,
-      sort_by: sortBy,
-      order: descending ? 'desc' : 'asc',
-      nome: filters.nome,
-      sexo: filters.sexo?.value,
-      status: filters.status?.value,
-      numero_registro: filters.numero_registro
-    }
-    const response = await api.get('/api/animais', { params })
-    animais.value = response.data.animais
-    pagination.rowsNumber = response.data.total
-    pagination.page = response.data.page
-    pagination.rowsPerPage = response.data.limit
-    pagination.sortBy = sortBy
-    pagination.descending = descending
+    await animalStore.fetchAnimais(props)
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar animais: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
 function onRequest(props) {
+  const { page, rowsPerPage, sortBy, descending } = props.pagination
+  animalStore.setPagination({ page, rowsPerPage, sortBy, descending })
   fetchAnimais(props)
 }
 
@@ -580,24 +678,20 @@ function openDialog(animal) {
 }
 
 async function saveAnimal() {
-  loading.value = true
   try {
     if (form.value.ID) {
-      await api.put(`/api/animais/${form.value.ID}`, form.value)
+      await animalStore.updateAnimal(form.value.ID, form.value)
       $q.notify({ type: 'positive', message: 'Animal atualizado com sucesso' })
     } else {
-      await api.post('/api/animais', form.value)
+      await animalStore.createAnimal(form.value)
       $q.notify({ type: 'positive', message: 'Animal cadastrado com sucesso' })
     }
     dialog.value = false
-    await fetchAnimais()
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao salvar animal: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -606,20 +700,26 @@ function confirmDelete(animal) {
   deleteDialog.value = true
 }
 
+function viewAnimal(animal) {
+  viewAnimalData.value = animal
+  viewDialog.value = true
+}
+
+function editFromView() {
+  viewDialog.value = false
+  openDialog(viewAnimalData.value)
+}
+
 async function deleteAnimal() {
-  loading.value = true
   try {
-    await api.delete(`/api/animais/${animalToDelete.value.ID}`)
+    await animalStore.deleteAnimal(animalToDelete.value.ID)
     $q.notify({ type: 'positive', message: 'Animal excluído com sucesso' })
     deleteDialog.value = false
-    await fetchAnimais()
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao excluir animal: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -631,50 +731,36 @@ function openFotoDialog(animal) {
 async function uploadFoto() {
   if (!newFoto.value || !selectedAnimal.value) return
   
-  const formData = new FormData()
-  formData.append('foto', newFoto.value)
-  
   try {
-    const response = await api.post(`/api/animais/${selectedAnimal.value.ID}/foto`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    
+    await animalStore.uploadFoto(selectedAnimal.value.ID, newFoto.value)
     $q.notify({ type: 'positive', message: 'Foto enviada com sucesso' })
     
     // Atualizar foto principal do animal
-    selectedAnimal.value.FOTO_PRINCIPAL = response.data.url
-    await fetchAnimais()
-    
+    selectedAnimal.value = animalStore.animalById(selectedAnimal.value.ID)
     newFoto.value = null
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao enviar foto: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
   }
 }
 
 async function showGenealogia(animal) {
   try {
-    const response = await api.get(`/api/animais/${animal.ID}/genealogia`)
-    genealogiaData.value = response.data
+    genealogiaData.value = await animalStore.getGenealogia(animal.ID)
     genealogiaDialog.value = true
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar genealogia: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
   }
 }
 
 async function loadParentOptions() {
   try {
-    const [machosRes, femeasRes] = await Promise.all([
-      api.get('/api/animais/options/parents?sexo=M'),
-      api.get('/api/animais/options/parents?sexo=F')
-    ])
-    machoOptions.value = machosRes.data
-    femeaOptions.value = femeasRes.data
+    await animalStore.loadParentOptions()
   } catch (error) {
     console.error('Erro ao carregar opções de pais:', error)
   }

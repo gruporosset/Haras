@@ -7,7 +7,7 @@
       <q-card-section>
         <div class="row q-mb-md">
           <q-input
-            v-model="filters.nome"
+            v-model="terrenoStore.filters.nome"
             label="Filtrar por Nome"
             class="q-mr-md"
             clearable
@@ -16,7 +16,7 @@
             aria-label="Filtrar terrenos por nome"
           />
           <q-select
-            v-model="filters.status"
+            v-model="terrenoStore.filters.status"
             :options="statusOptions"
             label="Filtrar por Status"
             clearable
@@ -38,46 +38,162 @@
           <q-tab name="table" label="Tabela" aria-label="Exibir tabela de terrenos" />
           <q-tab name="map" label="Mapa" aria-label="Exibir mapa de terrenos" />
         </q-tabs>
+        
         <q-tab-panels v-model="activeTab" animated>
-            <q-tab-panel name="table">
-                <q-table
-                :rows="terrenos"
-                :columns="columns"
-                row-key="ID"
-                :loading="loading"
-                :pagination="pagination"
-                @request="onRequest"
-                binary-state-sort
-                aria-label="Tabela de terrenos"
-                >
-                <template v-slot:body-cell-acoes="props">
-                    <q-td :props="props">
-                    <q-btn
-                        flat
-                        round
-                        color="primary"
-                        icon="edit"
-                        @click="openDialog(props.row)"
-                        aria-label="Editar terreno"
-                    />
-                    <q-btn
-                        flat
-                        round
-                        color="negative"
-                        icon="delete"
-                        @click="confirmDelete(props.row)"
-                        aria-label="Excluir terreno"
-                    />
-                    </q-td>
-                </template>
-                </q-table>
-            </q-tab-panel>
-            <q-tab-panel name="map">
-                <terreno-map :terrenos="terrenos" />
-            </q-tab-panel>   
+          <q-tab-panel name="table">
+            <q-table
+              :rows="terrenoStore.terrenos"
+              :columns="columns"
+              row-key="ID"
+              :loading="terrenoStore.loading"
+              :pagination="terrenoStore.pagination"
+              @request="onRequest"
+              binary-state-sort
+              aria-label="Tabela de terrenos"
+            >
+              <template v-slot:body-cell-acoes="props">
+                <q-td :props="props">
+                  <q-btn
+                    flat
+                    round
+                    color="info"
+                    icon="visibility"
+                    @click="viewTerreno(props.row)"
+                    aria-label="Visualizar terreno"
+                  />
+                  <q-btn
+                    flat
+                    round
+                    color="primary"
+                    icon="edit"
+                    @click="openDialog(props.row)"
+                    aria-label="Editar terreno"
+                  />
+                  <q-btn
+                    flat
+                    round
+                    color="negative"
+                    icon="delete"
+                    @click="confirmDelete(props.row)"
+                    aria-label="Excluir terreno"
+                  />
+                </q-td>
+              </template>
+            </q-table>
+          </q-tab-panel>
+          <q-tab-panel name="map">
+            <terreno-map :terrenos="terrenoStore.terrenos" />
+          </q-tab-panel>   
         </q-tab-panels>   
       </q-card-section>
     </q-card>
+
+    <!-- Diálogo de Visualização -->
+    <q-dialog v-model="viewDialog" persistent>
+      <q-card style="width: 600px; max-width: 90vw">
+        <q-card-section>
+          <div class="text-h6 flex items-center">
+            <q-icon name="landscape" size="50px" color="primary" class="q-mr-md" />
+            {{ viewTerrenoData?.NOME }}
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-list>
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>ID</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.ID }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Área (hectares)</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.AREA_HECTARES }} ha</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Tipo de Solo</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.TIPO_SOLO || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Topografia</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.TOPOGRAFIA || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Tipo de Pastagem</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.TIPO_PASTAGEM || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Capacidade de Animais</q-item-label>
+                <q-item-label>{{ viewTerrenoData?.CAPACIDADE_ANIMAIS || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Coordenadas</q-item-label>
+                <q-item-label>Lat: {{ viewTerrenoData?.LATITUDE }}, Lng: {{ viewTerrenoData?.LONGITUDE }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Status</q-item-label>
+                <q-item-label>
+                  <q-chip 
+                    :color="getStatusColor(viewTerrenoData?.STATUS_TERRENO)" 
+                    text-color="white" 
+                    dense
+                  >
+                    {{ viewTerrenoData?.STATUS_TERRENO }}
+                  </q-chip>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Data de Cadastro</q-item-label>
+                <q-item-label>{{ formatDate(viewTerrenoData?.DATA_CADASTRO) }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item v-if="viewTerrenoData?.OBSERVACOES">
+              <q-item-section>
+                <q-item-label caption>Observações</q-item-label>
+                <q-item-label>{{ viewTerrenoData.OBSERVACOES }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Editar"
+            color="primary"
+            @click="editFromView"
+          />
+          <q-btn
+            flat
+            label="Fechar"
+            color="gray"
+            @click="viewDialog = false"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Diálogo para Cadastro/Edição -->
     <q-dialog v-model="dialog" persistent>
@@ -174,7 +290,7 @@
               type="submit"
               color="primary"
               label="Salvar"
-              :disable="loading"
+              :disable="terrenoStore.loading"
               aria-label="Salvar terreno"
             />
           </q-card-actions>
@@ -203,7 +319,7 @@
             color="negative"
             label="Excluir"
             @click="deleteTerreno"
-            :disable="loading"
+            :disable="terrenoStore.loading"
             aria-label="Confirmar exclusão"
           />
         </q-card-actions>
@@ -213,29 +329,16 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
-import api from '../boot/api';
+import { useTerrenoStore } from '../stores/terrenos'
 import TerrenoMap from '../components/TerrenoMap.vue'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
+const terrenoStore = useTerrenoStore()
 
-// Estado da tabela
-const terrenos = ref([])
-const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  rowsPerPage: 10,
-  rowsNumber: 10,
-  sortBy: 'ID',
-  descending: false
-})
-const filters = reactive({
-  nome: '',
-  status: null
-})
 const columns = [
   { name: 'ID', label: 'ID', field: 'ID', sortable: true, align: 'left' },
   { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
@@ -243,15 +346,19 @@ const columns = [
   { name: 'STATUS_TERRENO', label: 'Status', field: 'STATUS_TERRENO', sortable: true, align: 'left' },
   { name: 'LATITUDE', label: 'Latitude', field: 'LATITUDE', sortable: true, align: 'left' },
   { name: 'LONGITUDE', label: 'Longitude', field: 'LONGITUDE', sortable: true, align: 'left' },
-  { name: 'acoes', label: '', field: 'acoes', align: 'center' }
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
 ]
+
 const statusOptions = ['DISPONIVEL', 'OCUPADO', 'MANUTENÇÃO']
 
 // Estado das abas
 const activeTab = ref('table')
 
-// Estado do diálogo de cadastro/edição
+// Estado dos diálogos
 const dialog = ref(false)
+const viewDialog = ref(false)
+const deleteDialog = ref(false)
+
 const form = ref({
   ID: null,
   NOME: '',
@@ -267,40 +374,24 @@ const form = ref({
   ID_USUARIO_CADASTRO: authStore.user.ID
 })
 
-// Estado do diálogo de exclusão
-const deleteDialog = ref(false)
+const viewTerrenoData = ref(null)
 const terrenoToDelete = ref(null)
 
+// Funções
 async function fetchTerrenos(props = {}) {
-  loading.value = true
   try {
-    const { page, rowsPerPage, sortBy, descending } = props?.pagination || pagination
-    const params = {
-      page,
-      limit: rowsPerPage,
-      sort_by: sortBy,
-      order: descending ? 'desc' : 'asc',
-      nome: filters.nome,
-      status: filters.status
-    }
-    const response = await api.get('/api/terrenos', { params })
-    terrenos.value = response.data.terrenos
-    pagination.rowsNumber = response.data.total
-    pagination.page = response.data.page
-    pagination.rowsPerPage = response.data.limit
-    pagination.sortBy = sortBy
-    pagination.descending = descending
+    await terrenoStore.fetchTerrenos(props)
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao carregar terrenos: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
 function onRequest(props) {
+  const { page, rowsPerPage, sortBy, descending } = props.pagination
+  terrenoStore.setPagination({ page, rowsPerPage, sortBy, descending })
   fetchTerrenos(props)
 }
 
@@ -326,25 +417,31 @@ function openDialog(terreno) {
   dialog.value = true
 }
 
+function viewTerreno(terreno) {
+  viewTerrenoData.value = terreno
+  viewDialog.value = true
+}
+
+function editFromView() {
+  viewDialog.value = false
+  openDialog(viewTerrenoData.value)
+}
+
 async function saveTerreno() {
-  loading.value = true
   try {
     if (form.value.ID) {
-      await api.put(`/api/terrenos/${form.value.ID}`, form.value)
+      await terrenoStore.updateTerreno(form.value.ID, form.value)
       $q.notify({ type: 'positive', message: 'Terreno atualizado com sucesso' })
     } else {
-      await api.post('/api/terrenos', form.value)
+      await terrenoStore.createTerreno(form.value)
       $q.notify({ type: 'positive', message: 'Terreno cadastrado com sucesso' })
     }
     dialog.value = false
-    await fetchTerrenos()
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao salvar terreno: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -354,22 +451,34 @@ function confirmDelete(terreno) {
 }
 
 async function deleteTerreno() {
-  loading.value = true
   try {
-    await api.delete(`/api/terrenos/${terrenoToDelete.value.ID}`)
+    await terrenoStore.deleteTerreno(terrenoToDelete.value.ID)
     $q.notify({ type: 'positive', message: 'Terreno excluído com sucesso' })
     deleteDialog.value = false
-    await fetchTerrenos()
   } catch (error) {
     $q.notify({
       type: 'negative',
-      message: 'Erro ao excluir terreno: ' + (error.response?.data?.detail || 'Tente novamente')
+      message: error
     })
-  } finally {
-    loading.value = false
   }
 }
 
+function getStatusColor(status) {
+  const colors = {
+    'DISPONIVEL': 'positive',
+    'OCUPADO': 'warning',
+    'MANUTENÇÃO': 'negative'
+  }
+  return colors[status] || 'grey'
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'N/A'
+  return new Date(dateStr).toLocaleDateString('pt-BR')
+}
+
 // Carregar terrenos na inicialização
-fetchTerrenos()
+onMounted(() => {
+  fetchTerrenos()
+})
 </script>
