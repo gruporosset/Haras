@@ -52,6 +52,12 @@
             </q-item-section>
             <q-item-section>Terrenos</q-item-section>
           </q-item>
+          <q-item clickable v-ripple to="/animais">
+            <q-item-section avatar>
+              <q-icon name="pets" />
+            </q-item-section>
+            <q-item-section>Animais</q-item-section>
+          </q-item>
           <!-- Adicionar mais itens conforme necessário -->
         </q-list>
       </q-drawer>    

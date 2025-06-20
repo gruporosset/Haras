@@ -4,6 +4,7 @@ import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
 import DashboardPage from "../pages/DashboardPage.vue"
 import ProfilePage from '../pages/ProfilePage.vue';
 import TerrenosPage from '../pages/TerrenosPage.vue'
+import AnimaisPage from '../pages/AnimaisPage.vue'
 
 const routes = [
   {
@@ -42,6 +43,12 @@ const routes = [
     path: '/terrenos',
     name: 'Terrenos',
     component: TerrenosPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/animais',
+    name: 'Animais',
+    component: AnimaisPage,
     meta: { requiresAuth: true },
   },
   {
