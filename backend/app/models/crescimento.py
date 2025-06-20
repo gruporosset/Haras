@@ -1,9 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declarative_base
 from .base import Base
-
-Base = declarative_base()
 
 class HistoricoCrescimento(Base):
     __tablename__ = "HISTORICO_CRESCIMENTO"

@@ -20,12 +20,14 @@ class CrescimentoBase(BaseModel):
     ALTURA: Optional[float] = Field(None, ge=0)
     PERIMETRO_TORACICO: Optional[float] = Field(None, ge=0)
     COMPRIMENTO_CORPO: Optional[float] = Field(None, ge=0)
+    DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
 
 class CrescimentoCreate(CrescimentoBase):
     ID_USUARIO_REGISTRO: int
 
     @field_validator('DATA_MEDICAO')
+    @classmethod
     def validate_data_medicao(cls, v):
         if v > datetime.now():
             raise ValueError('Data de medição não pode ser no futuro')
@@ -37,6 +39,7 @@ class CrescimentoUpdate(BaseModel):
     ALTURA: Optional[float] = Field(None, ge=0)
     PERIMETRO_TORACICO: Optional[float] = Field(None, ge=0)
     COMPRIMENTO_CORPO: Optional[float] = Field(None, ge=0)
+    DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
     ID_USUARIO_REGISTRO: Optional[int] = None
 
@@ -47,7 +50,7 @@ class CrescimentoResponse(CrescimentoBase):
 
     @field_serializer('DATA_MEDICAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
 
     class Config:
         from_attributes = True
@@ -69,15 +72,17 @@ class SaudeCreate(SaudeBase):
     ID_USUARIO_REGISTRO: int
 
     @field_validator('DATA_OCORRENCIA')
+    @classmethod
     def validate_data_ocorrencia(cls, v):
         if v > datetime.now():
             raise ValueError('Data de ocorrência não pode ser no futuro')
         return v
 
     @field_validator('PROXIMA_APLICACAO')
-    def validate_proxima_aplicacao(cls, v, values):
-        if v and 'DATA_OCORRENCIA' in values:
-            if v <= values['DATA_OCORRENCIA']:
+    @classmethod
+    def validate_proxima_aplicacao(cls, v, info):
+        if v and info.data.get('DATA_OCORRENCIA'):
+            if v <= info.data['DATA_OCORRENCIA']:
                 raise ValueError('Próxima aplicação deve ser após a data de ocorrência')
         return v
 
@@ -100,7 +105,7 @@ class SaudeResponse(SaudeBase):
 
     @field_serializer('DATA_OCORRENCIA', 'PROXIMA_APLICACAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
 
     class Config:
         from_attributes = True

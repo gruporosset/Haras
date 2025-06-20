@@ -58,6 +58,12 @@
             </q-item-section>
             <q-item-section>Animais</q-item-section>
           </q-item>
+          <q-item clickable v-ripple to="/crescimento-saude">
+            <q-item-section avatar>
+              <q-icon name="trending_up" />
+            </q-item-section>
+            <q-item-section>Crescimento & Saúde</q-item-section>
+          </q-item>
           <!-- Adicionar mais itens conforme necessário -->
         </q-list>
       </q-drawer>    

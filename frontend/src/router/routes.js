@@ -5,6 +5,7 @@ import DashboardPage from "../pages/DashboardPage.vue"
 import ProfilePage from '../pages/ProfilePage.vue';
 import TerrenosPage from '../pages/TerrenosPage.vue'
 import AnimaisPage from '../pages/AnimaisPage.vue'
+import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
 
 const routes = [
   {
@@ -49,6 +50,12 @@ const routes = [
     path: '/animais',
     name: 'Animais',
     component: AnimaisPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/crescimento-saude',
+    name: 'CrescimentoSaude',
+    component: CrescimentoSaudePage,
     meta: { requiresAuth: true },
   },
   {

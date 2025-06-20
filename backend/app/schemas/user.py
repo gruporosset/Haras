@@ -53,7 +53,7 @@ class UserResponse(UserBase):
 
     @field_serializer('DATA_CADASTRO','DATA_ULTIMO_LOGIN')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
 
     class Config:
         from_attributes = True

@@ -1,14 +1,13 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declarative_base
 from .base import Base 
 
-Base = declarative_base()
+# Base = declarative_base()
 
 class Sessao(Base):
     __tablename__ = "SESSOES"
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_USUARIO = Column(Integer, nullable=False)
+    ID_USUARIO = Column(Integer, ForeignKey('USUARIOS.ID'), nullable=False)
     TOKEN_SESSAO = Column(String(500), unique=True, nullable=False)
     IP_ORIGEM = Column(String(45))
     USER_AGENT = Column(String(500))

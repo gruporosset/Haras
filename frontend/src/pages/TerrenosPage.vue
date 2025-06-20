@@ -332,7 +332,7 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
-import { useTerrenoStore } from '../stores/terrenos'
+import { useTerrenoStore } from '../stores/terreno'
 import TerrenoMap from '../components/TerrenoMap.vue'
 
 const $q = useQuasar()

@@ -292,27 +292,43 @@
             </div>
             
             <div class="row q-gutter-md q-mt-sm">
+              <calendario-component
+                  v-model="form.DATA_NASCIMENTO"
+                  label="Data de Nascimento"
+                  class="col-5"
+              />
               <q-select
                 v-model="form.SEXO"
                 :options="sexoOptions"
                 label="Sexo"
-                class="col-2"
-              />
-              <q-input
-                v-model="form.DATA_NASCIMENTO"
-                label="Data de Nascimento"
-                type="date"
-                class="col-3"
-              />
-              <q-input
-                v-model="form.PELAGEM"
-                label="Pelagem"
                 class="col-3"
               />
               <q-select
                 v-model="form.STATUS_ANIMAL"
                 :options="statusOptions"
                 label="Status"
+                class="col-3"
+              />
+            </div>
+
+            <div class="row q-gutter-md q-mt-sm">
+              <q-input
+                v-model="form.ORIGEM"
+                label="Origem"
+                class="col-5"
+              />
+
+              <q-input
+                v-model="form.PELAGEM"
+                label="Pelagem"
+                class="col-3"
+              />
+
+              <q-input
+                v-model.number="form.PESO_ATUAL"
+                label="Peso Atual (kg)"
+                type="number"
+                step="0.1"
                 class="col-3"
               />
             </div>
@@ -335,21 +351,6 @@
                 use-input
                 @filter="filterFemeas"
                 class="col-5"
-              />
-            </div>
-
-            <div class="row q-gutter-md q-mt-sm">
-              <q-input
-                v-model="form.ORIGEM"
-                label="Origem"
-                class="col-4"
-              />
-              <q-input
-                v-model.number="form.PESO_ATUAL"
-                label="Peso Atual (kg)"
-                type="number"
-                step="0.1"
-                class="col-3"
               />
             </div>
 
@@ -570,7 +571,8 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
-import { useAnimalStore } from '../stores/animais'
+import { useAnimalStore } from '../stores/animal'
+import CalendarioComponent from '../components/CalendarioComponent.vue'
 
 const $q = useQuasar()
 const authStore = useAuthStore()

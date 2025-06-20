@@ -62,7 +62,7 @@ class AnimalResponse(AnimalBase):
 
     @field_serializer('DATA_NASCIMENTO', 'DATA_CADASTRO', 'DATA_ALTERACAO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%Y-%m-%d") if dt else None
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True

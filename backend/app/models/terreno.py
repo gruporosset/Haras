@@ -1,10 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
-from sqlalchemy.ext.declarative import declarative_base
-from .base import Base  # Import de um base.py comum
-
-Base = declarative_base()
+from .base import Base  
 
 class Terreno(Base):
     __tablename__ = "TERRENOS"
@@ -19,5 +16,5 @@ class Terreno(Base):
     LONGITUDE = Column(Float, nullable=False)  # NUMBER(9,6)
     STATUS_TERRENO = Column(String(20), default='DISPONIVEL')
     OBSERVACOES = Column(CLOB)
-    ID_USUARIO_CADASTRO = Column(Integer, nullable=False)
+    ID_USUARIO_CADASTRO = Column(Integer,ForeignKey('USUARIOS.ID'), nullable=False)
     DATA_CADASTRO = Column(DateTime(timezone=True), server_default=func.now())

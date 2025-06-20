@@ -1,10 +1,7 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Enum, DateTime
 from sqlalchemy.sql import func
 import enum
 from .base import Base  # Import da base comum
-
-Base = declarative_base()
 
 class Perfil(str, enum.Enum):
     ADMIN = "ADMIN"

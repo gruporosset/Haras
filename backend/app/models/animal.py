@@ -1,11 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
-from sqlalchemy.ext.declarative import declarative_base
 from .base import Base
 import enum
-
-Base = declarative_base()
 
 class SexoEnum(str, enum.Enum):
     M = "M"
@@ -31,9 +28,9 @@ class Animal(Base):
     ID_PAI = Column(Integer, ForeignKey('ANIMAIS.ID'))
     ID_MAE = Column(Integer, ForeignKey('ANIMAIS.ID'))
     ORIGEM = Column(String(100))
-    ID_USUARIO_CADASTRO = Column(Integer, nullable=False)
+    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey('USUARIOS.ID'), nullable=False)
     DATA_CADASTRO = Column(DateTime(timezone=True), server_default=func.now())
-    ID_USUARIO_ALTERACAO = Column(Integer)
+    ID_USUARIO_ALTERACAO = Column(Integer, ForeignKey('USUARIOS.ID'))
     DATA_ALTERACAO = Column(DateTime(timezone=True), onupdate=func.now())
     OBSERVACOES = Column(CLOB)
     PESO_ATUAL = Column(Float)  

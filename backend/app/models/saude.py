@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
-from sqlalchemy.ext.declarative import declarative_base
 from .base import Base
 import enum
 
-Base = declarative_base()
+# Base = declarative_base()
 
 class TipoRegistroEnum(str, enum.Enum):
     VACINA = "VACINA"
