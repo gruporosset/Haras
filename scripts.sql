@@ -22,7 +22,9 @@ create table usuarios (
    ativo                 char(1) default 'S' check ( ativo in ( 'S',
                                                 'N' ) ),
    mfa_ativo             char(1) default 'N' check ( mfa_ativo in ( 'S',
-                                                        'N' ) )
+                                                        'N' ) ),
+   peso_atual NUMBER(6,2),           -- Peso mais recente
+   foto_principal VARCHAR2(500)      -- URL da foto principal
 );
 
 create table animais (
