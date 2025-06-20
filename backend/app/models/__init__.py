@@ -6,6 +6,7 @@ from .terreno import Terreno
 from .animal import Animal
 from .crescimento import HistoricoCrescimento
 from .saude import SaudeAnimais
+from .movimentacao import MovimentacaoAnimais
 
 # Garante que todos os modelos são importados e registrados
-__all__ = ['User', 'Terreno', 'Animal', 'HistoricoCrescimento', 'SaudeAnimais', 'MFAConfig', 'Sessao']
+__all__ = ['User', 'Terreno', 'Animal', 'HistoricoCrescimento', 'SaudeAnimais', 'MovimentacaoAnimais', 'MFAConfig', 'Sessao']

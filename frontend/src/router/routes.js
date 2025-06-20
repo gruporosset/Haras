@@ -6,6 +6,7 @@ import ProfilePage from '../pages/ProfilePage.vue';
 import TerrenosPage from '../pages/TerrenosPage.vue'
 import AnimaisPage from '../pages/AnimaisPage.vue'
 import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
+import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
 
 const routes = [
   {
@@ -56,6 +57,12 @@ const routes = [
     path: '/crescimento-saude',
     name: 'CrescimentoSaude',
     component: CrescimentoSaudePage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/movimentacoes',
+    name: 'Movimentacoes',
+    component: MovimentacoesPage,
     meta: { requiresAuth: true },
   },
   {
