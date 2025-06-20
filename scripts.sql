@@ -83,6 +83,7 @@ create table historico_crescimento (
    altura              number(5,2),
    perimetro_toracico  number(5,2),
    comprimento_corpo   number(5,2),
+   diametro_canela     number(5,2),
    observacoes         varchar2(500),
    id_usuario_registro number
       references usuarios ( id ),
@@ -172,7 +173,6 @@ create table saude_animais (
    data_registro           date default sysdate
 );
 
-
 create table manejo_terrenos (
    id                  number
       generated always as identity
@@ -206,7 +206,6 @@ create table audit_log (
    data_operacao    date default sysdate,
    ip_usuario       varchar2(15)
 );
-
 
 create table sessoes (
    id                 number

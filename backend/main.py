@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.auth import router as auth_router
 from app.api.v1.terreno import router as terreno_router
 from app.api.v1.animal import router as animal_router
+from app.api.v1.crescimento import router as crescimento_router
 from app.core.database import engine
 from app.models import Base
 from pathlib import Path
@@ -29,9 +30,10 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Criar tabelas no banco (opcional, para dev)
 Base.metadata.create_all(bind=engine)
 
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(auth_router)
 app.include_router(terreno_router)
 app.include_router(animal_router)
+app.include_router(crescimento_router)
 
 @app.get("/")
 async def root():
