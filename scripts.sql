@@ -276,15 +276,47 @@ create index idx_audit_tabela_data on
       data_operacao
    );
 
+CREATE OR REPLACE TRIGGER HARAS.audit_trigger_animais
+AFTER INSERT OR UPDATE OR DELETE ON ANIMAIS
+FOR EACH ROW
+DECLARE
+    v_operacao VARCHAR2(10);
+    v_dados_anteriores CLOB;
+    v_dados_novos CLOB;
+BEGIN
+    IF INSERTING THEN
+        v_operacao := 'INSERT';
+        v_dados_novos := JSON_OBJECT(
+            'id' VALUE :NEW.ID,
+            'nome' VALUE :NEW.NOME,
+            'numero_registro' VALUE :NEW.NUMERO_REGISTRO
+        );
+    ELSIF UPDATING THEN
+        v_operacao := 'UPDATE';
+        v_dados_anteriores := JSON_OBJECT(
+            'id' VALUE :OLD.ID,
+            'nome' VALUE :OLD.NOME,
+            'numero_registro' VALUE :OLD.NUMERO_REGISTRO
+        );
+        v_dados_novos := JSON_OBJECT(
+            'id' VALUE :NEW.ID,
+            'nome' VALUE :NEW.NOME,
+            'numero_registro' VALUE :NEW.NUMERO_REGISTRO
+        );
+    ELSIF DELETING THEN
+        v_operacao := 'DELETE';
+        v_dados_anteriores := JSON_OBJECT(
+            'id' VALUE :OLD.ID,
+            'nome' VALUE :OLD.NOME,
+            'numero_registro' VALUE :OLD.NUMERO_REGISTRO
+        );
+    END IF;
 
-select *
-  from usuarios;
-select *
-  from config_mfa;
-
-delete from config_mfa;
-
-delete from sessoes;
-
-select *
-  from sessoes;
+    INSERT INTO AUDIT_LOG (
+        TABELA, ID_REGISTRO, OPERACAO, DADOS_ANTERIORES, DADOS_NOVOS,
+        ID_USUARIO, IP_USUARIO
+    ) VALUES (
+        'ANIMAIS', :NEW.ID, v_operacao, v_dados_anteriores, v_dados_novos,
+        :NEW.ID_USUARIO_ALTERACAO, SYS_CONTEXT('USERENV', 'IP_ADDRESS')
+    );
+END;
