@@ -39,10 +39,10 @@ async def create_movimentacao(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Terreno de destino não encontrado")
     
     # Validar que pelo menos origem ou destino esteja preenchido
-    if not any([movimentacao.ID_TERRENO_ORIGEM, movimentacao.ID_TERRENO_DESTINO, 
-                movimentacao.ORIGEM_EXTERNA, movimentacao.DESTINO_EXTERNO]):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
-                          detail="Deve informar pelo menos origem ou destino")
+    # if not any([movimentacao.ID_TERRENO_ORIGEM, movimentacao.ID_TERRENO_DESTINO, 
+    #             movimentacao.ORIGEM_EXTERNA, movimentacao.DESTINO_EXTERNO]):
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+    #                       detail="Deve informar pelo menos origem ou destino")
     
     db_movimentacao = MovimentacaoAnimais(**movimentacao.dict())
     db.add(db_movimentacao)

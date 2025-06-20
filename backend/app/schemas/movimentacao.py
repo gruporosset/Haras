@@ -31,15 +31,25 @@ class MovimentacaoCreate(MovimentacaoBase):
         if v > datetime.now():
             raise ValueError('Data de movimentação não pode ser no futuro')
         return v
-
-    @field_validator('ID_TERRENO_DESTINO')
+    
+    @field_validator('ID_TERRENO_ORIGEM')
     @classmethod
-    def validate_destino(cls, v, info):
-        # Validar que não seja o mesmo terreno de origem
-        if v and info.data.get('ID_TERRENO_ORIGEM') and v == info.data['ID_TERRENO_ORIGEM']:
-            raise ValueError('Terreno de destino deve ser diferente da origem')
+    def validate_origem_required(cls, v, info):
+        tipo = info.data.get('TIPO_MOVIMENTACAO')
+        # Origem não obrigatória para ENTRADA
+        if tipo in ['SAIDA', 'TRANSFERENCIA', 'VENDA', 'EMPRESTIMO'] and not v and not info.data.get('ORIGEM_EXTERNA'):
+            raise ValueError('Origem é obrigatória para este tipo de movimentação')
         return v
 
+    @field_validator('ID_TERRENO_DESTINO') 
+    @classmethod
+    def validate_destino_required(cls, v, info):
+        tipo = info.data.get('TIPO_MOVIMENTACAO')
+        # Destino não obrigatório para SAIDA
+        if tipo in ['ENTRADA', 'TRANSFERENCIA', 'RETORNO'] and not v and not info.data.get('DESTINO_EXTERNO'):
+            raise ValueError('Destino é obrigatório para este tipo de movimentação')
+        return v
+    
 class MovimentacaoUpdate(BaseModel):
     TIPO_MOVIMENTACAO: Optional[TipoMovimentacaoEnum] = None
     DATA_MOVIMENTACAO: Optional[datetime] = None
