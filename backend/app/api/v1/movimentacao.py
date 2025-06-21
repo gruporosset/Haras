@@ -197,6 +197,7 @@ async def get_localizacoes_atuais(
             terreno_atual = terreno.NOME if terreno else f"Terreno #{mov.ID_TERRENO_DESTINO}"
         elif mov.DESTINO_EXTERNO:
             local_externo = mov.DESTINO_EXTERNO
+            
         
         resultado.append(LocalizacaoAtual(
             animal_id=mov.ID_ANIMAL,

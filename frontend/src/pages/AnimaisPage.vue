@@ -265,6 +265,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
     <q-dialog v-model="dialog" persistent>
       <q-card style="width: 700px; max-width: 90vw">
         <q-form @submit="saveAnimal">
@@ -564,6 +565,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
   </q-page>
 </template>
 
@@ -573,6 +575,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
 import { useAnimalStore } from '../stores/animal'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { formatDate } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -788,11 +791,6 @@ function getStatusColor(status) {
     'EMPRESTADO': 'warning'
   }
   return colors[status] || 'grey'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('pt-BR')
 }
 
 // Carregar dados na inicialização

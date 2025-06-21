@@ -41,7 +41,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         authStore.clearAuthData()
         window.location.href = '/login'
-        console.log("aqui")
         return Promise.reject(refreshError)
       }
     }

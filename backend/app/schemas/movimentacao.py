@@ -73,7 +73,7 @@ class MovimentacaoResponse(MovimentacaoBase):
 
     @field_serializer('DATA_MOVIMENTACAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
@@ -86,6 +86,10 @@ class LocalizacaoAtual(BaseModel):
     local_externo: Optional[str] = None
     data_ultima_movimentacao: datetime
     tipo_ultima_movimentacao: str
+
+    @field_serializer('data_ultima_movimentacao')
+    def serialize_dt(self, dt: datetime | None, _info):
+        return dt.strftime("%d/%m/%Y") if dt else None    
 
 class HistoricoMovimentacao(BaseModel):
     movimentacoes: list[MovimentacaoResponse]

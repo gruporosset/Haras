@@ -411,7 +411,6 @@
               v-model="form.DATA_MEDICAO"
               v-if="dialogType === 'crescimento'"
               label="Data da Medição *"
-              with-time
               :rules="[val => !!val || 'Data é obrigatória']"
               class="q-mb-sm"
             />
@@ -420,7 +419,6 @@
               v-model="form.DATA_OCORRENCIA"
               v-if="dialogType === 'saude'"
               label="Data de Ocorrência *"
-              with-time
               :rules="[val => !!val || 'Data é obrigatória']"
               class="q-mb-sm"
             />
@@ -575,6 +573,7 @@ import { useAuthStore } from '../stores/auth'
 import { useCrescimentoStore } from '../stores/crescimento'
 import { useAnimalStore } from '../stores/animal'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { formatDate } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -689,9 +688,9 @@ function openDialog(record, type) {
   if (record) {
     form.value = {
       ...record,
-      DATA_MEDICAO: record.DATA_MEDICAO ? formatDateForInput(record.DATA_MEDICAO) : '',
-      DATA_OCORRENCIA: record.DATA_OCORRENCIA ? formatDateForInput(record.DATA_OCORRENCIA) : '',
-      PROXIMA_APLICACAO: record.PROXIMA_APLICACAO ? formatDateForInput(record.PROXIMA_APLICACAO) : '',
+      DATA_MEDICAO: record.DATA_MEDICAO ?? '',
+      DATA_OCORRENCIA: record.DATA_OCORRENCIA ?? '',
+      PROXIMA_APLICACAO: record.PROXIMA_APLICACAO ?? '',
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
   } else {
@@ -830,16 +829,16 @@ function isVencendo(data) {
   return diffDays <= 7 && diffDays >= 0
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('pt-BR')
-}
+// function formatDate(dateStr) {
+//   if (!dateStr) return 'N/A'
+//   return new Date(dateStr).toLocaleDateString('pt-BR')
+// }
 
-function formatDateForInput(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toISOString().slice(0, 16)
-}
+// function formatDateForInput(dateStr) {
+//   if (!dateStr) return ''
+//   const date = new Date(dateStr)
+//   return date.toISOString().slice(0, 16)
+// }
 
 // Watchers para mudança de aba
 async function onTabChange() {

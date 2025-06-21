@@ -166,7 +166,7 @@
             <q-item>
               <q-item-section>
                 <q-item-label caption>Data de Cadastro</q-item-label>
-                <q-item-label>{{ formatDate(viewTerrenoData?.DATA_CADASTRO) }}</q-item-label>
+                <q-item-label>{{ formatDateTime(viewTerrenoData?.DATA_CADASTRO) }}</q-item-label>
               </q-item-section>
             </q-item>
             
@@ -334,6 +334,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
 import { useTerrenoStore } from '../stores/terreno'
 import TerrenoMap from '../components/TerrenoMap.vue'
+import { formatDateTime } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -470,11 +471,6 @@ function getStatusColor(status) {
     'MANUTENÇÃO': 'negative'
   }
   return colors[status] || 'grey'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('pt-BR')
 }
 
 // Carregar terrenos na inicialização

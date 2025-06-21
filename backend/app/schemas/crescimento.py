@@ -50,7 +50,7 @@ class CrescimentoResponse(CrescimentoBase):
 
     @field_serializer('DATA_MEDICAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
@@ -105,7 +105,7 @@ class SaudeResponse(SaudeBase):
 
     @field_serializer('DATA_OCORRENCIA', 'PROXIMA_APLICACAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
