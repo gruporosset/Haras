@@ -407,6 +407,8 @@ import { useMovimentacaoStore } from '../stores/movimentacao'
 import { useAnimalStore } from '../stores/animal'
 import { useTerrenoStore } from '../stores/terreno'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { formatDate } from '../utils/dateUtils'
+
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -493,7 +495,7 @@ function openDialog(record) {
   if (record) {
     form.value = {
       ...record,
-      DATA_MOVIMENTACAO: record.DATA_MOVIMENTACAO ? formatDateForInput(record.DATA_MOVIMENTACAO) : '',
+      DATA_MOVIMENTACAO: record.DATA_MOVIMENTACAO ?? '',
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
   } else {
@@ -613,17 +615,6 @@ function getIconByTipo(tipo) {
     'RETORNO': 'keyboard_return'
   }
   return icons[tipo] || 'move_to_inbox'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'N/A'
-  return new Date(dateStr).toLocaleDateString('pt-BR')
-}
-
-function formatDateForInput(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toISOString().slice(0, 16)
 }
 
 async function onTabChange() {
