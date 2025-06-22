@@ -409,7 +409,6 @@ import { useTerrenoStore } from '../stores/terreno'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
 import { formatDate } from '../utils/dateUtils'
 
-
 const $q = useQuasar()
 const authStore = useAuthStore()
 const movimentacaoStore = useMovimentacaoStore()
@@ -493,8 +492,18 @@ async function onRequest(props) {
 
 function openDialog(record) {
   if (record) {
+    // Encontrar objetos completos para os selects
+    const terrenoOrigem = terrenoOptions.value.find(t => t.value === record.ID_TERRENO_ORIGEM)
+    const terrenoDestino = terrenoOptions.value.find(t => t.value === record.ID_TERRENO_DESTINO)
+    const animal = animalOptions.value.find(a => a.value === record.ID_ANIMAL)
+    const tipo = movimentacaoStore.tiposMovimentacao.find(t => t.value === record.TIPO_MOVIMENTACAO)
+    
     form.value = {
       ...record,
+      ID_ANIMAL: animal || record.ID_ANIMAL,
+      TIPO_MOVIMENTACAO: tipo || record.TIPO_MOVIMENTACAO,
+      ID_TERRENO_ORIGEM: terrenoOrigem || null,
+      ID_TERRENO_DESTINO: terrenoDestino || null,
       DATA_MOVIMENTACAO: record.DATA_MOVIMENTACAO ?? '',
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
@@ -513,6 +522,7 @@ function openDialog(record) {
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
   }
+  console.log('Abrindo diálogo com dados:', form.value)
   dialog.value = true
 }
 
