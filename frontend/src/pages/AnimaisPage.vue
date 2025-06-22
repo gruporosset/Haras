@@ -575,7 +575,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from '../stores/auth'
 import { useAnimalStore } from '../stores/animal'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
-import { formatDate } from '../utils/dateUtils'
+import { formatDate, prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -684,11 +684,13 @@ function openDialog(animal) {
 
 async function saveAnimal() {
   try {
-    if (form.value.ID) {
-      await animalStore.updateAnimal(form.value.ID, form.value)
+    const formData = prepareFormData(form.value, ['DATA_NASCIMENTO'])
+    console.log('Dados do formulário:', formData)
+    if (formData.ID) {
+      await animalStore.updateAnimal(formData.ID, formData)
       $q.notify({ type: 'positive', message: 'Animal atualizado com sucesso' })
     } else {
-      await animalStore.createAnimal(form.value)
+      await animalStore.createAnimal(formData)
       $q.notify({ type: 'positive', message: 'Animal cadastrado com sucesso' })
     }
     dialog.value = false

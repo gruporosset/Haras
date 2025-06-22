@@ -89,3 +89,64 @@ export function formatDateForInput(dateStr) {
     return ''
   }
 }
+
+// ... funções existentes ...
+
+export function convertToISO(dateStr) {
+  if (!dateStr) return null
+  
+  try {
+    // Se já está em formato ISO, retornar como está
+    if (dateStr.includes('-') && !dateStr.includes('/')) {
+      return dateStr
+    }
+    
+    // Se é formato brasileiro (DD/MM/YYYY ou DD/MM/YYYY HH:mm:ss)
+    if (dateStr.includes('/')) {
+      const [datePart, timePart] = dateStr.split(' ')
+      const [day, month, year] = datePart.split('/')
+      let isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      
+      if (timePart) {
+        isoDate += `T${timePart}`
+        // Adicionar segundos se não existir
+        if (timePart.split(':').length === 2) {
+          isoDate += ':00'
+        }
+      } else {
+        isoDate += 'T00:00:00'
+      }
+      
+      return isoDate
+    }
+    
+    return dateStr
+  } catch {
+    return dateStr
+  }
+}
+
+export function prepareFormData(formData, dateFields = []) {
+  const prepared = { ...formData }
+  
+  // Converter campos de data
+  dateFields.forEach(field => {
+    if (prepared[field]) {
+      prepared[field] = convertToISO(prepared[field])
+    }
+  })
+  
+  // Converter objetos select para valores
+  Object.keys(prepared).forEach(key => {
+    if (typeof prepared[key] === 'object' && prepared[key]?.value !== undefined) {
+      prepared[key] = prepared[key].value
+    }
+    
+    // Converter strings vazias para null
+    if (prepared[key] === '') {
+      prepared[key] = null
+    }
+  })
+  
+  return prepared
+}

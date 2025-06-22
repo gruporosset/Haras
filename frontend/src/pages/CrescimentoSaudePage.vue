@@ -499,7 +499,6 @@
                 <calendario-component
                   v-model="form.PROXIMA_APLICACAO"
                   label="Próxima Aplicação"
-                  with-time
                   class="col"
                 />
                 <q-input
@@ -573,7 +572,7 @@ import { useAuthStore } from '../stores/auth'
 import { useCrescimentoStore } from '../stores/crescimento'
 import { useAnimalStore } from '../stores/animal'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
-import { formatDate } from '../utils/dateUtils'
+import { formatDate, convertToISO } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -724,7 +723,10 @@ async function saveRecord() {
       ...form.value,
       ID_ANIMAL: typeof form.value.ID_ANIMAL === 'object' 
         ? form.value.ID_ANIMAL.value 
-        : form.value.ID_ANIMAL
+        : form.value.ID_ANIMAL,
+      DATA_OCORRENCIA: convertToISO(form.value.DATA_OCORRENCIA),
+      PROXIMA_APLICACAO: convertToISO(form.value.PROXIMA_APLICACAO),
+      DATA_MEDICAO: convertToISO(form.value.DATA_MEDICAO)
     }
 
     // Apenas para saúde
@@ -732,7 +734,6 @@ async function saveRecord() {
       formData.TIPO_REGISTRO = typeof form.value.TIPO_REGISTRO === 'object'
         ? form.value.TIPO_REGISTRO.value
         : form.value.TIPO_REGISTRO
-      formData.PROXIMA_APLICACAO = form.value.PROXIMA_APLICACAO || null
     }
 
     if (dialogType.value === 'crescimento') {

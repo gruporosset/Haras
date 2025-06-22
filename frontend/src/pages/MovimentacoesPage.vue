@@ -407,7 +407,7 @@ import { useMovimentacaoStore } from '../stores/movimentacao'
 import { useAnimalStore } from '../stores/animal'
 import { useTerrenoStore } from '../stores/terreno'
 import CalendarioComponent from '../components/CalendarioComponent.vue'
-import { formatDate } from '../utils/dateUtils'
+import { formatDate, convertToISO } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -531,23 +531,24 @@ async function saveRecord() {
     const formData = {
       ...form.value,
       ID_ANIMAL: typeof form.value.ID_ANIMAL === 'object' 
-        ? form.value.ID_ANIMAL.value 
+        ? form.value.ID_ANIMAL?.value 
         : form.value.ID_ANIMAL,
       TIPO_MOVIMENTACAO: typeof form.value.TIPO_MOVIMENTACAO === 'object'
-        ? form.value.TIPO_MOVIMENTACAO.value
+        ? form.value.TIPO_MOVIMENTACAO?.value
         : form.value.TIPO_MOVIMENTACAO,
       ID_TERRENO_ORIGEM: typeof form.value.ID_TERRENO_ORIGEM === 'object'
-        ? form.value.ID_TERRENO_ORIGEM.value
+        ? form.value.ID_TERRENO_ORIGEM?.value
         : form.value.ID_TERRENO_ORIGEM,
       ID_TERRENO_DESTINO: typeof form.value.ID_TERRENO_DESTINO === 'object'
-        ? form.value.ID_TERRENO_DESTINO.value
+        ? form.value.ID_TERRENO_DESTINO?.value
         : form.value.ID_TERRENO_DESTINO,
       // Converter strings vazias para null
       ORIGEM_EXTERNA: form.value.ORIGEM_EXTERNA || null,
       DESTINO_EXTERNO: form.value.DESTINO_EXTERNO || null,
-      MOTIVO: form.value.MOTIVO || null
+      MOTIVO: form.value.MOTIVO || null,
+      DATA_MOVIMENTACAO: convertToISO(form.value.DATA_MOVIMENTACAO)
     }
-    
+
     if (formData.ID) {
       await movimentacaoStore.updateMovimentacao(formData.ID, formData)
       $q.notify({ type: 'positive', message: 'Movimentação atualizada com sucesso' })
