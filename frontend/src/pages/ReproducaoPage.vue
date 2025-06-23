@@ -562,7 +562,7 @@ const form = ref({
   DATA_COBERTURA: '',
   DATA_DIAGNOSTICO: '',
   RESULTADO_DIAGNOSTICO: { value: 'PENDENTE', label: 'Pendente' },
-  STATUS_REPRODUCAO: { value: 'A', label: 'Ativo' },  
+  STATUS_REPRODUCAO: { value: 'ATIVO', label: 'Ativo' },  
   DATA_PARTO_PREVISTA: '',
   DATA_PARTO_REAL: '',
   OBSERVACOES: '',
@@ -628,7 +628,7 @@ function openDialog(record) {
       DATA_COBERTURA: '',
       DATA_DIAGNOSTICO: '',
       RESULTADO_DIAGNOSTICO: { value: 'PENDENTE', label: 'Pendente' },
-      STATUS_REPRODUCAO: { value: 'A', label: 'Ativo' },      
+      STATUS_REPRODUCAO: { value: 'ATIVO', label: 'Ativo' },      
       DATA_PARTO_PREVISTA: '',
       DATA_PARTO_REAL: '',
       OBSERVACOES: '',
@@ -737,9 +737,9 @@ function getResultadoLabel(resultado) {
 
 function getStatusLabel(status) {
   const statusMap = {
-    'A': 'Ativo',
-    'C': 'Concluído',
-    'F': 'Falhado'
+    'ATIVO': 'Ativo',
+    'CONCLUIDO': 'Concluído',
+    'FALHADO': 'Falhado'
   }
   return statusMap[status] || status
 }
@@ -755,9 +755,9 @@ function getResultadoColor(resultado) {
 
 function getStatusColor(status) {
   const colors = {
-    'A': 'primary',
-    'C': 'positive',
-    'F': 'negative'
+    'ATIVO': 'primary',
+    'CONCLUIDO': 'positive',
+    'FALHADO': 'negative'
   }
   return colors[status] || 'grey'
 }

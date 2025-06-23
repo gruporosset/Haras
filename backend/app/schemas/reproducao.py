@@ -17,9 +17,9 @@ class ResultadoDiagnosticoEnum(str, Enum):
 
 
 class StatusReproducaoEnum(str, Enum):
-    ATIVO = "A"
-    CONCLUIDO = "C"
-    FALHADO = "F"
+    ATIVO = "ATIVO"
+    CONCLUIDO = "CONCLUIDO"
+    FALHADO = "FALHADO"
 
 
 class ReproducaoBase(BaseModel):
@@ -104,7 +104,7 @@ class ReproducaoResponse(ReproducaoBase):
 
     @field_serializer('DATA_COBERTURA', 'DATA_DIAGNOSTICO', 'DATA_PARTO_PREVISTA', 'DATA_PARTO_REAL', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%Y-%m-%d %H:%M:%S") if dt else None
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True

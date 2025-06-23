@@ -137,9 +137,9 @@ create table reproducao (
    data_parto_prevista   date,
    data_parto_real       date,
    observacoes           clob,
-   status_reproducao     char(1) default 'A' check ( status_reproducao in ( 'A',
-                                                                        'C',
-                                                                        'F' ) ), -- Ativo, Concluído, Falhado
+   status_reproducao     varchar2(20) default 'ATIVO' check ( status_reproducao in ( 'ATIVO',
+                                                                                 'CONCLUIDO',
+                                                                                 'FALHADO' ) ),
    id_usuario_registro   number
       references usuarios ( id ),
    data_registro         date default sysdate,

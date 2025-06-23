@@ -18,9 +18,9 @@ class ResultadoDiagnosticoEnum(str, enum.Enum):
 
 
 class StatusReproducaoEnum(str, enum.Enum):
-    ATIVO = "A"      # Gestação ativa
-    CONCLUIDO = "C"  # Parto realizado
-    FALHADO = "F"    # Perdeu a gestação
+    ATIVO = "ATIVO"      # Gestação ativa
+    CONCLUIDO = "CONCLUIDO"  # Parto realizado
+    FALHADO = "FALHADO"    # Perdeu a gestação
 
 
 class Reproducao(Base):
