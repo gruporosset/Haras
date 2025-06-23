@@ -561,10 +561,10 @@ const form = ref({
   TIPO_COBERTURA: null,
   DATA_COBERTURA: '',
   DATA_DIAGNOSTICO: '',
-  RESULTADO_DIAGNOSTICO: 'Pendente',
+  RESULTADO_DIAGNOSTICO: { value: 'PENDENTE', label: 'Pendente' },
+  STATUS_REPRODUCAO: { value: 'A', label: 'Ativo' },  
   DATA_PARTO_PREVISTA: '',
   DATA_PARTO_REAL: '',
-  STATUS_REPRODUCAO: 'Ativo',
   OBSERVACOES: '',
   ID_USUARIO_REGISTRO: authStore.user.ID
 })
@@ -627,10 +627,10 @@ function openDialog(record) {
       TIPO_COBERTURA: null,
       DATA_COBERTURA: '',
       DATA_DIAGNOSTICO: '',
-      RESULTADO_DIAGNOSTICO: 'Pendente',
+      RESULTADO_DIAGNOSTICO: { value: 'PENDENTE', label: 'Pendente' },
+      STATUS_REPRODUCAO: { value: 'A', label: 'Ativo' },      
       DATA_PARTO_PREVISTA: '',
       DATA_PARTO_REAL: '',
-      STATUS_REPRODUCAO: 'Ativo',
       OBSERVACOES: '',
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
