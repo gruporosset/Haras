@@ -386,7 +386,6 @@
               <calendario-component
                 v-model="form.DATA_COBERTURA"
                 label="Data da Cobertura *"
-                with-time
                 :rules="[val => !!val || 'Data é obrigatória']"
                 class="col-5"
               />
@@ -396,7 +395,6 @@
               <calendario-component
                 v-model="form.DATA_DIAGNOSTICO"
                 label="Data do Diagnóstico"
-                with-time
                 class="col-5"
               />
               <q-select
@@ -411,13 +409,11 @@
               <calendario-component
                 v-model="form.DATA_PARTO_PREVISTA"
                 label="Parto Previsto"
-                with-time
                 class="col-5"
               />
               <calendario-component
                 v-model="form.DATA_PARTO_REAL"
                 label="Parto Realizado"
-                with-time
                 class="col-5"
               />
             </div>
@@ -565,10 +561,10 @@ const form = ref({
   TIPO_COBERTURA: null,
   DATA_COBERTURA: '',
   DATA_DIAGNOSTICO: '',
-  RESULTADO_DIAGNOSTICO: 'PENDENTE',
+  RESULTADO_DIAGNOSTICO: 'Pendente',
   DATA_PARTO_PREVISTA: '',
   DATA_PARTO_REAL: '',
-  STATUS_REPRODUCAO: 'A',
+  STATUS_REPRODUCAO: 'Ativo',
   OBSERVACOES: '',
   ID_USUARIO_REGISTRO: authStore.user.ID
 })
@@ -631,10 +627,10 @@ function openDialog(record) {
       TIPO_COBERTURA: null,
       DATA_COBERTURA: '',
       DATA_DIAGNOSTICO: '',
-      RESULTADO_DIAGNOSTICO: 'PENDENTE',
+      RESULTADO_DIAGNOSTICO: 'Pendente',
       DATA_PARTO_PREVISTA: '',
       DATA_PARTO_REAL: '',
-      STATUS_REPRODUCAO: 'A',
+      STATUS_REPRODUCAO: 'Ativo',
       OBSERVACOES: '',
       ID_USUARIO_REGISTRO: authStore.user.ID
     }

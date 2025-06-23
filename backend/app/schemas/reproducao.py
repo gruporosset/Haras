@@ -34,6 +34,9 @@ class ReproducaoBase(BaseModel):
     OBSERVACOES: Optional[str] = None
     STATUS_REPRODUCAO: StatusReproducaoEnum = StatusReproducaoEnum.ATIVO
 
+    class Config:
+        use_enum_values = True
+
 
 class ReproducaoCreate(ReproducaoBase):
     ID_USUARIO_REGISTRO: int

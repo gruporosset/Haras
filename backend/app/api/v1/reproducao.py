@@ -61,8 +61,8 @@ async def create_reproducao(
             not reproducao.DATA_PARTO_PREVISTA):
         reproducao.DATA_PARTO_PREVISTA = reproducao.DATA_COBERTURA + \
             timedelta(days=340)
+    db_reproducao = Reproducao(**reproducao.model_dump())
 
-    db_reproducao = Reproducao(**reproducao.dict())
     db.add(db_reproducao)
     db.commit()
     db.refresh(db_reproducao)

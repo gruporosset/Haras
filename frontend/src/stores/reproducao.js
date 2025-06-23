@@ -103,6 +103,19 @@ export const useReproducaoStore = defineStore('reproducao', {
 
     async createReproducao(reproducaoData) {
       try {
+        // Converter objetos select para valores
+        if (reproducaoData.tipo_cobertura?.value) {
+          reproducaoData.tipo_cobertura = reproducaoData.tipo_cobertura.value
+        }
+        if (reproducaoData.resultado_diagnostico?.value) {
+          reproducaoData.resultado_diagnostico = reproducaoData.resultado_diagnostico.value
+        }
+        if (reproducaoData.status_reproducao?.value) {
+          reproducaoData.status_reproducao = reproducaoData.status_reproducao.value
+        }
+
+        console.log('Dados da reprodução:', reproducaoData)
+
         const response = await api.post('/api/reproducao', reproducaoData)
         await this.fetchReproducoes()
         return response.data
@@ -113,6 +126,17 @@ export const useReproducaoStore = defineStore('reproducao', {
 
     async updateReproducao(id, reproducaoData) {
       try {
+        // Converter objetos select para valores
+        if (reproducaoData.tipo_cobertura?.value) {
+          reproducaoData.tipo_cobertura = reproducaoData.tipo_cobertura.value
+        }
+        if (reproducaoData.resultado_diagnostico?.value) {
+          reproducaoData.resultado_diagnostico = reproducaoData.resultado_diagnostico.value
+        }
+        if (reproducaoData.status_reproducao?.value) {
+          reproducaoData.status_reproducao = reproducaoData.status_reproducao.value
+        }
+
         const response = await api.put(`/api/reproducao/${id}`, reproducaoData)
         await this.fetchReproducoes()
         return response.data
