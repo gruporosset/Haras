@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 
+
 class TipoRegistroEnum(str, Enum):
     VACINA = "VACINA"
     VERMIFUGO = "VERMIFUGO"
@@ -13,6 +14,8 @@ class TipoRegistroEnum(str, Enum):
     TRATAMENTO = "TRATAMENTO"
 
 # Schemas Crescimento
+
+
 class CrescimentoBase(BaseModel):
     ID_ANIMAL: int
     DATA_MEDICAO: datetime
@@ -22,6 +25,7 @@ class CrescimentoBase(BaseModel):
     COMPRIMENTO_CORPO: Optional[float] = Field(None, ge=0)
     DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
+
 
 class CrescimentoCreate(CrescimentoBase):
     ID_USUARIO_REGISTRO: int
@@ -33,6 +37,7 @@ class CrescimentoCreate(CrescimentoBase):
             raise ValueError('Data de medição não pode ser no futuro')
         return v
 
+
 class CrescimentoUpdate(BaseModel):
     DATA_MEDICAO: Optional[datetime] = None
     PESO: Optional[float] = Field(None, ge=0)
@@ -42,6 +47,7 @@ class CrescimentoUpdate(BaseModel):
     DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
     ID_USUARIO_REGISTRO: Optional[int] = None
+
 
 class CrescimentoResponse(CrescimentoBase):
     ID: int
@@ -56,6 +62,8 @@ class CrescimentoResponse(CrescimentoBase):
         from_attributes = True
 
 # Schemas Saúde
+
+
 class SaudeBase(BaseModel):
     ID_ANIMAL: int
     TIPO_REGISTRO: TipoRegistroEnum
@@ -67,6 +75,10 @@ class SaudeBase(BaseModel):
     PROXIMA_APLICACAO: Optional[datetime] = None
     CUSTO: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = None
+    ID_MEDICAMENTO: Optional[int] = None
+    QUANTIDADE_APLICADA: Optional[float] = Field(None, gt=0)
+    UNIDADE_APLICADA: Optional[str] = Field(None, max_length=20)
+
 
 class SaudeCreate(SaudeBase):
     ID_USUARIO_REGISTRO: int
@@ -83,8 +95,19 @@ class SaudeCreate(SaudeBase):
     def validate_proxima_aplicacao(cls, v, info):
         if v and info.data.get('DATA_OCORRENCIA'):
             if v <= info.data['DATA_OCORRENCIA']:
-                raise ValueError('Próxima aplicação deve ser após a data de ocorrência')
+                raise ValueError(
+                    'Próxima aplicação deve ser após a data de ocorrência')
         return v
+
+    @field_validator('QUANTIDADE_APLICADA')
+    @classmethod
+    def validate_quantidade_medicamento(cls, v, values):
+        # Se informou medicamento, deve informar quantidade
+        if 'ID_MEDICAMENTO' in values and values['ID_MEDICAMENTO'] and not v:
+            raise ValueError(
+                'Quantidade deve ser informada quando medicamento é selecionado')
+        return v
+
 
 class SaudeUpdate(BaseModel):
     TIPO_REGISTRO: Optional[TipoRegistroEnum] = None
@@ -96,12 +119,20 @@ class SaudeUpdate(BaseModel):
     PROXIMA_APLICACAO: Optional[datetime] = None
     CUSTO: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = None
+    ID_MEDICAMENTO: Optional[int] = None
+    QUANTIDADE_APLICADA: Optional[float] = Field(None, gt=0)
+    UNIDADE_APLICADA: Optional[str] = Field(None, max_length=20)
     ID_USUARIO_REGISTRO: Optional[int] = None
+
 
 class SaudeResponse(SaudeBase):
     ID: int
     ID_USUARIO_REGISTRO: int
     DATA_REGISTRO: Optional[datetime] = None
+
+    animal_nome: Optional[str] = None
+    medicamento_nome: Optional[str] = None
+    estoque_suficiente: Optional[bool] = None
 
     @field_serializer('DATA_OCORRENCIA', 'PROXIMA_APLICACAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
@@ -110,7 +141,18 @@ class SaudeResponse(SaudeBase):
     class Config:
         from_attributes = True
 
+
+class AplicacaoRapidaMedicamento(BaseModel):
+    ID_ANIMAL: int
+    ID_MEDICAMENTO: int
+    QUANTIDADE_APLICADA: float = Field(..., gt=0)
+    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
+    OBSERVACOES: Optional[str] = None
+
+
 # Schemas para Relatórios
+
+
 class EstatisticasCrescimento(BaseModel):
     animal_id: int
     animal_nome: str
@@ -119,6 +161,7 @@ class EstatisticasCrescimento(BaseModel):
     peso_atual: Optional[float]
     ganho_peso: Optional[float]
     media_peso: Optional[float]
+
 
 class ProximasAplicacoes(BaseModel):
     animal_id: int

@@ -22,36 +22,112 @@ create table usuarios (
    ativo                 char(1) default 'S' check ( ativo in ( 'S',
                                                 'N' ) ),
    mfa_ativo             char(1) default 'N' check ( mfa_ativo in ( 'S',
-                                                        'N' ) ),
-   peso_atual            number(6,2),           -- Peso mais recente
-   foto_principal        varchar2(500)      -- URL da foto principal
+                                                        'N' ) )
 );
 
 create table animais (
-   id                   number
+   id                    number
       generated always as identity
    primary key,
-   nome                 varchar2(100) not null,
-   numero_registro      varchar2(50) unique,
-   chip_identificacao   varchar2(50) unique,
-   sexo                 char(1) check ( sexo in ( 'M',
+   nome                  varchar2(100) not null,
+   numero_registro       varchar2(50) unique,
+   chip_identificacao    varchar2(50) unique,
+   sexo                  char(1) check ( sexo in ( 'M',
                                   'F' ) ),
-   data_nascimento      date,
-   pelagem              varchar2(50),
-   status_animal        varchar2(20) default 'ATIVO',
-   id_pai               number
+   data_nascimento       date,
+   pelagem               varchar2(50),
+   status_animal         varchar2(20) default 'ATIVO',
+   id_pai                number
       references animais ( id ),
-   id_mae               number
+   id_mae                number
       references animais ( id ),
-   origem               varchar2(100),
-   id_usuario_cadastro  number
+   origem                varchar2(100),
+   id_usuario_cadastro   number
       references usuarios ( id ),
-   data_cadastro        date default sysdate,
-   id_usuario_alteracao number
+   data_cadastro         date default sysdate,
+   id_usuario_alteracao  number
       references usuarios ( id ),
-   data_alteracao       date,
-   observacoes          clob
+   data_alteracao        date,
+   observacoes           clob,
+   proprietario          varchar2(200),
+   contato_proprietario  varchar2(200),
+   cpf_cnpj_proprietario varchar2(20)
 );
+comment on column animais.proprietario is
+   'Nome do proprietário do animal';
+comment on column animais.contato_proprietario is
+   'Telefone/email do proprietário';
+comment on column animais.cpf_cnpj_proprietario is
+   'CPF ou CNPJ do proprietário';
+
+create table medicamentos (
+   id                  number
+      generated always as identity
+   primary key,
+   nome                varchar2(200) not null,
+   principio_ativo     varchar2(200),
+   concentracao        varchar2(100),
+   forma_farmaceutica  varchar2(50), -- INJETAVEL, ORAL, TOPICO
+   fabricante          varchar2(100),
+   registro_mapa       varchar2(50),
+    
+    -- Controle de Estoque
+   estoque_atual       number(10,2) default 0,
+   estoque_minimo      number(10,2) default 0,
+   unidade_medida      varchar2(20) not null, -- ML, G, COMPRIMIDO, DOSE
+    
+    -- Validade e Lote
+   lote_atual          varchar2(50),
+   data_validade       date,
+   data_fabricacao     date,
+    
+    -- Custos
+   preco_unitario      number(10,2),
+   fornecedor          varchar2(100),
+    
+    -- Prescrição
+   requer_receita      char(1) default 'N' check ( requer_receita in ( 'S',
+                                                                  'N' ) ),
+   periodo_carencia    number(3), -- dias para abate
+
+   observacoes         clob,
+   ativo               char(1) default 'S' check ( ativo in ( 'S',
+                                                'N' ) ),
+   id_usuario_cadastro number
+      references usuarios ( id ),
+   data_cadastro       date default sysdate
+);
+
+create table movimentacao_medicamentos (
+   id                  number
+      generated always as identity
+   primary key,
+   id_medicamento      number not null
+      references medicamentos ( id ),
+   tipo_movimentacao   varchar2(20) not null, -- ENTRADA, SAIDA, AJUSTE
+   quantidade          number(10,2) not null,
+   quantidade_anterior number(10,2),
+   quantidade_atual    number(10,2),
+    
+    -- Referência para saída (aplicação em animal)
+   id_animal           number
+      references animais ( id ),
+   id_saude_animal     number
+      references saude_animais ( id ),
+    
+    -- Dados da entrada (compra)
+   nota_fiscal         varchar2(100),
+   fornecedor          varchar2(100),
+   preco_unitario      number(10,2),
+   lote                varchar2(50),
+   data_validade       date,
+   motivo              varchar2(200),
+   observacoes         clob,
+   id_usuario_registro number
+      references usuarios ( id ),
+   data_registro       date default sysdate
+);
+
 
 create table terrenos (
    id                  number
@@ -83,7 +159,6 @@ create table historico_crescimento (
    altura              number(5,2),
    perimetro_toracico  number(5,2),
    comprimento_corpo   number(5,2),
-   diametro_canela     number(5,2),
    observacoes         varchar2(500),
    id_usuario_registro number
       references usuarios ( id ),
@@ -139,7 +214,7 @@ create table reproducao (
    observacoes           clob,
    status_reproducao     varchar2(20) default 'ATIVO' check ( status_reproducao in ( 'ATIVO',
                                                                                  'CONCLUIDO',
-                                                                                 'FALHADO' ) ),
+                                                                                 'FALHADO' ) ), -- Ativo, Concluído, Falhado
    id_usuario_registro   number
       references usuarios ( id ),
    data_registro         date default sysdate,
@@ -152,6 +227,7 @@ create table reproducao (
          and ( data_parto_real is null
           or data_parto_real >= data_cobertura ) )
 );
+
 
 create table saude_animais (
    id                      number
@@ -170,9 +246,21 @@ create table saude_animais (
    observacoes             clob,
    id_usuario_registro     number
       references usuarios ( id ),
-   data_registro           date default sysdate
+   data_registro           date default sysdate,
+   id_medicamento          number
+      references medicamentos ( id ),
+   quantidade_aplicada     number(10,2),
+   unidade_aplicada        varchar2(20)
 );
 
+comment on column saude_animais.id_medicamento is
+   'Referência ao medicamento aplicado';
+comment on column saude_animais.quantidade_aplicada is
+   'Quantidade do medicamento aplicada';
+comment on column saude_animais.unidade_aplicada is
+   'Unidade da quantidade aplicada';
+
+-- Tabela de Produtos para Manejo
 create table produtos_manejo (
    id                  number
       generated always as identity
@@ -181,7 +269,7 @@ create table produtos_manejo (
    tipo_produto        varchar2(50) not null, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
    principio_ativo     varchar2(200),
    concentracao        varchar2(50),
-   unidade_medida      varchar2(20) not null, -- KG, L, SC (saca)
+   unidade_medida      varchar2(20) not null, -- KG, L, SC (SACA)
    fabricante          varchar2(100),
    registro_ministerio varchar2(50),
    observacoes         clob,
@@ -191,6 +279,7 @@ create table produtos_manejo (
       references usuarios ( id ),
    data_cadastro       date default sysdate
 );
+
 
 create table manejo_terrenos (
    id                    number
@@ -217,40 +306,18 @@ create table manejo_terrenos (
    data_liberacao        date -- calculado automaticamente    
 );
 
-
-create table analises_solo (
-   id                  number
-      generated always as identity
-   primary key,
-   id_terreno          number not null
-      references terrenos ( id ),
-   data_coleta         date not null,
-   data_resultado      date,
-   laboratorio         varchar2(100),
-   ph_agua             number(3,1),
-   ph_cacl2            number(3,1),
-   materia_organica    number(4,2), -- %
-   fosforo             number(6,2), -- mg/dm³
-   potassio            number(6,2), -- cmolc/dm³
-   calcio              number(6,2), -- cmolc/dm³
-   magnesio            number(6,2), -- cmolc/dm³
-   aluminio            number(6,2), -- cmolc/dm³
-   h_al                number(6,2), -- cmolc/dm³ (H+Al)
-   ctc                 number(6,2), -- cmolc/dm³
-   saturacao_bases     number(4,1), -- %
-   saturacao_aluminio  number(4,1), -- %
-   enxofre             number(6,2), -- mg/dm³
-   boro                number(6,2), -- mg/dm³
-   cobre               number(6,2), -- mg/dm³
-   ferro               number(6,2), -- mg/dm³
-   manganes            number(6,2), -- mg/dm³
-   zinco               number(6,2), -- mg/dm³
-   observacoes         clob,
-   recomendacoes       clob,
-   arquivo_laudo       varchar2(500), -- path do PDF
-   id_usuario_cadastro number
-      references usuarios ( id ),
-   data_cadastro       date default sysdate
+alter table manejo_terrenos drop column produto_utilizado;
+alter table manejo_terrenos drop column custo;
+alter table manejo_terrenos add (
+   id_produto number not null
+      references produtos_manejo ( id )
+);
+alter table manejo_terrenos add (
+   dose_hectare          float,
+   area_aplicada         float,
+   custo_total           float,
+   equipamento_utilizado varchar2(100),
+   condicoes_climaticas  varchar2(100)
 );
 
 
@@ -269,6 +336,7 @@ create table audit_log (
    data_operacao    date default sysdate,
    ip_usuario       varchar2(15)
 );
+
 
 create table sessoes (
    id                 number
@@ -338,65 +406,49 @@ create index idx_audit_tabela_data on
       data_operacao
    );
 
-create or replace trigger haras.audit_trigger_animais after
-   insert or update or delete on animais
-   for each row
-declare
-   v_operacao         varchar2(10);
-   v_dados_anteriores clob;
-   v_dados_novos      clob;
-begin
-   if inserting then
-      v_operacao := 'INSERT';
-      v_dados_novos :=
-         json_object(
-            'id' value :new.id,
-                     'nome' value :new.nome,
-                     'numero_registro' value :new.numero_registro
-         );
-   elsif updating then
-      v_operacao := 'UPDATE';
-      v_dados_anteriores :=
-         json_object(
-            'id' value :old.id,
-                     'nome' value :old.nome,
-                     'numero_registro' value :old.numero_registro
-         );
-      v_dados_novos :=
-         json_object(
-            'id' value :new.id,
-                     'nome' value :new.nome,
-                     'numero_registro' value :new.numero_registro
-         );
-   elsif deleting then
-      v_operacao := 'DELETE';
-      v_dados_anteriores :=
-         json_object(
-            'id' value :old.id,
-                     'nome' value :old.nome,
-                     'numero_registro' value :old.numero_registro
-         );
-   end if;
 
-   insert into audit_log (
-      tabela,
-      id_registro,
-      operacao,
-      dados_anteriores,
-      dados_novos,
-      id_usuario,
-      ip_usuario
-   ) values ( 'ANIMAIS',
-              :new.id,
-              v_operacao,
-              v_dados_anteriores,
-              v_dados_novos,
-              :new.id_usuario_alteracao,
-              sys_context(
-                 'USERENV',
-                 'IP_ADDRESS'
-              ) );
-end;
+
+-- Tabela de Análises de Solo
+create table analises_solo (
+   id                  number
+      generated always as identity
+   primary key,
+   id_terreno          number not null
+      references terrenos ( id ),
+   data_coleta         date not null,
+   data_resultado      date,
+   laboratorio         varchar2(100),
+   ph_agua             number(3,1),
+   ph_cacl2            number(3,1),
+   materia_organica    number(4,2), -- %
+   fosforo             number(6,2), -- MG/DM³
+   potassio            number(6,2), -- CMOLC/DM³
+   calcio              number(6,2), -- CMOLC/DM³
+   magnesio            number(6,2), -- CMOLC/DM³
+   aluminio            number(6,2), -- CMOLC/DM³
+   h_al                number(6,2), -- CMOLC/DM³ (H+AL)
+   ctc                 number(6,2), -- CMOLC/DM³
+   saturacao_bases     number(4,1), -- %
+   saturacao_aluminio  number(4,1), -- %
+   enxofre             number(6,2), -- MG/DM³
+   boro                number(6,2), -- MG/DM³
+   cobre               number(6,2), -- MG/DM³
+   ferro               number(6,2), -- MG/DM³
+   manganes            number(6,2), -- MG/DM³
+   zinco               number(6,2), -- MG/DM³
+   observacoes         clob,
+   recomendacoes       clob,
+   arquivo_laudo       varchar2(500), -- PATH DO PDF
+   id_usuario_cadastro number
+      references usuarios ( id ),
+   data_cadastro       date default sysdate
+);
+
+-- Tabela de Manejo de Terrenos (já existe, vamos adicionar as colunas)
+alter table manejo_terrenos add (
+   periodo_carencia number(3), -- dias sem animais
+   data_liberacao   date -- calculado automaticamente
+);
 
 -- Comentários nas colunas para documentação
 comment on column produtos_manejo.tipo_produto is
@@ -441,60 +493,131 @@ begin
    end if;
 end;
 
--- Inserir alguns produtos padrão
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'Ureia 45%',
-           'FERTILIZANTE',
-           'KG',
-           6 );
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'NPK 20-05-20',
-           'FERTILIZANTE',
-           'KG',
-           6 );
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'Calcário Dolomítico',
-           'CORRETIVO',
-           'T',
-           6 );
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'Superfosfato Simples',
-           'FERTILIZANTE',
-           'KG',
-           6 );
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'Glifosato 480g/L',
-           'DEFENSIVO',
-           'L',
-           6 );
-insert into produtos_manejo (
-   nome,
-   tipo_produto,
-   unidade_medida,
-   id_usuario_cadastro
-) values ( 'Sementes Brachiaria Brizantha',
-           'SEMENTE',
-           'KG',
-           6 );
 
-commit;
+-- Trigger para atualizar estoque automaticamente
+create or replace trigger trg_movimentacao_estoque before
+   insert on movimentacao_medicamentos
+   for each row
+declare
+   v_estoque_atual number(
+      10,
+      2
+   );
+begin
+    -- Buscar estoque atual
+   select estoque_atual
+     into v_estoque_atual
+     from medicamentos
+    where id = :new.id_medicamento;
+    
+    -- Armazenar quantidade anterior
+   :new.quantidade_anterior := v_estoque_atual;
+    
+    -- Calcular nova quantidade
+   if :new.tipo_movimentacao = 'ENTRADA' then
+      :new.quantidade_atual := v_estoque_atual + :new.quantidade;
+   elsif :new.tipo_movimentacao = 'SAIDA' then
+      :new.quantidade_atual := v_estoque_atual - :new.quantidade;
+   elsif :new.tipo_movimentacao = 'AJUSTE' then
+      :new.quantidade_atual := :new.quantidade; -- Quantidade é o valor final
+      :new.quantidade := :new.quantidade - v_estoque_atual; -- Diferença
+   end if;
+    
+    -- Atualizar estoque na tabela medicamentos
+   update medicamentos
+      set estoque_atual = :new.quantidade_atual,
+          lote_atual = coalesce(
+             :new.lote,
+             lote_atual
+          ),
+          data_validade = coalesce(
+             :new.data_validade,
+             data_validade
+          )
+    where id = :new.id_medicamento;
+end;
+
+
+-- Trigger para baixa automática no estoque
+create or replace trigger trg_saude_baixa_estoque after
+   insert on saude_animais
+   for each row
+begin
+    -- Se foi especificado um medicamento e quantidade
+   if
+      :new.id_medicamento is not null
+      and :new.quantidade_aplicada is not null
+   then
+        -- Registrar saída no estoque
+      insert into movimentacao_medicamentos (
+         id_medicamento,
+         tipo_movimentacao,
+         quantidade,
+         id_animal,
+         id_saude_animal,
+         motivo,
+         id_usuario_registro
+      ) values ( :new.id_medicamento,
+                 'SAIDA',
+                 :new.quantidade_aplicada,
+                 :new.id_animal,
+                 :new.id,
+                 'Aplicação em animal - ' || :new.tipo_registro,
+                 :new.id_usuario_registro );
+   end if;
+end;
+
+-- View para medicamentos com estoque baixo
+create or replace view vw_medicamentos_estoque_baixo as
+   select m.id,
+          m.nome,
+          m.estoque_atual,
+          m.estoque_minimo,
+          m.unidade_medida,
+          m.data_validade,
+          case
+             when m.data_validade <= sysdate + 30     then
+                'VENCENDO'
+             when m.data_validade <= sysdate          then
+                'VENCIDO'
+             when m.estoque_atual <= m.estoque_minimo then
+                'ESTOQUE_BAIXO'
+             else
+                'OK'
+          end as status_alerta,
+          case
+             when m.data_validade <= sysdate      then
+                trunc(sysdate - m.data_validade)
+             when m.data_validade <= sysdate + 30 then
+                trunc(m.data_validade - sysdate)
+             else
+                null
+          end as dias_vencimento
+     from medicamentos m
+    where m.ativo = 'S'
+      and ( m.estoque_atual <= m.estoque_minimo
+       or m.data_validade <= sysdate + 30 );
+
+-- 9. Índices para performance
+create index idx_medicamentos_nome on
+   medicamentos (
+      nome
+   );
+create index idx_medicamentos_estoque on
+   medicamentos (
+      estoque_atual,
+      estoque_minimo
+   );
+create index idx_movimentacao_medicamento on
+   movimentacao_medicamentos (
+      id_medicamento,
+      data_registro
+   );
+create index idx_movimentacao_animal on
+   movimentacao_medicamentos (
+      id_animal
+   );
+create index idx_saude_medicamento on
+   saude_animais (
+      id_medicamento
+   );

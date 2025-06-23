@@ -58,6 +58,7 @@
               </q-item-section>
               <q-item-section>Cadastro de Animais</q-item-section>
             </q-item>
+
             <q-item to="/crescimento-saude" clickable v-ripple>
               <q-item-section avatar>
                 <q-icon name="trending_up" />
@@ -76,6 +77,25 @@
               </q-item-section>
               <q-item-section>Movimentações</q-item-section>
             </q-item>
+          </q-expansion-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="medication"
+            label="Medicamentos"
+            default-opened
+          >
+
+            <q-item clickable v-ripple to="/medicamentos">
+              <q-item-section avatar>
+                <q-icon name="create" />
+              </q-item-section>
+              <q-item-section>Cadastro de Medicamentos</q-item-section>
+              <q-item-section side v-if="medicamentoStore.alertasEstoque.length > 0">
+                <q-badge color="negative" :label="medicamentoStore.alertasEstoque.length" />
+              </q-item-section>
+            </q-item>            
+            
           </q-expansion-item>
           <q-expansion-item
             expand-separator
@@ -110,6 +130,7 @@ import { useAuthStore } from 'src/stores/auth';
 import { useQuasar } from 'quasar';
 import { useRouter, useRoute } from 'vue-router';
 import { computed, ref } from 'vue';
+import { useMedicamentoStore } from '../stores/medicamento'
 
 export default {
   name: 'MainLayout',
@@ -123,6 +144,8 @@ export default {
     
     const isLoginPage = computed(() => standAlonePages.includes(route.path));
 
+    const medicamentoStore = useMedicamentoStore()
+
     const toggleLeftDrawer = () => {
       leftDrawerOpen.value = !leftDrawerOpen.value;
     };
@@ -133,7 +156,7 @@ export default {
       router.push('/login');
     };
 
-    return { authStore, handleLogout, isLoginPage, toggleLeftDrawer, leftDrawerOpen };
+    return { authStore, handleLogout, isLoginPage, toggleLeftDrawer, leftDrawerOpen, medicamentoStore };
   }
 };
 </script>

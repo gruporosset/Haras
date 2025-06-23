@@ -9,6 +9,7 @@ import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
 import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
 import ReproducaoPage from '../pages/ReproducaoPage.vue'
 import ManejoPage from '../pages/ManejoPage.vue'
+import MedicamentosPage from '../pages/MedicamentosPage.vue'
 
 const routes = [
   {
@@ -77,6 +78,12 @@ const routes = [
     path: '/manejo',
     name: 'Manejo',
     component: ManejoPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/medicamentos',
+    name: 'Medicamentos',
+    component: MedicamentosPage,
     meta: { requiresAuth: true },
   },
   {
