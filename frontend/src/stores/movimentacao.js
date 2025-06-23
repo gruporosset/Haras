@@ -12,15 +12,15 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
       tipo_movimentacao: null,
       terreno_id: null,
       data_inicio: '',
-      data_fim: ''
+      data_fim: '',
     },
     pagination: {
       page: 1,
       rowsPerPage: 10,
       rowsNumber: 0,
       sortBy: 'DATA_MOVIMENTACAO',
-      descending: true
-    }
+      descending: true,
+    },
   }),
 
   getters: {
@@ -30,39 +30,53 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
       { value: 'SAIDA', label: 'Saída' },
       { value: 'VENDA', label: 'Venda' },
       { value: 'EMPRESTIMO', label: 'Empréstimo' },
-      { value: 'RETORNO', label: 'Retorno' }
+      { value: 'RETORNO', label: 'Retorno' },
     ],
 
     movimentacoesByAnimal: (state) => (animalId) => {
-      return state.movimentacoes.filter(m => m.ID_ANIMAL === animalId)
+      return state.movimentacoes.filter((m) => m.ID_ANIMAL === animalId)
     },
 
     localizacaoByAnimal: (state) => (animalId) => {
-      return state.localizacoes.find(l => l.animal_id === animalId)
-    }
+      return state.localizacoes.find((l) => l.animal_id === animalId)
+    },
   },
 
   actions: {
     async fetchMovimentacoes(params = {}) {
       this.loading = true
+      if (params == null || params == undefined) {
+        params = {}
+      }
       try {
         const queryParams = {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
           ...this.filters,
-          ...params.filters
+          ...params.filters,
+        }
+
+        // Converter objetos select para valores
+        if (queryParams.animal_id?.value) {
+          queryParams.animal_id = queryParams.animal_id.value
+        }
+        if (queryParams.terreno_id?.value) {
+          queryParams.terreno_id = queryParams.terreno_id.value
+        }
+        if (queryParams.tipo_movimentacao?.value) {
+          queryParams.tipo_movimentacao = queryParams.tipo_movimentacao.value
         }
 
         const response = await api.get('/api/movimentacoes', { params: queryParams })
-        
+
         this.movimentacoes = response.data.movimentacoes
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
           rowsNumber: response.data.total,
-          rowsPerPage: response.data.limit
+          rowsPerPage: response.data.limit,
         }
-        
+
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao buscar movimentações'
@@ -130,12 +144,12 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
         tipo_movimentacao: null,
         terreno_id: null,
         data_inicio: '',
-        data_fim: ''
+        data_fim: '',
       }
     },
 
     setPagination(newPagination) {
       this.pagination = { ...this.pagination, ...newPagination }
-    }
-  }
+    },
+  },
 })

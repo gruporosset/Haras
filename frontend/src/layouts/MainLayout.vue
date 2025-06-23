@@ -70,6 +70,12 @@
             </q-item-section>
             <q-item-section>Movimentações</q-item-section>
           </q-item>          
+          <q-item clickable v-ripple to="/reproducao">
+            <q-item-section avatar>
+              <q-icon name="favorite" />
+            </q-item-section>
+            <q-item-section>Reprodução</q-item-section>
+          </q-item>          
           <!-- Adicionar mais itens conforme necessário -->
         </q-list>
       </q-drawer>    

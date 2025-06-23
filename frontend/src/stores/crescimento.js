@@ -12,15 +12,15 @@ export const useCrescimentoStore = defineStore('crescimento', {
       animal_id: null,
       tipo_registro: null,
       data_inicio: '',
-      data_fim: ''
+      data_fim: '',
     },
     pagination: {
       page: 1,
       rowsPerPage: 10,
       rowsNumber: 0,
       sortBy: 'DATA_MEDICAO',
-      descending: true
-    }
+      descending: true,
+    },
   }),
 
   getters: {
@@ -31,41 +31,52 @@ export const useCrescimentoStore = defineStore('crescimento', {
       { value: 'EXAME', label: 'Exame' },
       { value: 'CONSULTA', label: 'Consulta' },
       { value: 'CIRURGIA', label: 'Cirurgia' },
-      { value: 'TRATAMENTO', label: 'Tratamento' }
+      { value: 'TRATAMENTO', label: 'Tratamento' },
     ],
 
-    aplicacoesPendentes: (state) => state.proximasAplicacoes.filter(a => a.dias_restantes <= 7),
-    
+    aplicacoesPendentes: (state) => state.proximasAplicacoes.filter((a) => a.dias_restantes <= 7),
+
     registrosByAnimal: (state) => (animalId) => {
       return {
-        crescimentos: state.crescimentos.filter(c => c.ID_ANIMAL === animalId),
-        saudes: state.saudes.filter(s => s.ID_ANIMAL === animalId)
+        crescimentos: state.crescimentos.filter((c) => c.ID_ANIMAL === animalId),
+        saudes: state.saudes.filter((s) => s.ID_ANIMAL === animalId),
       }
-    }
+    },
   },
 
   actions: {
     // === CRESCIMENTO ===
     async fetchCrescimentos(params = {}) {
       this.loading = true
+      if (params == null || params == undefined) {
+        params = {}
+      }
+
       try {
         const queryParams = {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
           ...this.filters,
-          ...params.filters
+          ...params.filters,
         }
 
-        const response = await api.get('/api/crescimento-saude/crescimento', { params: queryParams })
-        
+        // Converter objeto select para valor
+        if (queryParams.animal_id?.value) {
+          queryParams.animal_id = queryParams.animal_id.value
+        }
+
+        const response = await api.get('/api/crescimento-saude/crescimento', {
+          params: queryParams,
+        })
+
         this.crescimentos = response.data.registros
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
           rowsNumber: response.data.total,
-          rowsPerPage: response.data.limit
+          rowsPerPage: response.data.limit,
         }
-        
+
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao buscar registros de crescimento'
@@ -106,24 +117,32 @@ export const useCrescimentoStore = defineStore('crescimento', {
     // === SAÚDE ===
     async fetchSaudes(params = {}) {
       this.loading = true
+      if (params == null || params == undefined) {
+        params = {}
+      }
       try {
         const queryParams = {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
           ...this.filters,
-          ...params.filters
+          ...params.filters,
+        }
+
+        // Converter objeto select para valor
+        if (queryParams.tipo_registro?.value) {
+          queryParams.tipo_registro = queryParams.tipo_registro.value
         }
 
         const response = await api.get('/api/crescimento-saude/saude', { params: queryParams })
-        
+
         this.saudes = response.data.registros
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
           rowsNumber: response.data.total,
-          rowsPerPage: response.data.limit
+          rowsPerPage: response.data.limit,
         }
-        
+
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao buscar registros de saúde'
@@ -191,12 +210,12 @@ export const useCrescimentoStore = defineStore('crescimento', {
         animal_id: null,
         tipo_registro: null,
         data_inicio: '',
-        data_fim: ''
+        data_fim: '',
       }
     },
 
     setPagination(newPagination) {
       this.pagination = { ...this.pagination, ...newPagination }
-    }
-  }
+    },
+  },
 })

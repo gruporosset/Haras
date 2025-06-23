@@ -792,10 +792,15 @@ async function performDelete() {
 
 function filterAnimais(val, update) {
   update(() => {
-    // Implementar filtro se necessário
+    if (val === '') {
+      animalOptions.value = [...animalStore.parentOptions.machos, ...animalStore.parentOptions.femeas]
+    } else {
+      const needle = val.toLowerCase()
+      const allAnimals = [...animalStore.parentOptions.machos, ...animalStore.parentOptions.femeas]
+      animalOptions.value = allAnimals.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+    }
   })
 }
-
 function getTipoColor(tipo) {
   const colors = {
     'VACINA': 'primary',

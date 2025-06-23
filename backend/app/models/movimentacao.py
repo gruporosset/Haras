@@ -3,12 +3,14 @@ from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
 from .base import Base
 
+
 class MovimentacaoAnimais(Base):
     __tablename__ = "MOVIMENTACOES_ANIMAIS"
-    
+
     ID = Column(Integer, primary_key=True, autoincrement=True)
     ID_ANIMAL = Column(Integer, ForeignKey('ANIMAIS.ID'), nullable=False)
-    TIPO_MOVIMENTACAO = Column(String(50), nullable=False)  # TRANSFERENCIA, ENTRADA, SAIDA, VENDA, EMPRESTIMO
+    # TRANSFERENCIA, ENTRADA, SAIDA, VENDA, EMPRESTIMO
+    TIPO_MOVIMENTACAO = Column(String(50), nullable=False)
     DATA_MOVIMENTACAO = Column(DateTime, nullable=False)
     ID_TERRENO_ORIGEM = Column(Integer, ForeignKey('TERRENOS.ID'))
     ID_TERRENO_DESTINO = Column(Integer, ForeignKey('TERRENOS.ID'))

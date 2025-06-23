@@ -1,12 +1,13 @@
-import LoginPage from "../pages/LoginPage.vue"
-import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
-import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
-import DashboardPage from "../pages/DashboardPage.vue"
-import ProfilePage from '../pages/ProfilePage.vue';
+import LoginPage from '../pages/LoginPage.vue'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue'
+import ResetPasswordPage from '../pages/ResetPasswordPage.vue'
+import DashboardPage from '../pages/DashboardPage.vue'
+import ProfilePage from '../pages/ProfilePage.vue'
 import TerrenosPage from '../pages/TerrenosPage.vue'
 import AnimaisPage from '../pages/AnimaisPage.vue'
 import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
 import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
+import ReproducaoPage from '../pages/ReproducaoPage.vue'
 
 const routes = [
   {
@@ -17,7 +18,7 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginPage,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false },
   },
   {
     path: '/forgot-password',
@@ -33,7 +34,7 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: DashboardPage,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
     path: '/profile',
@@ -66,9 +67,15 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/reproducao',
+    name: 'Reproducao',
+    component: ReproducaoPage,
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue')
-  }
+    component: () => import('pages/ErrorNotFound.vue'),
+  },
 ]
 
 export default routes

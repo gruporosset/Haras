@@ -597,11 +597,27 @@ async function performDelete() {
 }
 
 function filterAnimais(val, update) {
-  update(() => {})
+  update(() => {
+    if (val === '') {
+      animalOptions.value = [...animalStore.parentOptions.machos, ...animalStore.parentOptions.femeas]
+    } else {
+      const needle = val.toLowerCase()
+      const allAnimals = [...animalStore.parentOptions.machos, ...animalStore.parentOptions.femeas]
+      animalOptions.value = allAnimals.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+    }
+  })
 }
 
 function filterTerrenos(val, update) {
-  update(() => {})
+  update(() => {
+    if (val === '') {
+      terrenoOptions.value = terrenoStore.terrenos.map(t => ({ value: t.ID, label: t.NOME }))
+    } else {
+      const needle = val.toLowerCase()
+      const allTerrenos = terrenoStore.terrenos.map(t => ({ value: t.ID, label: t.NOME }))
+      terrenoOptions.value = allTerrenos.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+    }
+  })
 }
 
 function getTipoColor(tipo) {

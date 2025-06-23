@@ -118,7 +118,7 @@
               <q-btn
                 flat
                 round
-                color="secondary"
+                color="accent"
                 icon="photo_camera"
                 @click="openFotoDialog(props.row)"
                 aria-label="Gerenciar fotos"
@@ -150,104 +150,100 @@
           </div>
         </q-card-section>
         <q-card-section class="q-pt-none">
-          <div class="row q-gutter-md">
-            <div class="col-12">
-              <q-list>
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>ID</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.ID }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Número de Registro</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.NUMERO_REGISTRO || 'Não informado' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Chip de Identificação</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.CHIP_IDENTIFICACAO || 'Não informado' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Sexo</q-item-label>
-                    <q-item-label>
-                      <q-icon 
-                        :name="viewAnimalData?.SEXO === 'M' ? 'male' : 'female'" 
-                        :color="viewAnimalData?.SEXO === 'M' ? 'blue' : 'pink'"
-                        size="sm"
-                        class="q-mr-xs"
-                      />
-                      {{ viewAnimalData?.SEXO === 'M' ? 'Macho' : 'Fêmea' }}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Data de Nascimento</q-item-label>
-                    <q-item-label>{{ formatDate(viewAnimalData?.DATA_NASCIMENTO) }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Pelagem</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.PELAGEM || 'Não informado' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Status</q-item-label>
-                    <q-item-label>
-                      <q-chip 
-                        :color="getStatusColor(viewAnimalData?.STATUS_ANIMAL)" 
-                        text-color="white" 
-                        dense
-                      >
-                        {{ viewAnimalData?.STATUS_ANIMAL }}
-                      </q-chip>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Origem</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.ORIGEM || 'Não informado' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Peso Atual</q-item-label>
-                    <q-item-label>{{ viewAnimalData?.PESO_ATUAL ? `${viewAnimalData.PESO_ATUAL} kg` : 'Não informado' }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item>
-                  <q-item-section>
-                    <q-item-label caption>Data de Cadastro</q-item-label>
-                    <q-item-label>{{ formatDate(viewAnimalData?.DATA_CADASTRO) }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-                
-                <q-item v-if="viewAnimalData?.OBSERVACOES">
-                  <q-item-section>
-                    <q-item-label caption>Observações</q-item-label>
-                    <q-item-label>{{ viewAnimalData.OBSERVACOES }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </div>
+          <q-list>
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>ID</q-item-label>
+                <q-item-label>{{ viewAnimalData?.ID }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Número de Registro</q-item-label>
+                <q-item-label>{{ viewAnimalData?.NUMERO_REGISTRO || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Chip de Identificação</q-item-label>
+                <q-item-label>{{ viewAnimalData?.CHIP_IDENTIFICACAO || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Sexo</q-item-label>
+                <q-item-label>
+                  <q-icon 
+                    :name="viewAnimalData?.SEXO === 'M' ? 'male' : 'female'" 
+                    :color="viewAnimalData?.SEXO === 'M' ? 'blue' : 'pink'"
+                    size="sm"
+                    class="q-mr-xs"
+                  />
+                  {{ viewAnimalData?.SEXO === 'M' ? 'Macho' : 'Fêmea' }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Data de Nascimento</q-item-label>
+                <q-item-label>{{ formatDate(viewAnimalData?.DATA_NASCIMENTO) }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Pelagem</q-item-label>
+                <q-item-label>{{ viewAnimalData?.PELAGEM || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Status</q-item-label>
+                <q-item-label>
+                  <q-chip 
+                    :color="getStatusColor(viewAnimalData?.STATUS_ANIMAL)" 
+                    text-color="white" 
+                    dense
+                  >
+                    {{ viewAnimalData?.STATUS_ANIMAL }}
+                  </q-chip>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Origem</q-item-label>
+                <q-item-label>{{ viewAnimalData?.ORIGEM || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Peso Atual</q-item-label>
+                <q-item-label>{{ viewAnimalData?.PESO_ATUAL ? `${viewAnimalData.PESO_ATUAL} kg` : 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label caption>Data de Cadastro</q-item-label>
+                <q-item-label>{{ formatDate(viewAnimalData?.DATA_CADASTRO) }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item v-if="viewAnimalData?.OBSERVACOES">
+              <q-item-section>
+                <q-item-label caption>Observações</q-item-label>
+                <q-item-label>{{ viewAnimalData.OBSERVACOES }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn
@@ -266,6 +262,7 @@
       </q-card>
     </q-dialog>
 
+    <!-- Diálogo para Cadastro/Edição -->
     <q-dialog v-model="dialog" persistent>
       <q-card style="width: 700px; max-width: 90vw">
         <q-form @submit="saveAnimal">
@@ -293,15 +290,20 @@
             </div>
             
             <div class="row q-gutter-md q-mt-sm">
-              <calendario-component
-                  v-model="form.DATA_NASCIMENTO"
-                  label="Data de Nascimento"
-                  class="col-5"
-              />
               <q-select
                 v-model="form.SEXO"
                 :options="sexoOptions"
                 label="Sexo"
+                class="col-2"
+              />
+              <calendario-component
+                v-model="form.DATA_NASCIMENTO"
+                label="Data de Nascimento"
+                class="col-3"
+              />
+              <q-input
+                v-model="form.PELAGEM"
+                label="Pelagem"
                 class="col-3"
               />
               <q-select
@@ -313,31 +315,9 @@
             </div>
 
             <div class="row q-gutter-md q-mt-sm">
-              <q-input
-                v-model="form.ORIGEM"
-                label="Origem"
-                class="col-5"
-              />
-
-              <q-input
-                v-model="form.PELAGEM"
-                label="Pelagem"
-                class="col-3"
-              />
-
-              <q-input
-                v-model.number="form.PESO_ATUAL"
-                label="Peso Atual (kg)"
-                type="number"
-                step="0.1"
-                class="col-3"
-              />
-            </div>
-
-            <div class="row q-gutter-md q-mt-sm">
               <q-select
                 v-model="form.ID_PAI"
-                :options="animalStore.parentOptions.machos"
+                :options="machoOptions"
                 label="Pai"
                 clearable
                 use-input
@@ -346,12 +326,27 @@
               />
               <q-select
                 v-model="form.ID_MAE"
-                :options="animalStore.parentOptions.femeas"
+                :options="femeaOptions"
                 label="Mãe"
                 clearable
                 use-input
                 @filter="filterFemeas"
                 class="col-5"
+              />
+            </div>
+
+            <div class="row q-gutter-md q-mt-sm">
+              <q-input
+                v-model="form.ORIGEM"
+                label="Origem"
+                class="col-4"
+              />
+              <q-input
+                v-model.number="form.PESO_ATUAL"
+                label="Peso Atual (kg)"
+                type="number"
+                step="0.1"
+                class="col-3"
               />
             </div>
 
@@ -560,12 +555,11 @@
             color="negative"
             label="Excluir"
             @click="deleteAnimal"
-            :disable="loading"
+            :disable="animalStore.loading"
           />
         </q-card-actions>
       </q-card>
     </q-dialog>
-
   </q-page>
 </template>
 
@@ -635,6 +629,10 @@ const animalToDelete = ref(null)
 const genealogiaData = ref(null)
 const newFoto = ref(null)
 
+// Opções para seleção de pais
+const machoOptions = ref([])
+const femeaOptions = ref([])
+
 // Funções
 async function fetchAnimais(props = {}) {
   try {
@@ -653,12 +651,31 @@ function onRequest(props) {
   fetchAnimais(props)
 }
 
+async function loadParentOptions() {
+  try {
+    await animalStore.loadParentOptions()
+    machoOptions.value = animalStore.parentOptions.machos
+    femeaOptions.value = animalStore.parentOptions.femeas
+  } catch (error) {
+    console.error('Erro ao carregar opções de pais:', error)
+  }
+}
+
 function openDialog(animal) {
   if (animal) {
+    // Encontrar objetos completos para os selects
+    const pai = machoOptions.value.find(m => m.value === animal.ID_PAI)
+    const mae = femeaOptions.value.find(f => f.value === animal.ID_MAE)
+    const sexo = sexoOptions.find(s => s.value === animal.SEXO)
+    const status = statusOptions.find(s => s.value === animal.STATUS_ANIMAL)
+    
     form.value = { 
       ...animal, 
       ID_USUARIO_CADASTRO: authStore.user.ID,
-      DATA_NASCIMENTO: animal.DATA_NASCIMENTO ? animal.DATA_NASCIMENTO.split(' ')[0] : ''
+      SEXO: sexo || animal.SEXO,
+      STATUS_ANIMAL: status || animal.STATUS_ANIMAL,
+      ID_PAI: pai || null,
+      ID_MAE: mae || null
     }
   } else {
     form.value = {
@@ -678,14 +695,14 @@ function openDialog(animal) {
       ID_USUARIO_CADASTRO: authStore.user.ID
     }
   }
-  loadParentOptions()
   dialog.value = true
 }
 
 async function saveAnimal() {
   try {
-    const formData = prepareFormData(form.value, ['DATA_NASCIMENTO'])
-    console.log('Dados do formulário:', formData)
+    const dateFields = ['DATA_NASCIMENTO']
+    const formData = prepareFormData(form.value, dateFields)
+    
     if (formData.ID) {
       await animalStore.updateAnimal(formData.ID, formData)
       $q.notify({ type: 'positive', message: 'Animal atualizado com sucesso' })
@@ -765,23 +782,29 @@ async function showGenealogia(animal) {
   }
 }
 
-async function loadParentOptions() {
-  try {
-    await animalStore.loadParentOptions()
-  } catch (error) {
-    console.error('Erro ao carregar opções de pais:', error)
-  }
-}
-
 function filterMachos(val, update) {
   update(() => {
-    // Implementar filtro se necessário
+    if (val === '') {
+      machoOptions.value = animalStore.parentOptions.machos
+    } else {
+      const needle = val.toLowerCase()
+      machoOptions.value = animalStore.parentOptions.machos.filter(
+        v => v.label.toLowerCase().indexOf(needle) > -1
+      )
+    }
   })
 }
 
 function filterFemeas(val, update) {
   update(() => {
-    // Implementar filtro se necessário
+    if (val === '') {
+      femeaOptions.value = animalStore.parentOptions.femeas
+    } else {
+      const needle = val.toLowerCase()
+      femeaOptions.value = animalStore.parentOptions.femeas.filter(
+        v => v.label.toLowerCase().indexOf(needle) > -1
+      )
+    }
   })
 }
 
@@ -796,8 +819,9 @@ function getStatusColor(status) {
 }
 
 // Carregar dados na inicialização
-onMounted(() => {
-  fetchAnimais()
+onMounted(async () => {
+  await loadParentOptions()
+  await fetchAnimais()
 })
 </script>
 
