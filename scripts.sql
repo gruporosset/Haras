@@ -23,8 +23,8 @@ create table usuarios (
                                                 'N' ) ),
    mfa_ativo             char(1) default 'N' check ( mfa_ativo in ( 'S',
                                                         'N' ) ),
-   peso_atual NUMBER(6,2),           -- Peso mais recente
-   foto_principal VARCHAR2(500)      -- URL da foto principal
+   peso_atual            number(6,2),           -- Peso mais recente
+   foto_principal        varchar2(500)      -- URL da foto principal
 );
 
 create table animais (
@@ -173,23 +173,86 @@ create table saude_animais (
    data_registro           date default sysdate
 );
 
+create table produtos_manejo (
+   id                  number
+      generated always as identity
+   primary key,
+   nome                varchar2(100) not null,
+   tipo_produto        varchar2(50) not null, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
+   principio_ativo     varchar2(200),
+   concentracao        varchar2(50),
+   unidade_medida      varchar2(20) not null, -- KG, L, SC (saca)
+   fabricante          varchar2(100),
+   registro_ministerio varchar2(50),
+   observacoes         clob,
+   ativo               char(1) default 'S' check ( ativo in ( 'S',
+                                                'N' ) ),
+   id_usuario_cadastro number
+      references usuarios ( id ),
+   data_cadastro       date default sysdate
+);
+
 create table manejo_terrenos (
+   id                    number
+      generated always as identity
+   primary key,
+   id_terreno            number not null
+      references terrenos ( id ),
+   tipo_manejo           varchar2(50) not null,
+   data_aplicacao        date not null,
+   id_produto            number not null
+      references produtos_manejo ( id ),
+   quantidade            number(10,3),
+   unidade_medida        varchar2(20),
+   observacoes           clob,
+   dose_hectare          float,
+   area_aplicada         float,
+   custo_total           float,
+   equipamento_utilizado varchar2(100),
+   condicoes_climaticas  varchar2(100),
+   id_usuario_registro   number
+      references usuarios ( id ),
+   data_registro         date default sysdate,
+   periodo_carencia      number(3), -- dias sem animais
+   data_liberacao        date -- calculado automaticamente    
+);
+
+
+create table analises_solo (
    id                  number
       generated always as identity
    primary key,
    id_terreno          number not null
       references terrenos ( id ),
-   tipo_manejo         varchar2(50) not null,
-   data_aplicacao      date not null,
-   produto_utilizado   varchar2(200),
-   quantidade          number(10,3),
-   unidade_medida      varchar2(20),
-   custo               number(10,2),
+   data_coleta         date not null,
+   data_resultado      date,
+   laboratorio         varchar2(100),
+   ph_agua             number(3,1),
+   ph_cacl2            number(3,1),
+   materia_organica    number(4,2), -- %
+   fosforo             number(6,2), -- mg/dm³
+   potassio            number(6,2), -- cmolc/dm³
+   calcio              number(6,2), -- cmolc/dm³
+   magnesio            number(6,2), -- cmolc/dm³
+   aluminio            number(6,2), -- cmolc/dm³
+   h_al                number(6,2), -- cmolc/dm³ (H+Al)
+   ctc                 number(6,2), -- cmolc/dm³
+   saturacao_bases     number(4,1), -- %
+   saturacao_aluminio  number(4,1), -- %
+   enxofre             number(6,2), -- mg/dm³
+   boro                number(6,2), -- mg/dm³
+   cobre               number(6,2), -- mg/dm³
+   ferro               number(6,2), -- mg/dm³
+   manganes            number(6,2), -- mg/dm³
+   zinco               number(6,2), -- mg/dm³
    observacoes         clob,
-   id_usuario_registro number
+   recomendacoes       clob,
+   arquivo_laudo       varchar2(500), -- path do PDF
+   id_usuario_cadastro number
       references usuarios ( id ),
-   data_registro       date default sysdate
+   data_cadastro       date default sysdate
 );
+
 
 create table audit_log (
    id               number
@@ -275,47 +338,163 @@ create index idx_audit_tabela_data on
       data_operacao
    );
 
-CREATE OR REPLACE TRIGGER HARAS.audit_trigger_animais
-AFTER INSERT OR UPDATE OR DELETE ON ANIMAIS
-FOR EACH ROW
-DECLARE
-    v_operacao VARCHAR2(10);
-    v_dados_anteriores CLOB;
-    v_dados_novos CLOB;
-BEGIN
-    IF INSERTING THEN
-        v_operacao := 'INSERT';
-        v_dados_novos := JSON_OBJECT(
-            'id' VALUE :NEW.ID,
-            'nome' VALUE :NEW.NOME,
-            'numero_registro' VALUE :NEW.NUMERO_REGISTRO
-        );
-    ELSIF UPDATING THEN
-        v_operacao := 'UPDATE';
-        v_dados_anteriores := JSON_OBJECT(
-            'id' VALUE :OLD.ID,
-            'nome' VALUE :OLD.NOME,
-            'numero_registro' VALUE :OLD.NUMERO_REGISTRO
-        );
-        v_dados_novos := JSON_OBJECT(
-            'id' VALUE :NEW.ID,
-            'nome' VALUE :NEW.NOME,
-            'numero_registro' VALUE :NEW.NUMERO_REGISTRO
-        );
-    ELSIF DELETING THEN
-        v_operacao := 'DELETE';
-        v_dados_anteriores := JSON_OBJECT(
-            'id' VALUE :OLD.ID,
-            'nome' VALUE :OLD.NOME,
-            'numero_registro' VALUE :OLD.NUMERO_REGISTRO
-        );
-    END IF;
+create or replace trigger haras.audit_trigger_animais after
+   insert or update or delete on animais
+   for each row
+declare
+   v_operacao         varchar2(10);
+   v_dados_anteriores clob;
+   v_dados_novos      clob;
+begin
+   if inserting then
+      v_operacao := 'INSERT';
+      v_dados_novos :=
+         json_object(
+            'id' value :new.id,
+                     'nome' value :new.nome,
+                     'numero_registro' value :new.numero_registro
+         );
+   elsif updating then
+      v_operacao := 'UPDATE';
+      v_dados_anteriores :=
+         json_object(
+            'id' value :old.id,
+                     'nome' value :old.nome,
+                     'numero_registro' value :old.numero_registro
+         );
+      v_dados_novos :=
+         json_object(
+            'id' value :new.id,
+                     'nome' value :new.nome,
+                     'numero_registro' value :new.numero_registro
+         );
+   elsif deleting then
+      v_operacao := 'DELETE';
+      v_dados_anteriores :=
+         json_object(
+            'id' value :old.id,
+                     'nome' value :old.nome,
+                     'numero_registro' value :old.numero_registro
+         );
+   end if;
 
-    INSERT INTO AUDIT_LOG (
-        TABELA, ID_REGISTRO, OPERACAO, DADOS_ANTERIORES, DADOS_NOVOS,
-        ID_USUARIO, IP_USUARIO
-    ) VALUES (
-        'ANIMAIS', :NEW.ID, v_operacao, v_dados_anteriores, v_dados_novos,
-        :NEW.ID_USUARIO_ALTERACAO, SYS_CONTEXT('USERENV', 'IP_ADDRESS')
-    );
-END;
+   insert into audit_log (
+      tabela,
+      id_registro,
+      operacao,
+      dados_anteriores,
+      dados_novos,
+      id_usuario,
+      ip_usuario
+   ) values ( 'ANIMAIS',
+              :new.id,
+              v_operacao,
+              v_dados_anteriores,
+              v_dados_novos,
+              :new.id_usuario_alteracao,
+              sys_context(
+                 'USERENV',
+                 'IP_ADDRESS'
+              ) );
+end;
+
+-- Comentários nas colunas para documentação
+comment on column produtos_manejo.tipo_produto is
+   'FERTILIZANTE, DEFENSIVO, CORRETIVO, SEMENTE';
+comment on column analises_solo.ph_agua is
+   'pH em água - faixa ideal 6.0-7.0';
+comment on column analises_solo.materia_organica is
+   'Matéria orgânica em % - ideal > 2.5%';
+comment on column analises_solo.saturacao_bases is
+   'Saturação por bases em % - ideal > 60%';
+comment on column manejo_terrenos.periodo_carencia is
+   'Dias que os animais devem ficar fora do terreno';
+comment on column manejo_terrenos.data_liberacao is
+   'Data calculada automaticamente para liberação do terreno';
+
+-- Índices para performance
+create index idx_analises_terreno_data on
+   analises_solo (
+      id_terreno,
+      data_coleta
+   );
+create index idx_manejo_terreno_data on
+   manejo_terrenos (
+      id_terreno,
+      data_aplicacao
+   );
+create index idx_manejo_liberacao on
+   manejo_terrenos (
+      data_liberacao
+   );
+
+-- Trigger para calcular data de liberação automaticamente
+create or replace trigger trg_manejo_data_liberacao before
+   insert or update on manejo_terrenos
+   for each row
+begin
+   if
+      :new.periodo_carencia is not null
+      and :new.data_aplicacao is not null
+   then
+      :new.data_liberacao := :new.data_aplicacao + :new.periodo_carencia;
+   end if;
+end;
+
+-- Inserir alguns produtos padrão
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'Ureia 45%',
+           'FERTILIZANTE',
+           'KG',
+           6 );
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'NPK 20-05-20',
+           'FERTILIZANTE',
+           'KG',
+           6 );
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'Calcário Dolomítico',
+           'CORRETIVO',
+           'T',
+           6 );
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'Superfosfato Simples',
+           'FERTILIZANTE',
+           'KG',
+           6 );
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'Glifosato 480g/L',
+           'DEFENSIVO',
+           'L',
+           6 );
+insert into produtos_manejo (
+   nome,
+   tipo_produto,
+   unidade_medida,
+   id_usuario_cadastro
+) values ( 'Sementes Brachiaria Brizantha',
+           'SEMENTE',
+           'KG',
+           6 );
+
+commit;

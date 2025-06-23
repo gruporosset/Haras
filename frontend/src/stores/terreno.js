@@ -59,8 +59,6 @@ export const useTerrenoStore = defineStore('terreno', {
           ...params.filters,
         }
 
-        console.log('Fetching terrenos with params:', queryParams)
-
         const response = await api.get('/api/terrenos', { params: queryParams })
 
         this.terrenos = response.data.terrenos

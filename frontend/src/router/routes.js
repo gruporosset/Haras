@@ -8,6 +8,7 @@ import AnimaisPage from '../pages/AnimaisPage.vue'
 import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
 import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
 import ReproducaoPage from '../pages/ReproducaoPage.vue'
+import ManejoPage from '../pages/ManejoPage.vue'
 
 const routes = [
   {
@@ -70,6 +71,12 @@ const routes = [
     path: '/reproducao',
     name: 'Reproducao',
     component: ReproducaoPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/manejo',
+    name: 'Manejo',
+    component: ManejoPage,
     meta: { requiresAuth: true },
   },
   {

@@ -522,7 +522,6 @@ function openDialog(record) {
       ID_USUARIO_REGISTRO: authStore.user.ID
     }
   }
-  console.log('Abrindo diálogo com dados:', form.value)
   dialog.value = true
 }
 

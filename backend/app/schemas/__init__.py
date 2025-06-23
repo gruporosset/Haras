@@ -5,4 +5,5 @@ from .animal import AnimalBase, AnimalCreate, AnimalUpdate, AnimalResponse, Anim
 from .crescimento import CrescimentoBase, CrescimentoCreate, CrescimentoUpdate, CrescimentoResponse, SaudeBase, SaudeCreate, SaudeUpdate, SaudeResponse, TipoRegistroEnum, EstatisticasCrescimento, ProximasAplicacoes
 from .movimentacao import MovimentacaoBase, MovimentacaoCreate, MovimentacaoUpdate, MovimentacaoResponse, TipoMovimentacaoEnum, LocalizacaoAtual, HistoricoMovimentacao
 from .reproducao import ReproducaoBase, ReproducaoCreate, ReproducaoUpdate, ReproducaoResponse, EstatisticasReproducao, CalendarioReproducao, HistoricoEgua
+from .manejo import ProdutoManejoBase, ProdutoManejoCreate, ProdutoManejoUpdate, ProdutoManejoResponse, AnalisesSoloBase, AnalisesSoloCreate, AnalisesSoloUpdate, AnalisesSoloResponse, ManejoTerrenosBase, ManejoTerrenosCreate, ManejoTerrenosUpdate, ManejoTerrenosResponse, CronogramaAplicacoes, CapacidadeOcupacao, HistoricoNutricional
 from .sessao import SessaoRefreshTokenRequest

@@ -76,6 +76,12 @@
             </q-item-section>
             <q-item-section>Reprodução</q-item-section>
           </q-item>          
+          <q-item clickable v-ripple to="/manejo">
+            <q-item-section avatar>
+              <q-icon name="eco" />
+            </q-item-section>
+            <q-item-section>Manejo de Terrenos</q-item-section>
+          </q-item>          
           <!-- Adicionar mais itens conforme necessário -->
         </q-list>
       </q-drawer>    
