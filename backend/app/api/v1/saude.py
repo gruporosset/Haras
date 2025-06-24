@@ -141,6 +141,59 @@ async def list_registros_saude(
     }
 
 
+@router.get("/proximas-aplicacoes", response_model=List[ProximasAplicacoes])
+async def get_proximas_aplicacoes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    dias: int = Query(30, description="Próximos X dias")
+):
+    """Lista próximas aplicações programadas"""
+    data_limite = datetime.now() + timedelta(days=dias)
+
+    registros = db.query(SaudeAnimais, Animal.NOME).join(Animal).filter(
+        SaudeAnimais.PROXIMA_APLICACAO.isnot(None),
+        SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
+        SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
+    ).order_by(SaudeAnimais.PROXIMA_APLICACAO).all()
+
+    proximas = []
+    for saude, animal_nome in registros:
+        dias_restantes = (saude.PROXIMA_APLICACAO - datetime.now()).days
+
+        # Determinar prioridade
+        if dias_restantes <= 3:
+            prioridade = "URGENTE"
+        elif dias_restantes <= 7:
+            prioridade = "NORMAL"
+        else:
+            prioridade = "BAIXA"
+
+        # Buscar nome do medicamento se tiver
+        medicamento_nome = None
+        if saude.ID_MEDICAMENTO:
+            try:
+                from app.models.medicamento import Medicamento
+                medicamento = db.query(Medicamento).filter(
+                    Medicamento.ID == saude.ID_MEDICAMENTO).first()
+                medicamento_nome = medicamento.NOME if medicamento else None
+            except:
+                pass
+
+        proximas.append(ProximasAplicacoes(
+            animal_id=saude.ID_ANIMAL,
+            animal_nome=animal_nome,
+            tipo_registro=saude.TIPO_REGISTRO,
+            data_aplicacao=saude.PROXIMA_APLICACAO,
+            descricao=saude.DESCRICAO or f"{saude.TIPO_REGISTRO} - {saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
+            dias_restantes=dias_restantes,
+            medicamento_nome=medicamento_nome,
+            veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
+            prioridade=prioridade
+        ))
+
+    return proximas
+
+
 @router.get("/{id}", response_model=SaudeResponse)
 async def get_registro_saude(
     id: int,
@@ -355,6 +408,46 @@ async def validar_estoque_medicamento(
         }
 
 # === RELATÓRIOS ===
+
+
+@router.get("/estatisticas/veterinarios-estatisticas")
+async def get_veterinarios_estatisticas(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    meses_periodo: int = Query(12, description="Período em meses para análise")
+):
+    """Estatísticas de veterinários mais ativos"""
+    data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
+
+    # Buscar registros agrupados por veterinário
+    resultados = db.query(
+        SaudeAnimais.VETERINARIO_RESPONSAVEL,
+        func.count(SaudeAnimais.ID).label('total_aplicacoes'),
+        func.count(func.distinct(SaudeAnimais.ID_ANIMAL)
+                   ).label('animais_atendidos'),
+        func.count(func.distinct(SaudeAnimais.TIPO_REGISTRO)
+                   ).label('tipos_diferentes'),
+        func.max(SaudeAnimais.DATA_OCORRENCIA).label('ultimo_atendimento')
+    ).filter(
+        SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+        SaudeAnimais.VETERINARIO_RESPONSAVEL.isnot(None),
+        SaudeAnimais.VETERINARIO_RESPONSAVEL != ''
+    ).group_by(SaudeAnimais.VETERINARIO_RESPONSAVEL).all()
+
+    veterinarios = []
+    for resultado in resultados:
+        veterinarios.append({
+            "veterinario": resultado.VETERINARIO_RESPONSAVEL,
+            "total_aplicacoes": resultado.total_aplicacoes,
+            "animais_atendidos": resultado.animais_atendidos,
+            "tipos_diferentes": resultado.tipos_diferentes,
+            "ultimo_atendimento": resultado.ultimo_atendimento.strftime("%d/%m/%Y") if resultado.ultimo_atendimento else None
+        })
+
+    # Ordenar por total de aplicações (decrescente)
+    veterinarios.sort(key=lambda x: x["total_aplicacoes"], reverse=True)
+
+    return veterinarios
 
 
 @router.get("/estatisticas/geral", response_model=List[EstatisticasSaude])
@@ -576,57 +669,60 @@ async def get_historico_animal(
     )
 
 
-@router.get("/proximas-aplicacoes", response_model=List[ProximasAplicacoes])
-async def get_proximas_aplicacoes(
+@router.get("/relatorio/aplicacoes-mensais", response_model=List[dict])
+async def get_aplicacoes_mensais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    dias: int = Query(30, description="Próximos X dias")
+    meses: int = Query(6, description="Número de meses para análise")
 ):
-    """Lista próximas aplicações programadas"""
-    data_limite = datetime.now() + timedelta(days=dias)
+    """Relatório de aplicações por mês"""
+    from sqlalchemy import extract
 
-    registros = db.query(SaudeAnimais, Animal.NOME).join(Animal).filter(
-        SaudeAnimais.PROXIMA_APLICACAO.isnot(None),
-        SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
-        SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
-    ).order_by(SaudeAnimais.PROXIMA_APLICACAO).all()
+    # Data limite baseada no número de meses solicitado
+    data_limite = datetime.now() - timedelta(days=meses * 30)
 
-    proximas = []
-    for saude, animal_nome in registros:
-        dias_restantes = (saude.PROXIMA_APLICACAO - datetime.now()).days
+    # Query para buscar aplicações agrupadas por mês/ano
+    resultados = db.query(
+        extract('year', SaudeAnimais.DATA_OCORRENCIA).label('ano'),
+        extract('month', SaudeAnimais.DATA_OCORRENCIA).label('mes'),
+        func.count(SaudeAnimais.ID).label('total_aplicacoes')
+    ).filter(
+        SaudeAnimais.DATA_OCORRENCIA >= data_limite
+    ).group_by(
+        extract('year', SaudeAnimais.DATA_OCORRENCIA),
+        extract('month', SaudeAnimais.DATA_OCORRENCIA)
+    ).order_by(
+        extract('year', SaudeAnimais.DATA_OCORRENCIA),
+        extract('month', SaudeAnimais.DATA_OCORRENCIA)
+    ).all()
 
-        # Determinar prioridade
-        if dias_restantes <= 3:
-            prioridade = "URGENTE"
-        elif dias_restantes <= 7:
-            prioridade = "NORMAL"
+    # Nomes dos meses em português
+    nomes_meses = [
+        '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+    ]
+
+    # Converter resultados para formato do gráfico
+    dados_mensais = []
+    for resultado in resultados:
+        ano = int(resultado.ano)
+        mes = int(resultado.mes)
+
+        # Formato: "Jan/2024" ou só "Jan" se for ano atual
+        if ano == datetime.now().year:
+            label = nomes_meses[mes]
         else:
-            prioridade = "BAIXA"
+            label = f"{nomes_meses[mes]}/{ano}"
 
-        # Buscar nome do medicamento se tiver
-        medicamento_nome = None
-        if saude.ID_MEDICAMENTO:
-            try:
-                from app.models.medicamento import Medicamento
-                medicamento = db.query(Medicamento).filter(
-                    Medicamento.ID == saude.ID_MEDICAMENTO).first()
-                medicamento_nome = medicamento.NOME if medicamento else None
-            except:
-                pass
+        dados_mensais.append({
+            "periodo": label,
+            "total_aplicacoes": resultado.total_aplicacoes,
+            "ano": ano,
+            "mes": mes
+        })
 
-        proximas.append(ProximasAplicacoes(
-            animal_id=saude.ID_ANIMAL,
-            animal_nome=animal_nome,
-            tipo_registro=saude.TIPO_REGISTRO,
-            data_aplicacao=saude.PROXIMA_APLICACAO,
-            descricao=saude.DESCRICAO or f"{saude.TIPO_REGISTRO} - {saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
-            dias_restantes=dias_restantes,
-            medicamento_nome=medicamento_nome,
-            veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
-            prioridade=prioridade
-        ))
-
-    return proximas
+    # Se não houver dados, retornar lista vazia ao invés de dados simulados
+    return dados_mensais
 
 # === FUNÇÃO AUXILIAR ===
 

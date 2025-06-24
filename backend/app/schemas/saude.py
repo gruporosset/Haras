@@ -124,6 +124,14 @@ class EstatisticasSaude(BaseModel):
     veterinario_principal: Optional[str] = None
 
 
+class VeterinarioEstatisticas(BaseModel):
+    veterinario: str
+    total_aplicacoes: int
+    animais_atendidos: int
+    tipos_diferentes: int
+    ultimo_atendimento: Optional[str] = None
+
+
 class ProximasAplicacoes(BaseModel):
     animal_id: int
     animal_nome: str

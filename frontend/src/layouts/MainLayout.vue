@@ -65,6 +65,14 @@
               </q-item-section>
               <q-item-section>Crescimento</q-item-section>
             </q-item>
+
+            <q-item to="/saude" clickable v-ripple>
+              <q-item-section avatar>
+                <q-icon name="healing" />
+              </q-item-section>
+              <q-item-section>Saúde</q-item-section>
+            </q-item>
+            
             <q-item to="/reproducao" clickable v-ripple>
               <q-item-section avatar>
                 <q-icon name="favorite" />

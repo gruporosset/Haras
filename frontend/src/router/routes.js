@@ -12,6 +12,7 @@ import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
 import ReproducaoPage from '../pages/ReproducaoPage.vue'
 import ManejoPage from '../pages/ManejoPage.vue'
 import MedicamentosPage from '../pages/MedicamentosPage.vue'
+import SaudePage from 'pages/SaudePage.vue'
 
 const routes = [
   {
@@ -94,6 +95,15 @@ const routes = [
     component: MedicamentosPage,
     meta: { requiresAuth: true },
   },
+  {
+    path: '/saude',
+    name: 'saude',
+    component: SaudePage,
+    meta: {
+      requiresAuth: true,
+    },
+  },
+
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),
