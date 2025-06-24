@@ -338,7 +338,7 @@ async def aplicacao_rapida(
 # === AUTOCOMPLETE MEDICAMENTOS ===
 
 
-@router.get("/medicamentos-autocomplete", response_model=List[MedicamentoAutocomplete])
+@router.get("/autocomplete/medicamentos", response_model=List[MedicamentoAutocomplete])
 async def autocomplete_medicamentos_saude(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

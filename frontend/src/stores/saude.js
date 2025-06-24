@@ -133,7 +133,7 @@ export const useSaudeStore = defineStore('saude', {
 
     async autocompleteMedicamentos(termo) {
       try {
-        const response = await api.get('/api/saude/medicamentos-autocomplete', {
+        const response = await api.get('/api/saude/autocomplete/medicamentos', {
           params: { termo, limit: 20 },
         })
         return response.data
