@@ -246,9 +246,6 @@
                       emit-value
                       map-options
                       use-input
-                      hide-selected
-                      fill-input
-                      input-debounce="300"
                       @filter="buscarMedicamentos"
                       label="Medicamento (estoque)"
                       dense
@@ -399,9 +396,6 @@
                   emit-value
                   map-options
                   use-input
-                  hide-selected
-                  fill-input
-                  input-debounce="300"
                   @filter="buscarMedicamentos"
                   label="Medicamento"
                   clearable
@@ -673,28 +667,37 @@ export default {
       }
     }
 
-    const buscarMedicamentos = async (val, update) => {
-      if (val.length < 2) {
-        update(() => {
-          medicamentosEstoque.value = []
-        })
-        return
-      }
-
+    const carregarMedicamentos = async () => {
       try {
-        const response = await saudeStore.autocompleteMedicamentos(val)
-        update(() => {
-          medicamentosEstoque.value = response.map(med => ({
-            value: med.value,
-            label: `${med.nome} - Estoque: ${med.estoque} ${med.unidade}`
-          }))
-        })
+        // Carregar todos os medicamentos ativos com estoque > 0 uma única vez
+        const response = await saudeStore.autocompleteMedicamentos('')
+        medicamentosEstoque.value = response.map(med => ({
+          value: med.value,
+          label: `${med.nome} - Estoque: ${med.estoque} ${med.unidade}`,
+          nome: med.nome,
+          estoque: med.estoque,
+          unidade: med.unidade
+        }))
       } catch (error) {
-        console.error('Erro ao buscar medicamentos:', error)
-        update(() => {
-          medicamentosEstoque.value = []
-        })
+        console.error('Erro ao carregar medicamentos:', error)
+        medicamentosEstoque.value = []
       }
+    }
+
+    const buscarMedicamentos = async (val, update) => {
+      // Filtro local - não faz chamada para o backend
+      update(() => {
+        if (val === '') {
+          carregarMedicamentos()
+        } else {
+          // Filtrar localmente pelos medicamentos já carregados
+          const needle = val.toLowerCase()
+          medicamentosEstoque.value = medicamentosEstoque.value.filter(med => 
+            med.label.toLowerCase().indexOf(needle) > -1 ||
+            med.nome.toLowerCase().indexOf(needle) > -1
+          )
+        }
+      })
     }
 
     const carregarProximasAplicacoes = async () => {
@@ -976,6 +979,7 @@ export default {
     // Lifecycle
     onMounted(() => {
       carregarAnimais()
+      carregarMedicamentos()
       buscarRegistros()
     })
 
@@ -1013,6 +1017,7 @@ export default {
       buscarRegistros,
       onRequest,
       carregarAnimais,
+      carregarMedicamentos,
       buscarMedicamentos,
       carregarProximasAplicacoes,
       carregarEstatisticas,
