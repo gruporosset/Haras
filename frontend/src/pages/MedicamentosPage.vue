@@ -1,9 +1,12 @@
 <template>
   <q-page class="q-pa-md">
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="medication" class="q-mr-sm" />
+      Controle de Medicamentos
+    </div>
+
     <q-card>
       <q-card-section>
-        <div class="text-h6">Controle de Medicamentos</div>
-        
         <!-- Alertas de Estoque -->
         <div v-if="medicamentoStore.alertasEstoque.length > 0" class="q-mt-md">
           <q-banner class="bg-warning text-dark">
@@ -24,28 +27,38 @@
       
       <q-card-section>
         <!-- Filtros Gerais -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-input
-            v-model="medicamentoStore.filters.nome"
-            label="Filtrar por Nome"
-            clearable
-            @update:model-value="onFilterChange"
-            :debounce="300"
-            class="col-3"
-          />
-          <q-select
-            v-model="medicamentoStore.filters.forma_farmaceutica"
-            :options="medicamentoStore.formasFarmaceuticas"
-            label="Forma Farmacêutica"
-            clearable
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <q-toggle
-            v-model="medicamentoStore.filters.estoque_baixo"
-            label="Apenas Estoque Baixo"
-            @update:model-value="onFilterChange"
-          />
+        <div class="col-12 q-mb-md">
+          <q-card flat bordered class="q-pa-md">
+            <div class="row q-gutter-md q-mb-md">
+              <div class="col-md-3 col-12">
+                <q-input
+                  v-model="medicamentoStore.filters.nome"
+                  label="Filtrar por Nome"
+                  clearable
+                  @update:model-value="onFilterChange"
+                  :debounce="300"
+                  class="col-3"
+                />
+              </div>
+              <div class="col-md-3 col-12">
+                <q-select
+                  v-model="medicamentoStore.filters.forma_farmaceutica"
+                  :options="medicamentoStore.formasFarmaceuticas"
+                  label="Forma Farmacêutica"
+                  clearable
+                  @update:model-value="onFilterChange"
+                  class="col-2"
+                />
+              </div>
+              <div class="col-md-3 col-12">
+                <q-toggle
+                  v-model="medicamentoStore.filters.estoque_baixo"
+                  label="Apenas Estoque Baixo"
+                  @update:model-value="onFilterChange"
+                />
+              </div>
+            </div>
+          </q-card>
         </div>
         
         <!-- Estatísticas Rápidas -->

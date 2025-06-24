@@ -1,35 +1,46 @@
 <template>
   <q-page class="q-pa-md">
-    <q-card>
-      <q-card-section>
-        <div class="text-h6">Controle de Crescimento</div>
-      </q-card-section>
-      
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="trending_up" class="q-mr-sm" />
+      Controle de Crescimento
+    </div>
+
+    <q-card class="q-mb-md">
       <q-card-section>
         <!-- Filtros -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-select
-            v-model="crescimentoStore.filters.animal_id"
-            :options="animalOptions"
-            label="Filtrar por Animal"
-            clearable
-            use-input
-            @filter="filterAnimais"
-            @update:model-value="onFilterChange"
-            class="col-3"
-          />
-          <calendario-component
-            v-model="crescimentoStore.filters.data_inicio"
-            label="Data Início"
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <calendario-component
-            v-model="crescimentoStore.filters.data_fim"
-            label="Data Fim"
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
+        <div class="col-12 q-mb-md">
+          <q-card flat bordered class="q-pa-md">
+            <div class="row q-gutter-md">
+              <div class="col-md-3 col-12">
+                <q-select
+                  v-model="crescimentoStore.filters.animal_id"
+                  :options="animalOptions"
+                  label="Filtrar por Animal"
+                  clearable
+                  use-input
+                  @filter="filterAnimais"
+                  @update:model-value="onFilterChange"
+                  class="col-3"
+                />
+              </div>  
+              <div class="col-md-3 col-12">
+                <calendario-component
+                  v-model="crescimentoStore.filters.data_inicio"
+                  label="Data Início"
+                  @update:model-value="onFilterChange"
+                  class="col-2"
+                />
+              </div>  
+              <div class="col-md-3 col-12">
+                <calendario-component
+                  v-model="crescimentoStore.filters.data_fim"
+                  label="Data Fim"
+                  @update:model-value="onFilterChange"
+                  class="col-2"
+                />
+              </div>  
+            </div>
+          </q-card>
         </div>
         
         <!-- Estatísticas Rápidas -->
@@ -476,16 +487,18 @@
     </q-dialog>
   </q-page>
 </template>
+
 <script setup>
+
 import { ref, onMounted, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { useCrescimentoStore } from '../stores/crescimento'
-import { useAnimalStore } from '../stores/animal'
-import CalendarioComponent from '../components/CalendarioComponent.vue'
-import CrescimentoChart from '../components/CrescimentoChart.vue'
-import CrescimentoForm from '../components/CrescimentoForm.vue'
+import { useAuthStore } from 'stores/auth'
+import { useCrescimentoStore } from 'stores/crescimento'
+import { useAnimalStore } from 'stores/animal'
+import CalendarioComponent from 'components/CalendarioComponent.vue'
+import CrescimentoChart from 'components/CrescimentoChart.vue'
+import CrescimentoForm from 'components/CrescimentoForm.vue'
 import { prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()

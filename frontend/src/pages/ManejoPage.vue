@@ -1,42 +1,53 @@
 <template>
   <q-page class="q-pa-md">
+
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="landscape" class="q-mr-sm" />
+      Manejo de Terrenos
+    </div>
+
     <q-card>
       <q-card-section>
-        <div class="text-h6">Manejo de Terrenos</div>
-      </q-card-section>
-      <q-card-section>
-        <!-- Filtros -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-select
-            v-model="manejoStore.filters.terreno_id"
-            :options="terrenoOptions"
-            label="Terreno"
-            clearable
-            use-input
-            @filter="filterTerrenos"
-            @update:model-value="onFilterChange"
-            class="col-3"
-          />
-          <q-select
-            v-model="manejoStore.filters.tipo_manejo"
-            :options="manejoStore.tiposManejo"
-            label="Tipo Manejo"
-            clearable
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <calendario-component
-            v-model="manejoStore.filters.data_inicio"
-            label="Data Início"
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <calendario-component
-            v-model="manejoStore.filters.data_fim"
-            label="Data Fim"
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
+        <div class="col-12">
+          <q-card flat bordered class="q-pa-md">
+            <!-- Filtros -->
+            <div class="row q-gutter-md q-mb-md">
+              <div class="col-md-3 col-12">
+                <q-select
+                  v-model="manejoStore.filters.terreno_id"
+                  :options="terrenoOptions"
+                  label="Terreno"
+                  clearable
+                  use-input
+                  @filter="filterTerrenos"
+                  @update:model-value="onFilterChange"
+                />
+              </div>
+              <div class="col-md-3 col-12">
+                <q-select
+                  v-model="manejoStore.filters.tipo_manejo"
+                  :options="manejoStore.tiposManejo"
+                  label="Tipo Manejo"
+                  clearable
+                  @update:model-value="onFilterChange"
+                />
+              </div>
+              <div class="col-md-2 col-12">
+                <calendario-component
+                  v-model="manejoStore.filters.data_inicio"
+                  label="Data Início"
+                  @update:model-value="onFilterChange"
+                />
+              </div>
+              <div class="col-md-2 col-12">
+                <calendario-component
+                  v-model="manejoStore.filters.data_fim"
+                  label="Data Fim"
+                  @update:model-value="onFilterChange"
+                />
+              </div>
+            </div>
+          </q-card>
         </div>
         
         <!-- Abas -->

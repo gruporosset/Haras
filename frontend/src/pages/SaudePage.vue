@@ -1,28 +1,12 @@
-# Página Saúde dos Animais
-# frontend/src/pages/SaudePage.vue
-
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h4 q-mb-md text-primary">
+    <div class="text-h5 q-mb-md text-primary">
       <q-icon name="healing" class="q-mr-sm" />
       Saúde dos Animais
     </div>
 
-    <!-- Tabs principais -->
-    <q-tabs v-model="activeTab" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify">
-      <q-tab name="registros" label="Registros" icon="medical_services" />
-      <q-tab name="calendario" label="Calendário" icon="event" />
-      <q-tab name="estatisticas" label="Estatísticas" icon="analytics" />
-      <q-tab name="aplicacao-rapida" label="Aplicação Rápida" icon="flash_on" />
-    </q-tabs>
-
-    <q-separator />
-
-    <q-tab-panels v-model="activeTab" animated>
-      
-      <!-- ABA REGISTROS -->
-      <q-tab-panel name="registros">
-        <div class="row q-gutter-md">
+    <q-card class="q-mb-md">
+      <q-card-section>
           <!-- Filtros -->
           <div class="col-12">
             <q-card flat bordered class="q-pa-md">
@@ -31,14 +15,13 @@
                   <q-select
                     v-model="filtros.animal_id"
                     :options="animalsOptions"
-                    option-value="value"
-                    option-label="label"
-                    emit-value
-                    map-options
+                    label="Filtrar por Animal"
                     clearable
-                    label="Animal"
-                    dense
+                    use-input
+                    @filter="filterAnimais"
+                    @update:model-value="buscarRegistros"
                   />
+
                 </div>
                 <div class="col-md-3 col-12">
                   <q-select
@@ -46,267 +29,275 @@
                     :options="tiposRegistro"
                     clearable
                     label="Tipo"
-                    dense
+                    @update:model-value="buscarRegistros"
                   />
                 </div>
                 <div class="col-md-2 col-12">
-                  <q-input
+                  <calendario-component
                     v-model="filtros.data_inicio"
-                    type="date"
                     label="Data Início"
-                    dense
+                    @update:model-value="buscarRegistros"
+                    class="col-2"
                   />
                 </div>
                 <div class="col-md-2 col-12">
-                  <q-input
+                  <calendario-component
                     v-model="filtros.data_fim"
-                    type="date"
                     label="Data Fim"
-                    dense
+                    @update:model-value="buscarRegistros"
+                    class="col-2"
                   />
                 </div>
-                <div class="col-md-2 col-12">
-                  <q-btn color="primary" @click="buscarRegistros" dense>
-                    <q-icon name="search" class="q-mr-xs" />
-                    Buscar
-                  </q-btn>
-                </div>
               </div>
             </q-card>
           </div>
 
-          <!-- Botão Novo Registro -->
-          <div class="col-12">
-            <q-btn color="primary" @click="novoRegistro" icon="add">
-              Novo Registro de Saúde
-            </q-btn>
-          </div>
+          <!-- Abas -->
+          <q-tabs v-model="activeTab" class="q-mb-md">
+            <q-tab name="registros" label="Registros" />
+            <q-tab name="calendario" label="Calendário" />
+            <q-tab name="estatisticas" label="Estatísticas" />
+            <q-tab name="aplicacao-rapida" label="Aplicação Rápida" />
+          </q-tabs>
 
-          <!-- Lista de Registros -->
-          <div class="col-12">
-            <q-card flat bordered>
-              <q-table
-                :rows="registros"
-                :columns="columns"
-                :loading="loading"
-                :pagination="pagination"
-                @request="onRequest"
-                row-key="ID"
-                flat
-                bordered
-              >
-                <template v-slot:body-cell-TIPO_REGISTRO="props">
-                  <q-td :props="props">
-                    <q-chip
-                      :color="getTipoColor(props.value)"
-                      text-color="white"
-                      :label="props.value"
-                      dense
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-status_aplicacao="props">
-                  <q-td :props="props">
-                    <q-chip
-                      :color="getStatusColor(props.value)"
-                      text-color="white"
-                      :label="props.value || 'APLICADO'"
-                      dense
-                    />
-                  </q-td>
-                </template>
-
-                <template v-slot:body-cell-acoes="props">
-                  <q-td :props="props">
-                    <q-btn flat round color="primary" icon="visibility" @click="visualizarRegistro(props.row)" />
-                    <q-btn flat round color="orange" icon="edit" @click="editarRegistro(props.row)" />
-                    <q-btn flat round color="red" icon="delete" @click="excluirRegistro(props.row)" />
-                  </q-td>
-                </template>
-              </q-table>
-            </q-card>
-          </div>
-        </div>
-      </q-tab-panel>
-
-      <!-- ABA CALENDÁRIO -->
-      <q-tab-panel name="calendario">
-        <div class="row q-gutter-md">
-          <div class="col-12">
-            <q-card flat bordered class="q-pa-md">
-              <div class="text-h6 q-mb-md">Próximas Aplicações</div>
-              
-              <q-list bordered separator v-if="proximasAplicacoes.length">
-                <q-item v-for="aplicacao in proximasAplicacoes" :key="aplicacao.animal_id + aplicacao.data_aplicacao">
-                  <q-item-section avatar>
-                    <q-avatar :color="getPrioridadeColor(aplicacao.prioridade)" text-color="white">
-                      {{ aplicacao.dias_restantes }}
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>{{ aplicacao.animal_nome }}</q-item-label>
-                    <q-item-label caption>{{ aplicacao.descricao }}</q-item-label>
-                    <q-item-label caption>{{ aplicacao.data_aplicacao }}</q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-chip
-                      :color="getPrioridadeColor(aplicacao.prioridade)"
-                      text-color="white"
-                      :label="aplicacao.prioridade"
-                      dense
-                    />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-
-              <div v-else class="text-center q-pa-lg text-grey-6">
-                Nenhuma aplicação agendada
-              </div>
-            </q-card>
-          </div>
-        </div>
-      </q-tab-panel>
-
-      <!-- ABA ESTATÍSTICAS -->
-      <q-tab-panel name="estatisticas">
-        <div class="row q-gutter-md">
-          <!-- Resumo por Tipo -->
-          <div class="col-md-6 col-12">
-            <q-card flat bordered class="q-pa-md">
-              <div class="text-h6 q-mb-md">Registros por Tipo</div>
-              <canvas ref="tiposChart" style="max-height: 300px;"></canvas>
-            </q-card>
-          </div>
-
-          <!-- Consumo Mensal -->
-          <div class="col-md-6 col-12">
-            <q-card flat bordered class="q-pa-md">
-              <div class="text-h6 q-mb-md">Aplicações Mensais</div>
-              <canvas ref="mensalChart" style="max-height: 300px;"></canvas>
-            </q-card>
-          </div>
-
-          <!-- Top Veterinários -->
-          <div class="col-12">
-            <q-card flat bordered class="q-pa-md">
-              <div class="text-h6 q-mb-md">Veterinários Mais Ativos</div>
-              <q-table
-                :rows="estatisticasVeterinarios"
-                :columns="columnsVeterinarios"
-                flat
-                hide-pagination
-                :rows-per-page-options="[0]"
-              />
-            </q-card>
-          </div>
-        </div>
-      </q-tab-panel>
-
-      <!-- ABA APLICAÇÃO RÁPIDA -->
-      <q-tab-panel name="aplicacao-rapida">
-        <div class="row q-gutter-md">
-          <div class="col-md-8 col-12">
-            <q-card flat bordered class="q-pa-md">
-              <div class="text-h6 q-mb-md">Aplicação Rápida</div>
-              
-              <q-form @submit="aplicarRapido" class="q-gutter-md">
-                <div class="row q-gutter-md">
-                  <div class="col-md-6 col-12">
-                    <q-select
-                      v-model="aplicacaoRapida.ID_ANIMAL"
-                      :options="animalsOptions"
-                      option-value="value"
-                      option-label="label"
-                      emit-value
-                      map-options
-                      label="Animal *"
-                      dense
-                      :rules="[val => !!val || 'Animal é obrigatório']"
-                    />
-                  </div>
-                  <div class="col-md-6 col-12">
-                    <q-select
-                      v-model="aplicacaoRapida.TIPO_REGISTRO"
-                      :options="tiposRegistro"
-                      label="Tipo *"
-                      dense
-                      :rules="[val => !!val || 'Tipo é obrigatório']"
-                    />
-                  </div>
-                </div>
-
-                <div class="row q-gutter-md">
-                  <div class="col-md-6 col-12">
-                    <q-select
-                      v-model="aplicacaoRapida.ID_MEDICAMENTO"
-                      :options="medicamentosEstoque"
-                      option-value="value"
-                      option-label="label"
-                      emit-value
-                      map-options
-                      use-input
-                      @filter="buscarMedicamentos"
-                      label="Medicamento (estoque)"
-                      dense
-                      clearable
-                    />
-                  </div>
-                  <div class="col-md-3 col-12">
-                    <q-input
-                      v-model.number="aplicacaoRapida.QUANTIDADE_APLICADA"
-                      type="number"
-                      step="0.1"
-                      label="Quantidade"
-                      dense
-                    />
-                  </div>
-                  <div class="col-md-3 col-12">
-                    <q-input
-                      v-model="aplicacaoRapida.MEDICAMENTO_APLICADO"
-                      label="Medicamento Aplicado"
-                      dense
-                    />
-                  </div>
-                </div>
-
-                <div class="row q-gutter-md">
-                  <div class="col-md-6 col-12">
-                    <q-input
-                      v-model="aplicacaoRapida.DOSE_APLICADA"
-                      label="Dose"
-                      dense
-                    />
-                  </div>
-                  <div class="col-md-6 col-12">
-                    <q-input
-                      v-model="aplicacaoRapida.VETERINARIO_RESPONSAVEL"
-                      label="Veterinário"
-                      dense
-                    />
-                  </div>
-                </div>
-
-                <q-input
-                  v-model="aplicacaoRapida.OBSERVACOES"
-                  type="textarea"
-                  label="Observações"
-                  rows="3"
-                />
-
-                <div class="text-right">
-                  <q-btn type="submit" color="primary" :loading="loadingAplicacao">
-                    <q-icon name="flash_on" class="q-mr-xs" />
-                    Aplicar Agora
+          <q-tab-panels v-model="activeTab" animated>
+            
+            <!-- ABA REGISTROS -->
+            <q-tab-panel name="registros">
+              <div class="row q-gutter-md">
+                <!-- Botão Novo Registro -->
+                <div class="col-12">
+                  <q-btn color="primary" @click="novoRegistro" icon="add">
+                    Novo Registro de Saúde
                   </q-btn>
                 </div>
-              </q-form>
-            </q-card>
-          </div>
-        </div>
-      </q-tab-panel>
-    </q-tab-panels>
 
+                <!-- Lista de Registros -->
+                <div class="col-12">
+                  <q-card flat bordered>
+                    <q-table
+                      :rows="registros"
+                      :columns="columns"
+                      :loading="loading"
+                      :pagination="pagination"
+                      @request="onRequest"
+                      row-key="ID"
+                      flat
+                      bordered
+                    >
+                      <template v-slot:body-cell-TIPO_REGISTRO="props">
+                        <q-td :props="props">
+                          <q-chip
+                            :color="getTipoColor(props.value)"
+                            text-color="white"
+                            :label="props.value"
+                            dense
+                          />
+                        </q-td>
+                      </template>
+
+                      <template v-slot:body-cell-status_aplicacao="props">
+                        <q-td :props="props">
+                          <q-chip
+                            :color="getStatusColor(props.value)"
+                            text-color="white"
+                            :label="props.value || 'APLICADO'"
+                            dense
+                          />
+                        </q-td>
+                      </template>
+
+                      <template v-slot:body-cell-acoes="props">
+                        <q-td :props="props">
+                          <q-btn flat round color="primary" icon="visibility" @click="visualizarRegistro(props.row)" />
+                          <q-btn flat round color="orange" icon="edit" @click="editarRegistro(props.row)" />
+                          <q-btn flat round color="red" icon="delete" @click="excluirRegistro(props.row)" />
+                        </q-td>
+                      </template>
+                    </q-table>
+                  </q-card>
+                </div>
+              </div>
+            </q-tab-panel>
+
+            <!-- ABA CALENDÁRIO -->
+            <q-tab-panel name="calendario">
+              <div class="row q-gutter-md">
+                <div class="col-12">
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Próximas Aplicações</div>
+                    
+                    <q-list bordered separator v-if="proximasAplicacoes.length">
+                      <q-item v-for="aplicacao in proximasAplicacoes" :key="aplicacao.animal_id + aplicacao.data_aplicacao">
+                        <q-item-section avatar>
+                          <q-avatar :color="getPrioridadeColor(aplicacao.prioridade)" text-color="white">
+                            {{ aplicacao.dias_restantes }}
+                          </q-avatar>
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ aplicacao.animal_nome }}</q-item-label>
+                          <q-item-label caption>{{ aplicacao.descricao }}</q-item-label>
+                          <q-item-label caption>{{ aplicacao.data_aplicacao }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-chip
+                            :color="getPrioridadeColor(aplicacao.prioridade)"
+                            text-color="white"
+                            :label="aplicacao.prioridade"
+                            dense
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+
+                    <div v-else class="text-center q-pa-lg text-grey-6">
+                      Nenhuma aplicação agendada
+                    </div>
+                  </q-card>
+                </div>
+              </div>
+            </q-tab-panel>
+
+            <!-- ABA ESTATÍSTICAS -->
+            <q-tab-panel name="estatisticas">
+              <div class="row q-gutter-md">
+                <!-- Resumo por Tipo -->
+                <div class="col-md-6 col-12">
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Registros por Tipo</div>
+                    <canvas ref="tiposChart" style="max-height: 300px;"></canvas>
+                  </q-card>
+                </div>
+
+                <!-- Consumo Mensal -->
+                <div class="col-md-6 col-12">
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Aplicações Mensais</div>
+                    <canvas ref="mensalChart" style="max-height: 300px;"></canvas>
+                  </q-card>
+                </div>
+
+                <!-- Top Veterinários -->
+                <div class="col-12">
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Veterinários Mais Ativos</div>
+                    <q-table
+                      :rows="estatisticasVeterinarios"
+                      :columns="columnsVeterinarios"
+                      flat
+                      hide-pagination
+                      :rows-per-page-options="[0]"
+                    />
+                  </q-card>
+                </div>
+              </div>
+            </q-tab-panel>
+
+            <!-- ABA APLICAÇÃO RÁPIDA -->
+            <q-tab-panel name="aplicacao-rapida">
+              <div class="row q-gutter-md">
+                <div class="col-md-8 col-12">
+                  <q-card flat bordered class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Aplicação Rápida</div>
+                    
+                    <q-form @submit="aplicarRapido" class="q-gutter-md">
+                      <div class="row q-gutter-md">
+                        <div class="col-md-6 col-12">
+                          <q-select
+                            v-model="aplicacaoRapida.ID_ANIMAL"
+                            :options="animalsOptions"
+                            option-value="value"
+                            option-label="label"
+                            emit-value
+                            map-options
+                            label="Animal *"
+                            dense
+                            :rules="[val => !!val || 'Animal é obrigatório']"
+                          />
+                        </div>
+                        <div class="col-md-6 col-12">
+                          <q-select
+                            v-model="aplicacaoRapida.TIPO_REGISTRO"
+                            :options="tiposRegistro"
+                            label="Tipo *"
+                            dense
+                            :rules="[val => !!val || 'Tipo é obrigatório']"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-6 col-12">
+                          <q-select
+                            v-model="aplicacaoRapida.ID_MEDICAMENTO"
+                            :options="medicamentosEstoque"
+                            option-value="value"
+                            option-label="label"
+                            emit-value
+                            map-options
+                            use-input
+                            @filter="buscarMedicamentos"
+                            label="Medicamento (estoque)"
+                            dense
+                            clearable
+                          />
+                        </div>
+                        <div class="col-md-3 col-12">
+                          <q-input
+                            v-model.number="aplicacaoRapida.QUANTIDADE_APLICADA"
+                            type="number"
+                            step="0.1"
+                            label="Quantidade"
+                            dense
+                          />
+                        </div>
+                        <div class="col-md-3 col-12">
+                          <q-input
+                            v-model="aplicacaoRapida.MEDICAMENTO_APLICADO"
+                            label="Medicamento Aplicado"
+                            dense
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-md">
+                        <div class="col-md-6 col-12">
+                          <q-input
+                            v-model="aplicacaoRapida.DOSE_APLICADA"
+                            label="Dose"
+                            dense
+                          />
+                        </div>
+                        <div class="col-md-6 col-12">
+                          <q-input
+                            v-model="aplicacaoRapida.VETERINARIO_RESPONSAVEL"
+                            label="Veterinário"
+                            dense
+                          />
+                        </div>
+                      </div>
+
+                      <q-input
+                        v-model="aplicacaoRapida.OBSERVACOES"
+                        type="textarea"
+                        label="Observações"
+                        rows="3"
+                      />
+
+                      <div class="text-right">
+                        <q-btn type="submit" color="primary" :loading="loadingAplicacao">
+                          <q-icon name="flash_on" class="q-mr-xs" />
+                          Aplicar Agora
+                        </q-btn>
+                      </div>
+                    </q-form>
+                  </q-card>
+                </div>
+              </div>
+            </q-tab-panel>
+          </q-tab-panels>
+      </q-card-section>
+    </q-card>
     <!-- Modal de Novo/Editar Registro -->
     <q-dialog v-model="modalRegistro" persistent>
       <q-card style="min-width: 800px;">
@@ -521,20 +512,14 @@
   </q-page>
 </template>
 
-<script>
-import { ref, onMounted, nextTick } from 'vue'
+<script setup>
+import { ref, onMounted, nextTick, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useSaudeStore } from 'src/stores/saude'
 import { useAnimalStore } from 'src/stores/animal'
 import CalendarioComponent from 'src/components/CalendarioComponent.vue'
 import Chart from 'chart.js/auto'
 
-export default {
-  name: 'SaudePage',
-  components: {
-    CalendarioComponent
-  },
-  setup() {
     const $q = useQuasar()
     const saudeStore = useSaudeStore()
     const animalStore = useAnimalStore()
@@ -967,6 +952,18 @@ export default {
       return cores[prioridade] || 'grey'
     }
 
+    function filterAnimais(val, update) {
+      update(() => {
+        if (val === '') {
+          animalsOptions.value = animalStore.animais.map(a => ({ value: a.ID, label: a.NOME }))
+        } else {
+          const needle = val.toLowerCase()
+          const allAnimais = animalStore.animais.map(a => ({ value: a.ID, label: a.NOME }))
+          animalsOptions.value = allAnimais.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
+        }
+      })
+    }
+
     // Watchers
     const watchActiveTab = () => {
       if (activeTab.value === 'calendario') {
@@ -983,81 +980,6 @@ export default {
       buscarRegistros()
     })
 
-    return {
-      // Refs
-      activeTab,
-      loading,
-      loadingAplicacao,
-      modalRegistro,
-      modalVisualizacao,
-      editandoRegistro,
-      registroSelecionado,
-      tiposChart,
-      mensalChart,
-      
-      // Dados
-      registros,
-      animalsOptions,
-      medicamentosEstoque,
-      proximasAplicacoes,
-      estatisticasVeterinarios,
-      
-      // Filtros e forms
-      filtros,
-      pagination,
-      formRegistro,
-      aplicacaoRapida,
-      
-      // Opções
-      tiposRegistro,
-      columns,
-      columnsVeterinarios,
-      
-      // Métodos
-      buscarRegistros,
-      onRequest,
-      carregarAnimais,
-      carregarMedicamentos,
-      buscarMedicamentos,
-      carregarProximasAplicacoes,
-      carregarEstatisticas,
-      novoRegistro,
-      editarRegistro,
-      salvarRegistro,
-      visualizarRegistro,
-      excluirRegistro,
-      aplicarRapido,
-      
-      // Helpers
-      getTipoColor,
-      getStatusColor,
-      getPrioridadeColor,
-      
-      // Watch
-      watchActiveTab
-    }
-  },
+    watch(activeTab, watchActiveTab)
 
-  watch: {
-    activeTab: 'watchActiveTab'
-  }
-}
 </script>
-
-<style scoped>
-.q-tab-panels {
-  background: transparent;
-}
-
-.q-tab-panel {
-  padding: 16px 0;
-}
-
-.q-card {
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-}
-
-.q-chip {
-  font-weight: 500;
-}
-</style>

@@ -1,45 +1,51 @@
 <template>
   <q-page class="q-pa-md">
-    <q-card>
-      <q-card-section>
-        <div class="text-h6">Controle Reprodutivo</div>
-      </q-card-section>
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="favorite" class="q-mr-sm" />
+      Controle Reprodutivo
+    </div>
+
+    <q-card class="q-mb-md">
       <q-card-section>
         <!-- Filtros -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-select
-            v-model="reproducaoStore.filters.egua_id"
-            :options="femeaOptions"
-            label="Égua"
-            clearable
-            use-input
-            @filter="filterFemeas"
-            @update:model-value="onFilterChange"
-            class="col-3"
-          />
-          <q-select
-            v-model="reproducaoStore.filters.resultado"
-            :options="reproducaoStore.resultadosDiagnostico"
-            label="Resultado"
-            clearable
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <q-select
-            v-model="reproducaoStore.filters.status"
-            :options="reproducaoStore.statusReproducao"
-            label="Status"
-            clearable
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <q-btn
-            color="primary"
-            label="Nova Cobertura"
-            icon="add"
-            @click="openDialog(null)"
-          />
-        </div>
+          <div class="col-12">
+            <q-card flat bordered class="q-pa-md">
+              <div class="row q-gutter-md q-mb-md">
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="reproducaoStore.filters.egua_id"
+                    :options="femeaOptions"
+                    label="Égua"
+                    clearable
+                    use-input
+                    @filter="filterFemeas"
+                    @update:model-value="onFilterChange"
+                    class="col-3"
+                  />
+                </div>
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="reproducaoStore.filters.resultado"
+                    :options="reproducaoStore.resultadosDiagnostico"
+                    label="Resultado"
+                    clearable
+                    @update:model-value="onFilterChange"
+                    class="col-2"
+                  />
+                </div>
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="reproducaoStore.filters.status"
+                    :options="reproducaoStore.statusReproducao"
+                    label="Status"
+                    clearable
+                    @update:model-value="onFilterChange"
+                    class="col-2"
+                  />
+                </div>
+              </div>
+            </q-card>
+          </div>
         
         <!-- Abas -->
         <q-tabs v-model="activeTab" class="q-mb-md">
@@ -49,87 +55,104 @@
         </q-tabs>
         
         <q-tab-panels v-model="activeTab" animated>
+          
           <!-- ABA REPRODUÇÕES -->
           <q-tab-panel name="reproducoes">
-            <q-table
-              :rows="reproducaoStore.reproducoes"
-              :columns="reproducaoColumns"
-              row-key="ID"
-              :loading="reproducaoStore.loading"
-              :pagination="reproducaoStore.pagination"
-              @request="onRequest"
-              binary-state-sort
-            >
-              <template v-slot:body-cell-resultado="props">
-                <q-td :props="props">
-                  <q-chip
-                    :color="getResultadoColor(props.row.RESULTADO_DIAGNOSTICO)"
-                    text-color="white"
-                    dense
+            <div class="row q-gutter-md">
+              <!-- Botão Novo Registro -->
+              <div class="col-12">
+                <q-btn
+                color="primary"
+                label="Nova Cobertura"
+                icon="add"
+                @click="openDialog(null)"
+                />
+              </div>
+
+              <div class="col-12">
+                <q-card flat bordered>
+                  <q-table
+                    :rows="reproducaoStore.reproducoes"
+                    :columns="reproducaoColumns"
+                    row-key="ID"
+                    :loading="reproducaoStore.loading"
+                    :pagination="reproducaoStore.pagination"
+                    @request="onRequest"
+                    binary-state-sort
                   >
-                    {{ getResultadoLabel(props.row.RESULTADO_DIAGNOSTICO) }}
-                  </q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-status="props">
-                <q-td :props="props">
-                  <q-chip
-                    :color="getStatusColor(props.row.STATUS_REPRODUCAO)"
-                    text-color="white"
-                    dense
-                  >
-                    {{ getStatusLabel(props.row.STATUS_REPRODUCAO) }}
-                  </q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-gestacao="props">
-                <q-td :props="props">
-                  <span v-if="props.row.dias_gestacao">
-                    {{ props.row.dias_gestacao }} dias
-                    <q-linear-progress
-                      v-if="props.row.RESULTADO_DIAGNOSTICO === 'POSITIVO'"
-                      :value="props.row.dias_gestacao / 340"
-                      color="positive"
-                      size="xs"
-                      class="q-mt-xs"
-                    />
-                  </span>
-                  <span v-else class="text-grey">-</span>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-acoes="props">
-                <q-td :props="props">
-                  <q-btn
-                    flat
-                    round
-                    color="info"
-                    icon="visibility"
-                    @click="viewRecord(props.row)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="secondary"
-                    icon="history"
-                    @click="showHistorico(props.row.ID_EGUA)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="primary"
-                    icon="edit"
-                    @click="openDialog(props.row)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="negative"
-                    icon="delete"
-                    @click="confirmDelete(props.row)"
-                  />
-                </q-td>
-              </template>
-            </q-table>
+                    <template v-slot:body-cell-resultado="props">
+                      <q-td :props="props">
+                        <q-chip
+                          :color="getResultadoColor(props.row.RESULTADO_DIAGNOSTICO)"
+                          text-color="white"
+                          dense
+                        >
+                          {{ getResultadoLabel(props.row.RESULTADO_DIAGNOSTICO) }}
+                        </q-chip>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-status="props">
+                      <q-td :props="props">
+                        <q-chip
+                          :color="getStatusColor(props.row.STATUS_REPRODUCAO)"
+                          text-color="white"
+                          dense
+                        >
+                          {{ getStatusLabel(props.row.STATUS_REPRODUCAO) }}
+                        </q-chip>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-gestacao="props">
+                      <q-td :props="props">
+                        <span v-if="props.row.dias_gestacao">
+                          {{ props.row.dias_gestacao }} dias
+                          <q-linear-progress
+                            v-if="props.row.RESULTADO_DIAGNOSTICO === 'POSITIVO'"
+                            :value="props.row.dias_gestacao / 340"
+                            color="positive"
+                            size="xs"
+                            class="q-mt-xs"
+                          />
+                        </span>
+                        <span v-else class="text-grey">-</span>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-acoes="props">
+                      <q-td :props="props">
+                        <q-btn
+                          flat
+                          round
+                          color="info"
+                          icon="visibility"
+                          @click="viewRecord(props.row)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="secondary"
+                          icon="history"
+                          @click="showHistorico(props.row.ID_EGUA)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="primary"
+                          icon="edit"
+                          @click="openDialog(props.row)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="negative"
+                          icon="delete"
+                          @click="confirmDelete(props.row)"
+                        />
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-card>
+              </div>
+            </div>
           </q-tab-panel>
           
           <!-- ABA CALENDÁRIO -->

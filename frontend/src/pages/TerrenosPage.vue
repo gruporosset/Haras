@@ -1,37 +1,39 @@
 <template>
   <q-page class="q-pa-md">
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="landscape" class="q-mr-sm" />
+      Gestão de Terrenos
+    </div>
+
     <q-card>
       <q-card-section>
-        <div class="text-h6">Gestão de Terrenos</div>
-      </q-card-section>
-      <q-card-section>
-        <div class="row q-mb-md">
-          <q-input
-            v-model="terrenoStore.filters.nome"
-            label="Filtrar por Nome"
-            class="q-mr-md"
-            clearable
-            @update:model-value="fetchTerrenos"
-            :debounce="300"
-            aria-label="Filtrar terrenos por nome"
-          />
-          <q-select
-            v-model="terrenoStore.filters.status"
-            :options="statusOptions"
-            label="Filtrar por Status"
-            clearable
-            class="col-3"
-            @update:model-value="fetchTerrenos"
-            aria-label="Filtrar terrenos por status"
-          />
-          <q-btn
-            color="primary"
-            label="Novo Terreno"
-            icon="add"
-            class="q-ml-auto"
-            @click="openDialog(null)"
-            aria-label="Cadastrar novo terreno"
-          />
+        <div class="col-12">
+          <q-card flat bordered class="q-pa-md">
+            <div class="row q-mb-md">
+              <div class="col-md-3 col-12">
+                <q-input
+                  v-model="terrenoStore.filters.nome"
+                  label="Filtrar por Nome"
+                  class="q-mr-md"
+                  clearable
+                  @update:model-value="fetchTerrenos"
+                  :debounce="300"
+                  aria-label="Filtrar terrenos por nome"
+                />
+              </div>
+              <div class="col-md-3 col-12">
+                <q-select
+                  v-model="terrenoStore.filters.status"
+                  :options="statusOptions"
+                  label="Filtrar por Status"
+                  clearable
+                  class="col-3"
+                  @update:model-value="fetchTerrenos"
+                  aria-label="Filtrar terrenos por status"
+                />
+              </div>
+            </div>
+          </q-card>
         </div>
         
         <q-tabs v-model="activeTab" class="q-mb-md">
@@ -41,45 +43,61 @@
         
         <q-tab-panels v-model="activeTab" animated>
           <q-tab-panel name="table">
-            <q-table
-              :rows="terrenoStore.terrenos"
-              :columns="columns"
-              row-key="ID"
-              :loading="terrenoStore.loading"
-              :pagination="terrenoStore.pagination"
-              @request="onRequest"
-              binary-state-sort
-              aria-label="Tabela de terrenos"
-            >
-              <template v-slot:body-cell-acoes="props">
-                <q-td :props="props">
-                  <q-btn
-                    flat
-                    round
-                    color="info"
-                    icon="visibility"
-                    @click="viewTerreno(props.row)"
-                    aria-label="Visualizar terreno"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="primary"
-                    icon="edit"
-                    @click="openDialog(props.row)"
-                    aria-label="Editar terreno"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="negative"
-                    icon="delete"
-                    @click="confirmDelete(props.row)"
-                    aria-label="Excluir terreno"
-                  />
-                </q-td>
-              </template>
-            </q-table>
+            <div class="row q-gutter-md">
+              <div class="col-12">
+                <q-btn
+                  color="primary"
+                  label="Novo Terreno"
+                  icon="add"
+                  class="q-ml-auto"
+                  @click="openDialog(null)"
+                  aria-label="Cadastrar novo terreno"
+                />
+              </div>
+              <div class="col-12">
+                <q-card flat bordered>
+                  <q-table
+                    :rows="terrenoStore.terrenos"
+                    :columns="columns"
+                    row-key="ID"
+                    :loading="terrenoStore.loading"
+                    :pagination="terrenoStore.pagination"
+                    @request="onRequest"
+                    binary-state-sort
+                    aria-label="Tabela de terrenos"
+                  >
+                    <template v-slot:body-cell-acoes="props">
+                      <q-td :props="props">
+                        <q-btn
+                          flat
+                          round
+                          color="info"
+                          icon="visibility"
+                          @click="viewTerreno(props.row)"
+                          aria-label="Visualizar terreno"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="primary"
+                          icon="edit"
+                          @click="openDialog(props.row)"
+                          aria-label="Editar terreno"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="negative"
+                          icon="delete"
+                          @click="confirmDelete(props.row)"
+                          aria-label="Excluir terreno"
+                        />
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-card>
+              </div>
+            </div>
           </q-tab-panel>
           <q-tab-panel name="map">
             <terreno-map :terrenos="terrenoStore.terrenos" />

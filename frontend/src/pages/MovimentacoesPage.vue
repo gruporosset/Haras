@@ -1,47 +1,54 @@
 <template>
   <q-page class="q-pa-md">
+
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="swap_horiz" class="q-mr-sm" />
+      Movimentações de Animais
+    </div>
+
     <q-card>
       <q-card-section>
-        <div class="text-h6">Movimentações de Animais</div>
-      </q-card-section>
-      <q-card-section>
         <!-- Filtros -->
-        <div class="row q-gutter-md q-mb-md">
-          <q-select
-            v-model="movimentacaoStore.filters.animal_id"
-            :options="animalOptions"
-            label="Animal"
-            clearable
-            use-input
-            @filter="filterAnimais"
-            @update:model-value="onFilterChange"
-            class="col-3"
-          />
-          <q-select
-            v-model="movimentacaoStore.filters.tipo_movimentacao"
-            :options="movimentacaoStore.tiposMovimentacao"
-            label="Tipo"
-            clearable
-            @update:model-value="onFilterChange"
-            class="col-2"
-          />
-          <q-select
-            v-model="movimentacaoStore.filters.terreno_id"
-            :options="terrenoOptions"
-            label="Terreno"
-            clearable
-            use-input
-            @filter="filterTerrenos"
-            @update:model-value="onFilterChange"
-            class="col-3"
-          />
-          <q-btn
-            color="primary"
-            label="Nova Movimentação"
-            icon="add"
-            @click="openDialog(null)"
-          />
-        </div>
+          <div class="col-12">
+            <q-card flat bordered class="q-pa-md">
+              <div class="row q-gutter-md q-mb-md">
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="movimentacaoStore.filters.animal_id"
+                    :options="animalOptions"
+                    label="Animal"
+                    clearable
+                    use-input
+                    @filter="filterAnimais"
+                    @update:model-value="onFilterChange"
+                    class="col-3"
+                  />
+                </div>
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="movimentacaoStore.filters.tipo_movimentacao"
+                    :options="movimentacaoStore.tiposMovimentacao"
+                    label="Tipo"
+                    clearable
+                    @update:model-value="onFilterChange"
+                    class="col-2"
+                  />
+                </div>
+                <div class="col-md-3 col-12">
+                  <q-select
+                    v-model="movimentacaoStore.filters.terreno_id"
+                    :options="terrenoOptions"
+                    label="Terreno"
+                    clearable
+                    use-input
+                    @filter="filterTerrenos"
+                    @update:model-value="onFilterChange"
+                    class="col-3"
+                  />
+                </div>
+              </div>
+            </q-card>
+          </div>
         
         <!-- Abas -->
         <q-tabs v-model="activeTab" class="q-mb-md">
@@ -52,69 +59,84 @@
         <q-tab-panels v-model="activeTab" animated>
           <!-- ABA MOVIMENTAÇÕES -->
           <q-tab-panel name="movimentacoes">
-            <q-table
-              :rows="movimentacaoStore.movimentacoes"
-              :columns="movimentacaoColumns"
-              row-key="ID"
-              :loading="movimentacaoStore.loading"
-              :pagination="movimentacaoStore.pagination"
-              @request="onRequest"
-              binary-state-sort
-            >
-              <template v-slot:body-cell-tipo="props">
-                <q-td :props="props">
-                  <q-chip
-                    :color="getTipoColor(props.row.TIPO_MOVIMENTACAO)"
-                    text-color="white"
-                    dense
+            <div class="row q-gutter-md">
+              <div class="col-12">
+                <q-btn
+                  color="primary"
+                  label="Nova Movimentação"
+                  icon="add"
+                  @click="openDialog(null)"
+                />
+              </div>
+
+              <div class="col-12">
+                <q-card flat bordered>
+                  <q-table
+                    :rows="movimentacaoStore.movimentacoes"
+                    :columns="movimentacaoColumns"
+                    row-key="ID"
+                    :loading="movimentacaoStore.loading"
+                    :pagination="movimentacaoStore.pagination"
+                    @request="onRequest"
+                    binary-state-sort
                   >
-                    {{ props.row.TIPO_MOVIMENTACAO }}
-                  </q-chip>
-                </q-td>
-              </template>
-              <template v-slot:body-cell-origem="props">
-                <q-td :props="props">
-                  {{ props.row.terreno_origem_nome || props.row.ORIGEM_EXTERNA || '-' }}
-                </q-td>
-              </template>
-              <template v-slot:body-cell-destino="props">
-                <q-td :props="props">
-                  {{ props.row.terreno_destino_nome || props.row.DESTINO_EXTERNO || '-' }}
-                </q-td>
-              </template>
-              <template v-slot:body-cell-acoes="props">
-                <q-td :props="props">
-                  <q-btn
-                    flat
-                    round
-                    color="info"
-                    icon="visibility"
-                    @click="viewRecord(props.row)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="secondary"
-                    icon="history"
-                    @click="showHistorico(props.row.ID_ANIMAL)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="primary"
-                    icon="edit"
-                    @click="openDialog(props.row)"
-                  />
-                  <q-btn
-                    flat
-                    round
-                    color="negative"
-                    icon="delete"
-                    @click="confirmDelete(props.row)"
-                  />
-                </q-td>
-              </template>
-            </q-table>
+                    <template v-slot:body-cell-tipo="props">
+                      <q-td :props="props">
+                        <q-chip
+                          :color="getTipoColor(props.row.TIPO_MOVIMENTACAO)"
+                          text-color="white"
+                          dense
+                        >
+                          {{ props.row.TIPO_MOVIMENTACAO }}
+                        </q-chip>
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-origem="props">
+                      <q-td :props="props">
+                        {{ props.row.terreno_origem_nome || props.row.ORIGEM_EXTERNA || '-' }}
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-destino="props">
+                      <q-td :props="props">
+                        {{ props.row.terreno_destino_nome || props.row.DESTINO_EXTERNO || '-' }}
+                      </q-td>
+                    </template>
+                    <template v-slot:body-cell-acoes="props">
+                      <q-td :props="props">
+                        <q-btn
+                          flat
+                          round
+                          color="info"
+                          icon="visibility"
+                          @click="viewRecord(props.row)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="secondary"
+                          icon="history"
+                          @click="showHistorico(props.row.ID_ANIMAL)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="primary"
+                          icon="edit"
+                          @click="openDialog(props.row)"
+                        />
+                        <q-btn
+                          flat
+                          round
+                          color="negative"
+                          icon="delete"
+                          @click="confirmDelete(props.row)"
+                        />
+                      </q-td>
+                    </template>
+                  </q-table>
+                </q-card>
+              </div>
+            </div>
           </q-tab-panel>
           
           <!-- ABA LOCALIZAÇÕES -->

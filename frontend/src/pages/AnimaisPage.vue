@@ -1,64 +1,68 @@
 <template>
   <q-page class="q-pa-md">
-    <q-card>
+    <div class="text-h5 q-mb-md text-primary">
+      <q-icon name="pets" class="q-mr-sm" />
+      Gestão dos Animais
+    </div>
+
+    <!-- Filtros -->
+    <q-card class="q-mb-md">
       <q-card-section>
-        <div class="text-h6">Gestão de Animais</div>
-      </q-card-section>
-      <q-card-section>
-        <div class="row q-gutter-md q-mb-md">
-          <q-input
-            v-model="animalStore.filters.nome"
-            label="Filtrar por Nome"
-            clearable
-            @update:model-value="fetchAnimais"
-            :debounce="300"
-            aria-label="Filtrar animais por nome"
-            class="col-3"
-          />
-          <q-select
-            v-model="animalStore.filters.sexo"
-            :options="sexoOptions"
-            label="Sexo"
-            clearable
-            @update:model-value="fetchAnimais"
-            aria-label="Filtrar por sexo"
-            class="col-2"
-          />
-          <q-select
-            v-model="animalStore.filters.status"
-            :options="statusOptions"
-            label="Status"
-            clearable
-            @update:model-value="fetchAnimais"
-            aria-label="Filtrar por status"
-            class="col-2"
-          />
-          <q-input
-            v-model="animalStore.filters.numero_registro"
-            label="Nº Registro"
-            clearable
-            @update:model-value="fetchAnimais"
-            :debounce="300"
-            class="col-2"
-          />
-          <q-btn
-            color="primary"
-            label="Novo Animal"
-            icon="add"
-            @click="openDialog(null)"
-            aria-label="Cadastrar novo animal"
-          />
+        <div class="col-12 q-mb-md">
+          <q-card flat bordered class="q-pa-md">
+            <div class="row q-gutter-md items-end">
+              <q-input
+                v-model="animalStore.filters.nome"
+                label="Pesquisar"
+                clearable
+                class="col-12 col-md-3"
+                @update:model-value="fetchAnimais"
+                :debounce="300"
+                aria-label="Filtrar animais por nome"
+              />
+
+              <q-select
+                v-model="animalStore.filters.sexo"
+                :options="sexoOptions"
+                label="Sexo"
+                clearable
+                emit-value
+                map-options
+                @update:model-value="fetchAnimais"
+                class="col-12 col-md-3"
+              />
+          
+              <q-select
+                v-model="animalStore.filters.status"
+                :options="statusOptions"
+                label="Status"
+                clearable
+                emit-value
+                map-options
+                @update:model-value="fetchAnimais"
+                class="col-12 col-md-3"
+              />
+            </div>
+          </q-card>
         </div>
-        
+
+        <q-btn
+          color="primary"
+          icon="add"
+          label="Novo Animal"
+          @click="openDialog()"
+        />
+
+        <!-- Tabela -->
         <q-table
           :rows="animalStore.animais"
           :columns="columns"
-          row-key="ID"
           :loading="animalStore.loading"
           :pagination="animalStore.pagination"
           @request="onRequest"
+          row-key="ID"
           binary-state-sort
-          aria-label="Tabela de animais"
+          class="q-mt-md"
         >
           <template v-slot:body-cell-foto="props">
             <q-td :props="props">
@@ -68,68 +72,51 @@
               <q-icon v-else name="pets" size="40px" color="grey-5" />
             </q-td>
           </template>
-          <template v-slot:body-cell-sexo="props">
+          
+          <template v-slot:body-cell-genealogia="props">
             <q-td :props="props">
-              <q-icon 
-                :name="props.row.SEXO === 'M' ? 'male' : 'female'" 
-                :color="props.row.SEXO === 'M' ? 'blue' : 'pink'"
-                size="sm"
-              />
-              {{ props.row.SEXO === 'M' ? 'Macho' : 'Fêmea' }}
-            </q-td>
-          </template>
-          <template v-slot:body-cell-status="props">
-            <q-td :props="props">
-              <q-chip 
-                :color="getStatusColor(props.row.STATUS_ANIMAL)" 
-                text-color="white" 
+              <q-btn
+                flat
                 dense
+                color="blue"
+                icon="account_tree"
+                @click="viewGenealogia(props.row)"
+                :disable="!props.row.ID_PAI && !props.row.ID_MAE"
               >
-                {{ props.row.STATUS_ANIMAL }}
-              </q-chip>
+                <q-tooltip>Visualizar Genealogia</q-tooltip>
+              </q-btn>
             </q-td>
           </template>
+
           <template v-slot:body-cell-acoes="props">
             <q-td :props="props">
               <q-btn
                 flat
-                round
-                color="info"
+                dense
+                color="blue"
                 icon="visibility"
                 @click="viewAnimal(props.row)"
-                aria-label="Visualizar animal"
               />
               <q-btn
                 flat
-                round
-                color="secondary"
-                icon="account_tree"
-                @click="showGenealogia(props.row)"
-                aria-label="Ver genealogia"
-              />
-              <q-btn
-                flat
-                round
-                color="primary"
+                dense
+                color="orange"
                 icon="edit"
                 @click="openDialog(props.row)"
-                aria-label="Editar animal"
               />
               <q-btn
                 flat
-                round
-                color="accent"
+                dense
+                color="green"
                 icon="photo_camera"
                 @click="openFotoDialog(props.row)"
-                aria-label="Gerenciar fotos"
               />
               <q-btn
                 flat
-                round
-                color="negative"
+                dense
+                color="red"
                 icon="delete"
                 @click="confirmDelete(props.row)"
-                aria-label="Excluir animal"
               />
             </q-td>
           </template>
@@ -137,96 +124,210 @@
       </q-card-section>
     </q-card>
 
-    <!-- Diálogo de Visualização -->
-    <q-dialog v-model="viewDialog" persistent>
-      <q-card style="width: 600px; max-width: 90vw">
-        <q-card-section>
-          <div class="text-h6 flex items-center">
-            <q-avatar v-if="viewAnimalData?.FOTO_PRINCIPAL" size="50px" class="q-mr-md">
-              <img :src="`http://localhost:8000${viewAnimalData.FOTO_PRINCIPAL}`" />
-            </q-avatar>
-            <q-icon v-else name="pets" size="50px" color="primary" class="q-mr-md" />
-            {{ viewAnimalData?.NOME }}
+    <!-- Modal de Genealogia -->
+    <q-dialog v-model="genealogiaDialog">
+      <q-card style="min-width: 800px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Árvore Genealógica</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section v-if="genealogiaData">
+          <div class="q-pa-md">
+            <!-- Animal principal -->
+            <div class="text-center q-mb-md">
+              <q-card class="animal-card q-pa-md">
+                <div class="row items-center">
+                  <q-avatar v-if="genealogiaData.animal.FOTO_PRINCIPAL" size="60px" class="q-mr-md">
+                    <img :src="`http://localhost:8000${genealogiaData.animal.FOTO_PRINCIPAL}`" />
+                  </q-avatar>
+                  <q-icon v-else name="pets" size="60px" color="grey-5" class="q-mr-md" />
+                  <div>
+                    <div class="text-h6">{{ genealogiaData.animal.NOME }}</div>
+                    <div class="text-caption">{{ genealogiaData.animal.SEXO === 'M' ? 'Macho' : 'Fêmea' }}</div>
+                  </div>
+                </div>
+              </q-card>
+            </div>
+
+            <!-- Pais -->
+            <div class="row q-gutter-md justify-center">
+              <!-- Pai -->
+              <div class="col-5">
+                <div class="text-center text-subtitle2 q-mb-sm">Pai</div>
+                <q-card v-if="genealogiaData.pai" class="animal-card q-pa-md">
+                  <div class="row items-center">
+                    <q-avatar v-if="genealogiaData.pai.animal.FOTO_PRINCIPAL" size="50px" class="q-mr-sm">
+                      <img :src="`http://localhost:8000${genealogiaData.pai.animal.FOTO_PRINCIPAL}`" />
+                    </q-avatar>
+                    <q-icon v-else name="pets" size="50px" color="grey-5" class="q-mr-sm" />
+                    <div>
+                      <div class="text-body1">{{ genealogiaData.pai.animal.NOME }}</div>
+                      <div class="text-caption">Macho</div>
+                    </div>
+                  </div>
+                </q-card>
+                <div v-else class="text-center text-grey-5">Não informado</div>
+              </div>
+
+              <!-- Mãe -->
+              <div class="col-5">
+                <div class="text-center text-subtitle2 q-mb-sm">Mãe</div>
+                <q-card v-if="genealogiaData.mae" class="animal-card q-pa-md">
+                  <div class="row items-center">
+                    <q-avatar v-if="genealogiaData.mae.animal.FOTO_PRINCIPAL" size="50px" class="q-mr-sm">
+                      <img :src="`http://localhost:8000${genealogiaData.mae.animal.FOTO_PRINCIPAL}`" />
+                    </q-avatar>
+                    <q-icon v-else name="pets" size="50px" color="grey-5" class="q-mr-sm" />
+                    <div>
+                      <div class="text-body1">{{ genealogiaData.mae.animal.NOME }}</div>
+                      <div class="text-caption">Fêmea</div>
+                    </div>
+                  </div>
+                </q-card>
+                <div v-else class="text-center text-grey-5">Não informado</div>
+              </div>
+            </div>
+
+            <!-- Avós -->
+            <div class="row q-gutter-md justify-center q-mt-md">
+              <!-- Avô paterno -->
+              <div class="col-2">
+                <div class="text-center text-caption q-mb-sm">Avô Paterno</div>
+                <q-card v-if="genealogiaData.pai?.pai" class="animal-card-small q-pa-sm">
+                  <q-avatar v-if="genealogiaData.pai.pai.animal.FOTO_PRINCIPAL" size="40px">
+                    <img :src="`http://localhost:8000${genealogiaData.pai.pai.animal.FOTO_PRINCIPAL}`" />
+                  </q-avatar>
+                  <q-icon v-else name="pets" size="40px" color="grey-5" />
+                  <div class="text-caption">{{ genealogiaData.pai.pai.animal.NOME }}</div>
+                </q-card>
+                <div v-else class="text-center text-grey-5 text-caption">-</div>
+              </div>
+
+              <!-- Avó paterna -->
+              <div class="col-2">
+                <div class="text-center text-caption q-mb-sm">Avó Paterna</div>
+                <q-card v-if="genealogiaData.pai?.mae" class="animal-card-small q-pa-sm">
+                  <q-avatar v-if="genealogiaData.pai.mae.animal.FOTO_PRINCIPAL" size="40px">
+                    <img :src="`http://localhost:8000${genealogiaData.pai.mae.animal.FOTO_PRINCIPAL}`" />
+                  </q-avatar>
+                  <q-icon v-else name="pets" size="40px" color="grey-5" />
+                  <div class="text-caption">{{ genealogiaData.pai.mae.animal.NOME }}</div>
+                </q-card>
+                <div v-else class="text-center text-grey-5 text-caption">-</div>
+              </div>
+
+              <!-- Avô materno -->
+              <div class="col-2">
+                <div class="text-center text-caption q-mb-sm">Avô Materno</div>
+                <q-card v-if="genealogiaData.mae?.pai" class="animal-card-small q-pa-sm">
+                  <q-avatar v-if="genealogiaData.mae.pai.animal.FOTO_PRINCIPAL" size="40px">
+                    <img :src="`http://localhost:8000${genealogiaData.mae.pai.animal.FOTO_PRINCIPAL}`" />
+                  </q-avatar>
+                  <q-icon v-else name="pets" size="40px" color="grey-5" />
+                  <div class="text-caption">{{ genealogiaData.mae.pai.animal.NOME }}</div>
+                </q-card>
+                <div v-else class="text-center text-grey-5 text-caption">-</div>
+              </div>
+
+              <!-- Avó materna -->
+              <div class="col-2">
+                <div class="text-center text-caption q-mb-sm">Avó Materna</div>
+                <q-card v-if="genealogiaData.mae?.mae" class="animal-card-small q-pa-sm">
+                  <q-avatar v-if="genealogiaData.mae.mae.animal.FOTO_PRINCIPAL" size="40px">
+                    <img :src="`http://localhost:8000${genealogiaData.mae.mae.animal.FOTO_PRINCIPAL}`" />
+                  </q-avatar>
+                  <q-icon v-else name="pets" size="40px" color="grey-5" />
+                  <div class="text-caption">{{ genealogiaData.mae.mae.animal.NOME }}</div>
+                </q-card>
+                <div v-else class="text-center text-grey-5 text-caption">-</div>
+              </div>
+            </div>
           </div>
         </q-card-section>
-        <q-card-section class="q-pt-none">
+      </q-card>
+    </q-dialog>
+
+    <!-- Modal de Visualização -->
+    <q-dialog v-model="viewDialog">
+      <q-card style="min-width: 500px;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Detalhes do Animal</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section v-if="viewAnimalData">
           <q-list>
             <q-item>
+              <q-item-section avatar>
+                <q-avatar v-if="viewAnimalData.FOTO_PRINCIPAL" size="60px">
+                  <img :src="`http://localhost:8000${viewAnimalData.FOTO_PRINCIPAL}`" />
+                </q-avatar>
+                <q-icon v-else name="pets" size="60px" color="grey-5" />
+              </q-item-section>
               <q-item-section>
-                <q-item-label caption>ID</q-item-label>
-                <q-item-label>{{ viewAnimalData?.ID }}</q-item-label>
+                <q-item-label class="text-h6">{{ viewAnimalData.NOME }}</q-item-label>
+                <q-item-label caption>{{ viewAnimalData.NUMERO_REGISTRO || 'Sem registro' }}</q-item-label>
               </q-item-section>
             </q-item>
             
-            <q-item>
-              <q-item-section>
-                <q-item-label caption>Número de Registro</q-item-label>
-                <q-item-label>{{ viewAnimalData?.NUMERO_REGISTRO || 'Não informado' }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            
-            <q-item>
-              <q-item-section>
-                <q-item-label caption>Chip de Identificação</q-item-label>
-                <q-item-label>{{ viewAnimalData?.CHIP_IDENTIFICACAO || 'Não informado' }}</q-item-label>
-              </q-item-section>
-            </q-item>
+            <q-separator />
             
             <q-item>
               <q-item-section>
                 <q-item-label caption>Sexo</q-item-label>
-                <q-item-label>
-                  <q-icon 
-                    :name="viewAnimalData?.SEXO === 'M' ? 'male' : 'female'" 
-                    :color="viewAnimalData?.SEXO === 'M' ? 'blue' : 'pink'"
-                    size="sm"
-                    class="q-mr-xs"
-                  />
-                  {{ viewAnimalData?.SEXO === 'M' ? 'Macho' : 'Fêmea' }}
-                </q-item-label>
+                <q-item-label>{{ viewAnimalData.SEXO === 'M' ? 'Macho' : 'Fêmea' }}</q-item-label>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label caption>Status</q-item-label>
+                <q-item-label>{{ viewAnimalData.STATUS_ANIMAL }}</q-item-label>
               </q-item-section>
             </q-item>
             
             <q-item>
               <q-item-section>
                 <q-item-label caption>Data de Nascimento</q-item-label>
-                <q-item-label>{{ formatDate(viewAnimalData?.DATA_NASCIMENTO) }}</q-item-label>
+                <q-item-label>{{ viewAnimalData.DATA_NASCIMENTO || 'Não informado' }}</q-item-label>
               </q-item-section>
-            </q-item>
-            
-            <q-item>
               <q-item-section>
                 <q-item-label caption>Pelagem</q-item-label>
-                <q-item-label>{{ viewAnimalData?.PELAGEM || 'Não informado' }}</q-item-label>
+                <q-item-label>{{ viewAnimalData.PELAGEM || 'Não informado' }}</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <!-- Dados do Proprietário -->
+            <q-separator class="q-my-md" />
+            <q-item-label header>Proprietário</q-item-label>
+            
+            <q-item v-if="viewAnimalData.PROPRIETARIO">
+              <q-item-section>
+                <q-item-label caption>Nome</q-item-label>
+                <q-item-label>{{ viewAnimalData.PROPRIETARIO }}</q-item-label>
               </q-item-section>
             </q-item>
             
-            <q-item>
+            <q-item v-if="viewAnimalData.CONTATO_PROPRIETARIO">
               <q-item-section>
-                <q-item-label caption>Status</q-item-label>
-                <q-item-label>
-                  <q-chip 
-                    :color="getStatusColor(viewAnimalData?.STATUS_ANIMAL)" 
-                    text-color="white" 
-                    dense
-                  >
-                    {{ viewAnimalData?.STATUS_ANIMAL }}
-                  </q-chip>
-                </q-item-label>
+                <q-item-label caption>Contato</q-item-label>
+                <q-item-label>{{ viewAnimalData.CONTATO_PROPRIETARIO }}</q-item-label>
               </q-item-section>
             </q-item>
             
-            <q-item>
+            <q-item v-if="viewAnimalData.CPF_CNPJ_PROPRIETARIO">
               <q-item-section>
-                <q-item-label caption>Origem</q-item-label>
-                <q-item-label>{{ viewAnimalData?.ORIGEM || 'Não informado' }}</q-item-label>
+                <q-item-label caption>CPF/CNPJ</q-item-label>
+                <q-item-label>{{ viewAnimalData.CPF_CNPJ_PROPRIETARIO }}</q-item-label>
               </q-item-section>
             </q-item>
+            
+            <q-separator class="q-my-md" />
             
             <q-item>
               <q-item-section>
                 <q-item-label caption>Peso Atual</q-item-label>
-                <q-item-label>{{ viewAnimalData?.PESO_ATUAL ? `${viewAnimalData.PESO_ATUAL} kg` : 'Não informado' }}</q-item-label>
+                <q-item-label>{{ viewAnimalData.PESO_ATUAL ? `${viewAnimalData.PESO_ATUAL} kg` : 'Não informado' }}</q-item-label>
               </q-item-section>
             </q-item>
             
@@ -262,301 +363,56 @@
       </q-card>
     </q-dialog>
 
-    <!-- Diálogo para Cadastro/Edição -->
+    <!-- Modal de Cadastro/Edição usando componente -->
     <q-dialog v-model="dialog" persistent>
-      <q-card style="width: 700px; max-width: 90vw">
-        <q-form @submit="saveAnimal">
-          <q-card-section>
-            <div class="text-h6">{{ form.ID ? 'Editar' : 'Cadastrar' }} Animal</div>
-          </q-card-section>
-          <q-card-section class="q-pt-none">
-            <div class="row q-gutter-md">
-              <q-input
-                v-model="form.NOME"
-                label="Nome *"
-                :rules="[val => !!val || 'Nome é obrigatório']"
-                class="col-5"
-              />
-              <q-input
-                v-model="form.NUMERO_REGISTRO"
-                label="Número de Registro"
-                class="col-3"
-              />
-              <q-input
-                v-model="form.CHIP_IDENTIFICACAO"
-                label="Chip"
-                class="col-3"
-              />
-            </div>
-            
-            <div class="row q-gutter-md q-mt-sm">
-              <q-select
-                v-model="form.SEXO"
-                :options="sexoOptions"
-                label="Sexo"
-                class="col-2"
-              />
-              <calendario-component
-                v-model="form.DATA_NASCIMENTO"
-                label="Data de Nascimento"
-                class="col-3"
-              />
-              <q-input
-                v-model="form.PELAGEM"
-                label="Pelagem"
-                class="col-3"
-              />
-              <q-select
-                v-model="form.STATUS_ANIMAL"
-                :options="statusOptions"
-                label="Status"
-                class="col-3"
-              />
-            </div>
-
-            <div class="row q-gutter-md q-mt-sm">
-              <q-select
-                v-model="form.ID_PAI"
-                :options="machoOptions"
-                label="Pai"
-                clearable
-                use-input
-                @filter="filterMachos"
-                class="col-5"
-              />
-              <q-select
-                v-model="form.ID_MAE"
-                :options="femeaOptions"
-                label="Mãe"
-                clearable
-                use-input
-                @filter="filterFemeas"
-                class="col-5"
-              />
-            </div>
-
-            <div class="row q-gutter-md q-mt-sm">
-              <q-input
-                v-model="form.ORIGEM"
-                label="Origem"
-                class="col-4"
-              />
-              <q-input
-                v-model.number="form.PESO_ATUAL"
-                label="Peso Atual (kg)"
-                type="number"
-                step="0.1"
-                class="col-3"
-              />
-            </div>
-
-            <q-input
-              v-model="form.OBSERVACOES"
-              label="Observações"
-              type="textarea"
-              rows="3"
-              class="q-mt-sm"
-            />
-          </q-card-section>
-          <q-card-actions align="right">
-            <q-btn
-              flat
-              label="Cancelar"
-              color="gray"
-              @click="dialog = false"
-            />
-            <q-btn
-              type="submit"
-              color="primary"
-              label="Salvar"
-              :disable="animalStore.loading"
-            />
-          </q-card-actions>
-        </q-form>
+      <q-card style="width: 900px; max-width: 95vw">
+        <q-card-section>
+          <div class="text-h6">{{ form.ID ? 'Editar' : 'Cadastrar' }} Animal</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <AnimalForm
+            v-model="form"
+            :loading="animalStore.loading"
+            @submit="saveAnimal"
+            @cancel="dialog = false"
+          />
+        </q-card-section>
       </q-card>
     </q-dialog>
 
-    <!-- Diálogo de Fotos -->
-    <q-dialog v-model="fotoDialog" persistent>
-      <q-card style="width: 500px">
+    <!-- Modal de Upload de Foto -->
+    <q-dialog v-model="fotoDialog">
+      <q-card style="min-width: 400px;">
         <q-card-section>
-          <div class="text-h6">Gerenciar Fotos - {{ selectedAnimal?.NOME }}</div>
+          <div class="text-h6">Upload de Foto</div>
         </q-card-section>
         <q-card-section>
           <q-file
             v-model="newFoto"
-            label="Selecionar Foto"
+            label="Selecionar foto"
             accept="image/*"
-            @update:model-value="uploadFoto"
-            outlined
-          >
-            <template v-slot:prepend>
-              <q-icon name="cloud_upload" />
-            </template>
-          </q-file>
-          
-          <div v-if="selectedAnimal?.FOTO_PRINCIPAL" class="q-mt-md text-center">
-            <q-img
-              :src="`http://localhost:8000${selectedAnimal.FOTO_PRINCIPAL}`"
-              style="max-width: 300px; max-height: 300px"
-              class="rounded-borders"
-            />
-          </div>
+            filled
+          />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn
-            flat
-            label="Fechar"
-            color="gray"
-            @click="fotoDialog = false"
-          />
+          <q-btn flat label="Cancelar" @click="fotoDialog = false" />
+          <q-btn color="primary" label="Upload" @click="uploadFoto" :loading="animalStore.loading" />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <!-- Diálogo de Genealogia -->
-    <q-dialog v-model="genealogiaDialog" persistent>
-      <q-card style="width: 800px; max-width: 90vw">
-        <q-card-section>
-          <div class="text-h6">Árvore Genealógica - {{ genealogiaData?.animal?.NOME }}</div>
-        </q-card-section>
-        <q-card-section>
-          <div class="genealogy-tree" v-if="genealogiaData">
-            <!-- Animal Principal -->
-            <div class="animal-card main-animal">
-              <q-card class="q-pa-md text-center">
-                <q-avatar v-if="genealogiaData.animal.FOTO_PRINCIPAL" size="60px">
-                  <img :src="`http://localhost:8000${genealogiaData.animal.FOTO_PRINCIPAL}`" />
-                </q-avatar>
-                <q-icon v-else name="pets" size="60px" color="primary" />
-                <div class="text-h6">{{ genealogiaData.animal.NOME }}</div>
-                <div class="text-caption">{{ genealogiaData.animal.SEXO === 'M' ? 'Macho' : 'Fêmea' }}</div>
-                <div class="text-caption">{{ formatDate(genealogiaData.animal.DATA_NASCIMENTO) }}</div>
-              </q-card>
-            </div>
-
-            <!-- Pais -->
-            <div class="parents-row">
-              <!-- Pai -->
-              <div class="animal-card parent">
-                <q-card v-if="genealogiaData.pai" class="q-pa-sm text-center">
-                  <q-avatar v-if="genealogiaData.pai.animal.FOTO_PRINCIPAL" size="40px">
-                    <img :src="`http://localhost:8000${genealogiaData.pai.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="40px" color="blue" />
-                  <div class="text-subtitle2">{{ genealogiaData.pai.animal.NOME }}</div>
-                  <div class="text-caption">Pai</div>
-                  <div class="text-caption">{{ formatDate(genealogiaData.pai.animal.DATA_NASCIMENTO) }}</div>
-                </q-card>
-                <q-card v-else class="q-pa-sm text-center bg-grey-2">
-                  <q-icon name="help_outline" size="40px" color="grey" />
-                  <div class="text-caption">Pai desconhecido</div>
-                </q-card>
-              </div>
-
-              <!-- Mãe -->
-              <div class="animal-card parent">
-                <q-card v-if="genealogiaData.mae" class="q-pa-sm text-center">
-                  <q-avatar v-if="genealogiaData.mae.animal.FOTO_PRINCIPAL" size="40px">
-                    <img :src="`http://localhost:8000${genealogiaData.mae.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="40px" color="pink" />
-                  <div class="text-subtitle2">{{ genealogiaData.mae.animal.NOME }}</div>
-                  <div class="text-caption">Mãe</div>
-                  <div class="text-caption">{{ formatDate(genealogiaData.mae.animal.DATA_NASCIMENTO) }}</div>
-                </q-card>
-                <q-card v-else class="q-pa-sm text-center bg-grey-2">
-                  <q-icon name="help_outline" size="40px" color="grey" />
-                  <div class="text-caption">Mãe desconhecida</div>
-                </q-card>
-              </div>
-            </div>
-
-            <!-- Avós -->
-            <div class="grandparents-row">
-              <!-- Avô paterno -->
-              <div class="animal-card grandparent">
-                <q-card v-if="genealogiaData.pai?.pai" class="q-pa-xs text-center">
-                  <q-avatar v-if="genealogiaData.pai.pai.animal.FOTO_PRINCIPAL" size="30px">
-                    <img :src="`http://localhost:8000${genealogiaData.pai.pai.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="30px" color="blue" />
-                  <div class="text-caption">{{ genealogiaData.pai.pai.animal.NOME }}</div>
-                  <div class="text-caption">Avô paterno</div>
-                </q-card>
-              </div>
-
-              <!-- Avó paterna -->
-              <div class="animal-card grandparent">
-                <q-card v-if="genealogiaData.pai?.mae" class="q-pa-xs text-center">
-                  <q-avatar v-if="genealogiaData.pai.mae.animal.FOTO_PRINCIPAL" size="30px">
-                    <img :src="`http://localhost:8000${genealogiaData.pai.mae.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="30px" color="pink" />
-                  <div class="text-caption">{{ genealogiaData.pai.mae.animal.NOME }}</div>
-                  <div class="text-caption">Avó paterna</div>
-                </q-card>
-              </div>
-
-              <!-- Avô materno -->
-              <div class="animal-card grandparent">
-                <q-card v-if="genealogiaData.mae?.pai" class="q-pa-xs text-center">
-                  <q-avatar v-if="genealogiaData.mae.pai.animal.FOTO_PRINCIPAL" size="30px">
-                    <img :src="`http://localhost:8000${genealogiaData.mae.pai.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="30px" color="blue" />
-                  <div class="text-caption">{{ genealogiaData.mae.pai.animal.NOME }}</div>
-                  <div class="text-caption">Avô materno</div>
-                </q-card>
-              </div>
-
-              <!-- Avó materna -->
-              <div class="animal-card grandparent">
-                <q-card v-if="genealogiaData.mae?.mae" class="q-pa-xs text-center">
-                  <q-avatar v-if="genealogiaData.mae.mae.animal.FOTO_PRINCIPAL" size="30px">
-                    <img :src="`http://localhost:8000${genealogiaData.mae.mae.animal.FOTO_PRINCIPAL}`" />
-                  </q-avatar>
-                  <q-icon v-else name="pets" size="30px" color="pink" />
-                  <div class="text-caption">{{ genealogiaData.mae.mae.animal.NOME }}</div>
-                  <div class="text-caption">Avó materna</div>
-                </q-card>
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn
-            flat
-            label="Fechar"
-            color="gray"
-            @click="genealogiaDialog = false"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <!-- Diálogo de Confirmação de Exclusão -->
+    <!-- Modal de Confirmação de Exclusão -->
     <q-dialog v-model="deleteDialog" persistent>
       <q-card>
         <q-card-section>
           <div class="text-h6">Confirmar Exclusão</div>
         </q-card-section>
         <q-card-section>
-          Deseja excluir o animal "{{ animalToDelete?.NOME }}"?
+          Deseja excluir o animal <strong>{{ animalToDelete?.NOME }}</strong>?
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn
-            flat
-            label="Cancelar"
-            color="gray"
-            @click="deleteDialog = false"
-          />
-          <q-btn
-            color="negative"
-            label="Excluir"
-            @click="deleteAnimal"
-            :disable="animalStore.loading"
-          />
+          <q-btn flat label="Cancelar" @click="deleteDialog = false" />
+          <q-btn color="negative" label="Excluir" @click="deleteAnimal" :loading="animalStore.loading" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -566,39 +422,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from '../stores/auth'
-import { useAnimalStore } from '../stores/animal'
-import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { useAuthStore } from 'stores/auth'
+import { useAnimalStore } from 'stores/animal'
+import AnimalForm from 'components/AnimalForm.vue'
 import { formatDate, prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
 const animalStore = useAnimalStore()
 
-const columns = [
-  { name: 'foto', label: '', field: 'FOTO_PRINCIPAL', align: 'center', style: 'width: 60px' },
-  { name: 'ID', label: 'ID', field: 'ID', sortable: true, align: 'left' },
-  { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
-  { name: 'NUMERO_REGISTRO', label: 'Registro', field: 'NUMERO_REGISTRO', sortable: true, align: 'left' },
-  { name: 'sexo', label: 'Sexo', field: 'SEXO', sortable: true, align: 'center' },
-  { name: 'DATA_NASCIMENTO', label: 'Nascimento', field: 'DATA_NASCIMENTO', sortable: true, align: 'left' },
-  { name: 'status', label: 'Status', field: 'STATUS_ANIMAL', sortable: true, align: 'center' },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
-]
-
-const sexoOptions = [
-  { value: 'M', label: 'Macho' },
-  { value: 'F', label: 'Fêmea' }
-]
-
-const statusOptions = [
-  { value: 'ATIVO', label: 'Ativo' },
-  { value: 'VENDIDO', label: 'Vendido' },
-  { value: 'MORTO', label: 'Morto' },
-  { value: 'EMPRESTADO', label: 'Emprestado' }
-]
-
-// Estado dos diálogos
+// Estado dos modals
 const dialog = ref(false)
 const viewDialog = ref(false)
 const fotoDialog = ref(false)
@@ -620,6 +453,9 @@ const form = ref({
   ORIGEM: '',
   OBSERVACOES: '',
   PESO_ATUAL: null,
+  PROPRIETARIO: '',
+  CONTATO_PROPRIETARIO: '',
+  CPF_CNPJ_PROPRIETARIO: '',
   ID_USUARIO_CADASTRO: authStore.user.ID
 })
 
@@ -629,9 +465,31 @@ const animalToDelete = ref(null)
 const genealogiaData = ref(null)
 const newFoto = ref(null)
 
-// Opções para seleção de pais
-const machoOptions = ref([])
-const femeaOptions = ref([])
+// Opções
+const sexoOptions = [
+  { label: 'Macho', value: 'M' },
+  { label: 'Fêmea', value: 'F' }
+]
+
+const statusOptions = [
+  { label: 'Ativo', value: 'ATIVO' },
+  { label: 'Vendido', value: 'VENDIDO' },
+  { label: 'Morto', value: 'MORTO' },
+  { label: 'Emprestado', value: 'EMPRESTADO' }
+]
+
+// Colunas da tabela
+const columns = [
+  { name: 'foto', label: 'Foto', field: 'foto', align: 'center' },
+  { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
+  { name: 'NUMERO_REGISTRO', label: 'Registro', field: 'NUMERO_REGISTRO', sortable: true, align: 'left' },
+  { name: 'SEXO', label: 'Sexo', field: 'SEXO', sortable: true, align: 'center' },
+  { name: 'DATA_NASCIMENTO', label: 'Nascimento', field: 'DATA_NASCIMENTO', sortable: true, align: 'left' },
+  { name: 'STATUS_ANIMAL', label: 'Status', field: 'STATUS_ANIMAL', sortable: true, align: 'center' },
+  { name: 'PROPRIETARIO', label: 'Proprietário', field: 'PROPRIETARIO', sortable: true, align: 'left' },
+  { name: 'genealogia', label: 'Genealogia', field: 'genealogia', align: 'center' },
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
+]
 
 // Funções
 async function fetchAnimais(props = {}) {
@@ -651,31 +509,11 @@ function onRequest(props) {
   fetchAnimais(props)
 }
 
-async function loadParentOptions() {
-  try {
-    await animalStore.loadParentOptions()
-    machoOptions.value = animalStore.parentOptions.machos
-    femeaOptions.value = animalStore.parentOptions.femeas
-  } catch (error) {
-    console.error('Erro ao carregar opções de pais:', error)
-  }
-}
-
 function openDialog(animal) {
   if (animal) {
-    // Encontrar objetos completos para os selects
-    const pai = machoOptions.value.find(m => m.value === animal.ID_PAI)
-    const mae = femeaOptions.value.find(f => f.value === animal.ID_MAE)
-    const sexo = sexoOptions.find(s => s.value === animal.SEXO)
-    const status = statusOptions.find(s => s.value === animal.STATUS_ANIMAL)
-    
     form.value = { 
       ...animal, 
-      ID_USUARIO_CADASTRO: authStore.user.ID,
-      SEXO: sexo || animal.SEXO,
-      STATUS_ANIMAL: status || animal.STATUS_ANIMAL,
-      ID_PAI: pai || null,
-      ID_MAE: mae || null
+      ID_USUARIO_CADASTRO: authStore.user.ID
     }
   } else {
     form.value = {
@@ -692,6 +530,9 @@ function openDialog(animal) {
       ORIGEM: '',
       OBSERVACOES: '',
       PESO_ATUAL: null,
+      PROPRIETARIO: '',
+      CONTATO_PROPRIETARIO: '',
+      CPF_CNPJ_PROPRIETARIO: '',
       ID_USUARIO_CADASTRO: authStore.user.ID
     }
   }
@@ -747,30 +588,7 @@ async function deleteAnimal() {
   }
 }
 
-function openFotoDialog(animal) {
-  selectedAnimal.value = animal
-  fotoDialog.value = true
-}
-
-async function uploadFoto() {
-  if (!newFoto.value || !selectedAnimal.value) return
-  
-  try {
-    await animalStore.uploadFoto(selectedAnimal.value.ID, newFoto.value)
-    $q.notify({ type: 'positive', message: 'Foto enviada com sucesso' })
-    
-    // Atualizar foto principal do animal
-    selectedAnimal.value = animalStore.animalById(selectedAnimal.value.ID)
-    newFoto.value = null
-  } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: error
-    })
-  }
-}
-
-async function showGenealogia(animal) {
+async function viewGenealogia(animal) {
   try {
     genealogiaData.value = await animalStore.getGenealogia(animal.ID)
     genealogiaDialog.value = true
@@ -782,80 +600,42 @@ async function showGenealogia(animal) {
   }
 }
 
-function filterMachos(val, update) {
-  update(() => {
-    if (val === '') {
-      machoOptions.value = animalStore.parentOptions.machos
-    } else {
-      const needle = val.toLowerCase()
-      machoOptions.value = animalStore.parentOptions.machos.filter(
-        v => v.label.toLowerCase().indexOf(needle) > -1
-      )
-    }
-  })
+function openFotoDialog(animal) {
+  selectedAnimal.value = animal
+  fotoDialog.value = true
 }
 
-function filterFemeas(val, update) {
-  update(() => {
-    if (val === '') {
-      femeaOptions.value = animalStore.parentOptions.femeas
-    } else {
-      const needle = val.toLowerCase()
-      femeaOptions.value = animalStore.parentOptions.femeas.filter(
-        v => v.label.toLowerCase().indexOf(needle) > -1
-      )
-    }
-  })
-}
-
-function getStatusColor(status) {
-  const colors = {
-    'ATIVO': 'positive',
-    'VENDIDO': 'info',
-    'MORTO': 'negative',
-    'EMPRESTADO': 'warning'
+async function uploadFoto() {
+  if (!newFoto.value || !selectedAnimal.value) return
+  
+  try {
+    await animalStore.uploadFoto(selectedAnimal.value.ID, newFoto.value)
+    $q.notify({ type: 'positive', message: 'Foto enviada com sucesso' })
+    fotoDialog.value = false
+    newFoto.value = null
+  } catch (error) {
+    $q.notify({
+      type: 'negative',
+      message: error
+    })
   }
-  return colors[status] || 'grey'
 }
 
-// Carregar dados na inicialização
-onMounted(async () => {
-  await loadParentOptions()
-  await fetchAnimais()
+onMounted(() => {
+  fetchAnimais()
 })
 </script>
 
 <style scoped>
-.genealogy-tree {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.main-animal {
-  width: 200px;
-}
-
-.parents-row {
-  display: flex;
-  gap: 100px;
-}
-
-.parent {
-  width: 150px;
-}
-
-.grandparents-row {
-  display: flex;
-  gap: 20px;
-}
-
-.grandparent {
-  width: 120px;
-}
-
 .animal-card {
-  flex-shrink: 0;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.animal-card-small {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  text-align: center;
+  min-height: 80px;
 }
 </style>

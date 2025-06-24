@@ -1,17 +1,20 @@
-from pydantic import BaseModel, Field, field_serializer, field_validator
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, Field, field_serializer, field_validator
+
 
 class SexoEnum(str, Enum):
     M = "M"
     F = "F"
+
 
 class StatusAnimalEnum(str, Enum):
     ATIVO = "ATIVO"
     VENDIDO = "VENDIDO"
     MORTO = "MORTO"
     EMPRESTADO = "EMPRESTADO"
+
 
 class AnimalBase(BaseModel):
     NOME: str = Field(..., max_length=100)
@@ -27,6 +30,10 @@ class AnimalBase(BaseModel):
     OBSERVACOES: Optional[str] = None
     PESO_ATUAL: Optional[float] = Field(None, ge=0)
     FOTO_PRINCIPAL: Optional[str] = Field(None, max_length=500)
+    PROPRIETARIO: Optional[str] = Field(None, max_length=200)
+    CONTATO_PROPRIETARIO: Optional[str] = Field(None, max_length=200)
+    CPF_CNPJ_PROPRIETARIO: Optional[str] = Field(None, max_length=20)
+
 
 class AnimalCreate(AnimalBase):
     ID_USUARIO_CADASTRO: int
@@ -36,6 +43,19 @@ class AnimalCreate(AnimalBase):
         if v and len(v.strip()) == 0:
             return None
         return v
+
+    @field_validator('CPF_CNPJ_PROPRIETARIO')
+    def validate_cpf_cnpj(cls, v):
+        if v and len(v.strip()) == 0:
+            return None
+        # Remove formatação
+        if v:
+            v = ''.join(filter(str.isdigit, v))
+            if len(v) not in [11, 14]:  # CPF tem 11 dígitos, CNPJ tem 14
+                raise ValueError(
+                    'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos')
+        return v
+
 
 class AnimalUpdate(BaseModel):
     NOME: Optional[str] = Field(None, max_length=100)
@@ -51,7 +71,23 @@ class AnimalUpdate(BaseModel):
     OBSERVACOES: Optional[str] = None
     PESO_ATUAL: Optional[float] = Field(None, ge=0)
     FOTO_PRINCIPAL: Optional[str] = Field(None, max_length=500)
+    PROPRIETARIO: Optional[str] = Field(None, max_length=200)
+    CONTATO_PROPRIETARIO: Optional[str] = Field(None, max_length=200)
+    CPF_CNPJ_PROPRIETARIO: Optional[str] = Field(None, max_length=20)
     ID_USUARIO_ALTERACAO: Optional[int] = None
+
+    @field_validator('CPF_CNPJ_PROPRIETARIO')
+    def validate_cpf_cnpj(cls, v):
+        if v and len(v.strip()) == 0:
+            return None
+        # Remove formatação
+        if v:
+            v = ''.join(filter(str.isdigit, v))
+            if len(v) not in [11, 14]:  # CPF tem 11 dígitos, CNPJ tem 14
+                raise ValueError(
+                    'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos')
+        return v
+
 
 class AnimalResponse(AnimalBase):
     ID: int
@@ -67,15 +103,18 @@ class AnimalResponse(AnimalBase):
     class Config:
         from_attributes = True
 
+
 class AnimalGenealogia(BaseModel):
     animal: AnimalResponse
     pai: Optional['AnimalGenealogia'] = None
     mae: Optional['AnimalGenealogia'] = None
-    
+
     class Config:
         from_attributes = True
 
 # Upload de foto
+
+
 class FotoUploadResponse(BaseModel):
     filename: str
     url: str
