@@ -26,4 +26,8 @@ from .medicamento import (MedicamentoBase, MedicamentoCreate, MedicamentoUpdate,
                           MovimentacaoMedicamentoResponse, EstoqueBaixo,
                           MovimentacaoEstoque, ConsumoPorAnimal, PrevisaoConsumo,
                           EntradaEstoque, AplicacaoMedicamento)
+from .saude import (SaudeBase, SaudeCreate, SaudeUpdate,
+                    SaudeResponse,
+                    AplicacaoRapida, EstatisticasSaude, ProximasAplicacoes,
+                    HistoricoSaude, CalendarioSaude, ConsumoPorTipo, MedicamentoAutocomplete)
 from .sessao import SessaoRefreshTokenRequest
