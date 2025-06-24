@@ -109,7 +109,6 @@ export const useMedicamentoStore = defineStore('medicamento', {
         }
 
         const response = await api.get('/api/medicamentos', { params: queryParams })
-
         this.medicamentos = response.data.medicamentos
         this.pagination = {
           ...this.pagination,
@@ -298,7 +297,8 @@ export const useMedicamentoStore = defineStore('medicamento', {
     // === OPÇÕES PARA SELECTS ===
     async loadMedicamentoOptions() {
       await this.fetchMedicamentos({ limit: 100 })
-      return this.medicamentosComEstoque.map((med) => ({
+
+      return this.medicamentosAtivos.map((med) => ({
         value: med.ID,
         label: `${med.NOME} (${med.ESTOQUE_ATUAL} ${med.UNIDADE_MEDIDA})`,
         estoque: med.ESTOQUE_ATUAL,

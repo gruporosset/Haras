@@ -152,22 +152,31 @@ async def create_saude(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
 
-    # Se especificou medicamento, verificar estoque
+    # Se especificou medicamento, fazer validações
     if saude.ID_MEDICAMENTO and saude.QUANTIDADE_APLICADA:
-        from app.models.medicamento import Medicamento
+        from app.models.medicamento import Medicamento, MovimentacaoMedicamento
+
         medicamento = db.query(Medicamento).filter(
             Medicamento.ID == saude.ID_MEDICAMENTO).first()
         if not medicamento:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado")
 
+        # Verificar se medicamento está ativo
+        if medicamento.ATIVO != 'S':
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Medicamento não está ativo"
+            )
+
+        # Verificar estoque suficiente
         if medicamento.ESTOQUE_ATUAL < saude.QUANTIDADE_APLICADA:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
             )
 
-        # Preencher campos automáticos se medicamento foi selecionado
+        # Preencher campos automáticos baseados no medicamento
         if not saude.MEDICAMENTO_APLICADO:
             saude.MEDICAMENTO_APLICADO = medicamento.NOME
         if not saude.DOSE_APLICADA:
@@ -175,34 +184,36 @@ async def create_saude(
         if not saude.UNIDADE_APLICADA:
             saude.UNIDADE_APLICADA = medicamento.UNIDADE_MEDIDA
 
+        # Definir tipo de registro como MEDICAMENTO se não foi especificado
+        if not saude.TIPO_REGISTRO and saude.ID_MEDICAMENTO:
+            saude.TIPO_REGISTRO = TipoRegistroEnum.MEDICAMENTO
+
+    # Criar registro de saúde
     db_saude = SaudeAnimais(**saude.dict())
     db.add(db_saude)
+    db.flush()  # Para obter o ID antes do commit
+
+    # Se tem medicamento, criar movimentação de estoque
+    if saude.ID_MEDICAMENTO and saude.QUANTIDADE_APLICADA:
+        from app.models.medicamento import MovimentacaoMedicamento, TipoMovimentacaoEnum
+
+        movimentacao = MovimentacaoMedicamento(
+            ID_MEDICAMENTO=saude.ID_MEDICAMENTO,
+            TIPO_MOVIMENTACAO=TipoMovimentacaoEnum.SAIDA,
+            QUANTIDADE=saude.QUANTIDADE_APLICADA,
+            ID_ANIMAL=saude.ID_ANIMAL,
+            ID_SAUDE_ANIMAL=db_saude.ID,
+            MOTIVO=f"Aplicação em {animal.NOME} - {saude.TIPO_REGISTRO}",
+            OBSERVACOES=saude.OBSERVACOES,
+            ID_USUARIO_REGISTRO=current_user.ID
+        )
+
+        db.add(movimentacao)
+
     db.commit()
     db.refresh(db_saude)
 
     return await _enrich_saude_response(db_saude, db)
-
-# Função auxiliar para enriquecer resposta
-
-
-async def _enrich_saude_response(saude: SaudeAnimais, db: Session) -> SaudeResponse:
-    animal = db.query(Animal).filter(Animal.ID == saude.ID_ANIMAL).first()
-    medicamento = None
-    estoque_suficiente = None
-
-    if saude.ID_MEDICAMENTO:
-        from app.models.medicamento import Medicamento
-        medicamento = db.query(Medicamento).filter(
-            Medicamento.ID == saude.ID_MEDICAMENTO).first()
-        if medicamento and saude.QUANTIDADE_APLICADA:
-            estoque_suficiente = medicamento.ESTOQUE_ATUAL >= saude.QUANTIDADE_APLICADA
-
-    response_data = SaudeResponse.from_orm(saude)
-    response_data.animal_nome = animal.NOME if animal else None
-    response_data.medicamento_nome = medicamento.NOME if medicamento else None
-    response_data.estoque_suficiente = estoque_suficiente
-
-    return response_data
 
 
 @router.get("/saude", response_model=dict)
@@ -265,12 +276,64 @@ async def update_saude(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Registro não encontrado")
 
+    # Verificar se está alterando medicamento
+    medicamento_alterado = False
+    if (hasattr(saude, 'ID_MEDICAMENTO') and saude.ID_MEDICAMENTO != db_saude.ID_MEDICAMENTO) or \
+       (hasattr(saude, 'QUANTIDADE_APLICADA') and saude.QUANTIDADE_APLICADA != db_saude.QUANTIDADE_APLICADA):
+        medicamento_alterado = True
+
+    # Se alterou medicamento, precisamos reverter a movimentação anterior e criar nova
+    if medicamento_alterado and db_saude.ID_MEDICAMENTO:
+        from app.models.medicamento import MovimentacaoMedicamento, TipoMovimentacaoEnum
+
+        # Reverter movimentação anterior (criar entrada para compensar)
+        if db_saude.QUANTIDADE_APLICADA:
+            reversao = MovimentacaoMedicamento(
+                ID_MEDICAMENTO=db_saude.ID_MEDICAMENTO,
+                TIPO_MOVIMENTACAO=TipoMovimentacaoEnum.ENTRADA,
+                QUANTIDADE=db_saude.QUANTIDADE_APLICADA,
+                ID_ANIMAL=db_saude.ID_ANIMAL,
+                ID_SAUDE_ANIMAL=db_saude.ID,
+                MOTIVO=f"Reversão por alteração de registro - {db_saude.TIPO_REGISTRO}",
+                OBSERVACOES="Estorno automático por edição",
+                ID_USUARIO_REGISTRO=current_user.ID
+            )
+            db.add(reversao)
+
+    # Atualizar campos
     for key, value in saude.dict(exclude_unset=True).items():
         setattr(db_saude, key, value)
 
+    # Se tem novo medicamento, criar nova movimentação
+    if db_saude.ID_MEDICAMENTO and db_saude.QUANTIDADE_APLICADA:
+        from app.models.medicamento import Medicamento, MovimentacaoMedicamento, TipoMovimentacaoEnum
+
+        medicamento = db.query(Medicamento).filter(
+            Medicamento.ID == db_saude.ID_MEDICAMENTO).first()
+        if medicamento:
+            # Verificar estoque
+            if medicamento.ESTOQUE_ATUAL < db_saude.QUANTIDADE_APLICADA:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+                )
+
+            # Criar nova movimentação
+            nova_movimentacao = MovimentacaoMedicamento(
+                ID_MEDICAMENTO=db_saude.ID_MEDICAMENTO,
+                TIPO_MOVIMENTACAO=TipoMovimentacaoEnum.SAIDA,
+                QUANTIDADE=db_saude.QUANTIDADE_APLICADA,
+                ID_ANIMAL=db_saude.ID_ANIMAL,
+                ID_SAUDE_ANIMAL=db_saude.ID,
+                MOTIVO=f"Aplicação atualizada em {db_saude.ID_ANIMAL} - {db_saude.TIPO_REGISTRO}",
+                OBSERVACOES=db_saude.OBSERVACOES,
+                ID_USUARIO_REGISTRO=current_user.ID
+            )
+            db.add(nova_movimentacao)
+
     db.commit()
     db.refresh(db_saude)
-    return db_saude
+    return await _enrich_saude_response(db_saude, db)
 
 
 @router.delete("/saude/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -282,6 +345,66 @@ async def delete_saude(id: int, db: Session = Depends(get_db), current_user: Use
 
     db.delete(db_saude)
     db.commit()
+
+
+@router.get("/medicamentos-autocomplete", response_model=List[dict])
+async def autocomplete_medicamentos_saude(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    termo: str = Query(..., description="Termo para busca"),
+    limit: int = Query(10, ge=1, le=50)
+):
+    """Autocomplete para medicamentos com estoque > 0 para uso em saúde"""
+    from app.models.medicamento import Medicamento
+
+    medicamentos = db.query(Medicamento).filter(
+        Medicamento.NOME.ilike(f"%{termo}%"),
+        Medicamento.ATIVO == 'S',
+        Medicamento.ESTOQUE_ATUAL > 0
+    ).order_by(Medicamento.NOME).limit(limit).all()
+
+    return [
+        {
+            "value": med.ID,
+            "label": f"{med.NOME} ({med.ESTOQUE_ATUAL} {med.UNIDADE_MEDIDA})",
+            "nome": med.NOME,
+            "estoque": med.ESTOQUE_ATUAL,
+            "unidade": med.UNIDADE_MEDIDA,
+            "forma": med.FORMA_FARMACEUTICA,
+            "carencia": med.PERIODO_CARENCIA,
+            "principio_ativo": med.PRINCIPIO_ATIVO
+        }
+        for med in medicamentos
+    ]
+
+# Endpoint para validar estoque antes da aplicação
+
+
+@router.post("/validar-estoque-medicamento")
+async def validar_estoque_medicamento(
+    medicamento_id: int,
+    quantidade: float,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Valida se há estoque suficiente para aplicação"""
+    from app.models.medicamento import Medicamento
+
+    medicamento = db.query(Medicamento).filter(
+        Medicamento.ID == medicamento_id).first()
+    if not medicamento:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Medicamento não encontrado")
+
+    estoque_suficiente = medicamento.ESTOQUE_ATUAL >= quantidade
+
+    return {
+        "valido": estoque_suficiente,
+        "estoque_atual": medicamento.ESTOQUE_ATUAL,
+        "unidade_medida": medicamento.UNIDADE_MEDIDA,
+        "estoque_restante": medicamento.ESTOQUE_ATUAL - quantidade if estoque_suficiente else None,
+        "erro": None if estoque_suficiente else f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+    }
 
 # === ENDPOINTS RELATÓRIOS ===
 
@@ -376,3 +499,25 @@ async def get_estatisticas_crescimento(
         ))
 
     return resultados
+
+# Função auxiliar para enriquecer resposta
+
+
+async def _enrich_saude_response(saude: SaudeAnimais, db: Session) -> SaudeResponse:
+    animal = db.query(Animal).filter(Animal.ID == saude.ID_ANIMAL).first()
+    medicamento = None
+    estoque_suficiente = None
+
+    if saude.ID_MEDICAMENTO:
+        from app.models.medicamento import Medicamento
+        medicamento = db.query(Medicamento).filter(
+            Medicamento.ID == saude.ID_MEDICAMENTO).first()
+        if medicamento and saude.QUANTIDADE_APLICADA:
+            estoque_suficiente = medicamento.ESTOQUE_ATUAL >= saude.QUANTIDADE_APLICADA
+
+    response_data = SaudeResponse.from_orm(saude)
+    response_data.animal_nome = animal.NOME if animal else None
+    response_data.medicamento_nome = medicamento.NOME if medicamento else None
+    response_data.estoque_suficiente = estoque_suficiente
+
+    return response_data
