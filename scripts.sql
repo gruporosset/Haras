@@ -149,22 +149,22 @@ create table terrenos (
 );
 
 create table historico_crescimento (
-   id                  number
+   id                      number
       generated always as identity
    primary key,
-   id_animal           number not null
+   id_animal               number not null
       references animais ( id ),
-   data_medicao        date not null,
-   peso                number(6,2),
-   altura              number(5,2),
-   perimetro_toracico  number(5,2),
-   comprimento_corpo   number(5,2),
-   observacoes         varchar2(500),
-   id_usuario_registro number
+   data_medicao            date not null,
+   peso                    number(6,2),
+   altura                  number(5,2),
+   circunferencia_canela   number(5,2),
+   circunferencia_toracica number(5,2),
+   comprimento_corpo       number(5,2),
+   observacoes             varchar2(500),
+   id_usuario_registro     number
       references usuarios ( id ),
-   data_registro       date default sysdate
+   data_registro           date default sysdate
 );
-
 
 create table movimentacoes_animais (
    id                  number

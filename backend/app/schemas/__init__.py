@@ -6,9 +6,7 @@ from .animal import (AnimalBase, AnimalCreate, AnimalUpdate, AnimalResponse,
                      AnimalGenealogia, FotoUploadResponse, SexoEnum, StatusAnimalEnum)
 from .crescimento import (CrescimentoBase, CrescimentoCreate, CrescimentoUpdate,
                           CrescimentoResponse,
-                          SaudeBase, SaudeCreate, SaudeUpdate,
-                          SaudeResponse,
-                          AplicacaoRapidaMedicamento, EstatisticasCrescimento, ProximasAplicacoes)
+                          EstatisticasCrescimento, CrescimentoDetalhado, ComparacaoMedidas)
 from .movimentacao import (MovimentacaoBase, MovimentacaoCreate,
                            MovimentacaoUpdate, MovimentacaoResponse,
                            TipoMovimentacaoEnum, LocalizacaoAtual, HistoricoMovimentacao)

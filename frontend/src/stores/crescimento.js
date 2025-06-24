@@ -1,17 +1,15 @@
-// frontend/src/stores/crescimento.js - ATUALIZAÇÃO STORE SAÚDE
-
 import { defineStore } from 'pinia'
 import api from '../boot/api'
 
 export const useCrescimentoStore = defineStore('crescimento', {
   state: () => ({
     crescimentos: [],
-    registrosSaude: [],
-    medicamentosOptions: [], // Para autocomplete
+    historicoAnimal: [],
+    estatisticasGerais: [],
+    comparacaoMedidas: [],
     loading: false,
     filters: {
       animal_id: null,
-      tipo_registro: null,
       data_inicio: '',
       data_fim: '',
     },
@@ -19,53 +17,62 @@ export const useCrescimentoStore = defineStore('crescimento', {
       page: 1,
       rowsPerPage: 10,
       rowsNumber: 0,
-      sortBy: 'DATA_OCORRENCIA',
+      sortBy: 'DATA_MEDICAO',
       descending: true,
     },
   }),
 
   getters: {
-    tiposRegistro: () => [
-      { value: 'VACINA', label: 'Vacina' },
-      { value: 'VERMIFUGO', label: 'Vermífugo' },
-      { value: 'MEDICAMENTO', label: 'Medicamento' },
-      { value: 'EXAME', label: 'Exame' },
-      { value: 'CONSULTA', label: 'Consulta' },
-      { value: 'CIRURGIA', label: 'Cirurgia' },
-      { value: 'TRATAMENTO', label: 'Tratamento' },
-    ],
+    // Estatísticas rápidas
+    totalMedicoes: (state) => state.crescimentos.length,
 
-    registrosPorTipo: (state) => (tipo) => {
-      return state.registrosSaude.filter((r) => r.TIPO_REGISTRO === tipo)
+    animaisComMedicoes: (state) => {
+      const animais = new Set(state.crescimentos.map((c) => c.animal_nome))
+      return animais.size
     },
 
-    proximasAplicacoes: (state) => {
-      const hoje = new Date()
-      return state.registrosSaude
-        .filter((r) => r.PROXIMA_APLICACAO && new Date(r.PROXIMA_APLICACAO) >= hoje)
-        .sort((a, b) => new Date(a.PROXIMA_APLICACAO) - new Date(b.PROXIMA_APLICACAO))
+    mediaGanhoPeso: (state) => {
+      const ganhosPositivos = state.crescimentos
+        .filter((c) => c.ganho_peso && c.ganho_peso > 0)
+        .map((c) => c.ganho_peso)
+
+      if (ganhosPositivos.length === 0) return 0
+
+      const soma = ganhosPositivos.reduce((acc, ganho) => acc + ganho, 0)
+      return (soma / ganhosPositivos.length).toFixed(2)
     },
 
-    estatisticasSaude: (state) => {
-      const totalRegistros = state.registrosSaude.length
-      const registrosPorTipo = {}
+    ultimasMedicoes: (state) => {
+      return state.crescimentos.slice(0, 5) // 5 mais recentes
+    },
 
-      state.registrosSaude.forEach((registro) => {
-        const tipo = registro.TIPO_REGISTRO
-        registrosPorTipo[tipo] = (registrosPorTipo[tipo] || 0) + 1
-      })
+    // Dados para gráficos
+    dadosGraficoPeso: (state) => (animalId) => {
+      return state.historicoAnimal
+        .filter((h) => h.medicao.ID_ANIMAL === animalId && h.medicao.PESO)
+        .map((h) => ({
+          data: h.medicao.DATA_MEDICAO,
+          peso: h.medicao.PESO,
+          ganho: h.variacao_peso || 0,
+        }))
+        .sort((a, b) => new Date(a.data) - new Date(b.data))
+    },
 
-      return {
-        totalRegistros,
-        registrosPorTipo,
-        proximasAplicacoes: state.proximasAplicacoes.length,
-      }
+    dadosGraficoAltura: (state) => (animalId) => {
+      return state.historicoAnimal
+        .filter((h) => h.medicao.ID_ANIMAL === animalId && h.medicao.ALTURA)
+        .map((h) => ({
+          data: h.medicao.DATA_MEDICAO,
+          altura: h.medicao.ALTURA,
+          variacao: h.variacao_altura || 0,
+        }))
+        .sort((a, b) => new Date(a.data) - new Date(b.data))
     },
   },
 
   actions: {
-    // === SAÚDE ===
-    async fetchRegistrosSaude(params = {}) {
+    // === CRUD BÁSICO ===
+    async fetchCrescimentos(params = {}) {
       this.loading = true
       try {
         const queryParams = {
@@ -79,107 +86,8 @@ export const useCrescimentoStore = defineStore('crescimento', {
         if (queryParams.animal_id?.value) {
           queryParams.animal_id = queryParams.animal_id.value
         }
-        if (queryParams.tipo_registro?.value) {
-          queryParams.tipo_registro = queryParams.tipo_registro.value
-        }
 
-        const response = await api.get('/api/crescimento-saude/saude', { params: queryParams })
-
-        this.registrosSaude = response.data.registros
-        this.pagination = {
-          ...this.pagination,
-          page: response.data.page,
-          rowsNumber: response.data.total,
-          rowsPerPage: response.data.limit,
-        }
-
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar registros de saúde'
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async createRegistroSaude(registroData) {
-      try {
-        const response = await api.post('/api/crescimento-saude/saude', registroData)
-        await this.fetchRegistrosSaude()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar registro de saúde'
-      }
-    },
-
-    async updateRegistroSaude(id, registroData) {
-      try {
-        const response = await api.put(`/api/crescimento-saude/saude/${id}`, registroData)
-        await this.fetchRegistrosSaude()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar registro de saúde'
-      }
-    },
-
-    async deleteRegistroSaude(id) {
-      try {
-        await api.delete(`/api/crescimento-saude/saude/${id}`)
-        await this.fetchRegistrosSaude()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir registro de saúde'
-      }
-    },
-
-    // === MEDICAMENTOS AUTOCOMPLETE ===
-    async autocompleteMedicamentos(termo) {
-      try {
-        if (!termo || termo.length < 2) return []
-
-        const response = await api.get('/api/crescimento-saude/medicamentos-autocomplete', {
-          params: { termo, limit: 20 },
-        })
-
-        this.medicamentosOptions = response.data
-        return response.data
-      } catch (error) {
-        console.error('Erro no autocomplete de medicamentos:', error)
-        return []
-      }
-    },
-
-    async validarEstoqueMedicamento(medicamentoId, quantidade) {
-      try {
-        const response = await api.post(
-          '/api/crescimento-saude/validar-estoque-medicamento',
-          null,
-          {
-            params: { medicamento_id: medicamentoId, quantidade },
-          },
-        )
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao validar estoque'
-      }
-    },
-
-    // === CRESCIMENTO (mantendo funcionalidades existentes) ===
-    async fetchCrescimentos(params = {}) {
-      this.loading = true
-      try {
-        const queryParams = {
-          page: params.page || this.pagination.page,
-          limit: params.limit || this.pagination.rowsPerPage,
-          ...this.filters,
-          ...params.filters,
-        }
-
-        if (queryParams.animal_id?.value) {
-          queryParams.animal_id = queryParams.animal_id.value
-        }
-
-        const response = await api.get('/api/crescimento-saude/crescimento', {
-          params: queryParams,
-        })
+        const response = await api.get('/api/crescimento', { params: queryParams })
 
         this.crescimentos = response.data.registros
         this.pagination = {
@@ -197,9 +105,18 @@ export const useCrescimentoStore = defineStore('crescimento', {
       }
     },
 
+    async getCrescimento(id) {
+      try {
+        const response = await api.get(`/api/crescimento/${id}`)
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar registro'
+      }
+    },
+
     async createCrescimento(crescimentoData) {
       try {
-        const response = await api.post('/api/crescimento-saude/crescimento', crescimentoData)
+        const response = await api.post('/api/crescimento', crescimentoData)
         await this.fetchCrescimentos()
         return response.data
       } catch (error) {
@@ -209,7 +126,7 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
     async updateCrescimento(id, crescimentoData) {
       try {
-        const response = await api.put(`/api/crescimento-saude/crescimento/${id}`, crescimentoData)
+        const response = await api.put(`/api/crescimento/${id}`, crescimentoData)
         await this.fetchCrescimentos()
         return response.data
       } catch (error) {
@@ -219,10 +136,52 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
     async deleteCrescimento(id) {
       try {
-        await api.delete(`/api/crescimento-saude/crescimento/${id}`)
+        await api.delete(`/api/crescimento/${id}`)
         await this.fetchCrescimentos()
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao excluir registro de crescimento'
+      }
+    },
+
+    // === HISTÓRICO E RELATÓRIOS ===
+    async fetchHistoricoAnimal(animalId) {
+      this.loading = true
+      try {
+        const response = await api.get(`/api/crescimento/animal/${animalId}/historico`)
+        this.historicoAnimal = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar histórico do animal'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchEstatisticasGerais(mesesPeriodo = 12) {
+      this.loading = true
+      try {
+        const response = await api.get('/api/crescimento/estatisticas/geral', {
+          params: { meses_periodo: mesesPeriodo },
+        })
+        this.estatisticasGerais = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar estatísticas gerais'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchComparacaoMedidas() {
+      this.loading = true
+      try {
+        const response = await api.get('/api/crescimento/comparacao/medidas')
+        this.comparacaoMedidas = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar comparação de medidas'
+      } finally {
+        this.loading = false
       }
     },
 
@@ -234,7 +193,6 @@ export const useCrescimentoStore = defineStore('crescimento', {
     clearFilters() {
       this.filters = {
         animal_id: null,
-        tipo_registro: null,
         data_inicio: '',
         data_fim: '',
       }
@@ -244,57 +202,37 @@ export const useCrescimentoStore = defineStore('crescimento', {
       this.pagination = { ...this.pagination, ...newPagination }
     },
 
-    // === MÉTODOS AUXILIARES ===
-    getTipoRegistroLabel(tipo) {
-      const tipos = {
-        VACINA: 'Vacina',
-        VERMIFUGO: 'Vermífugo',
-        MEDICAMENTO: 'Medicamento',
-        EXAME: 'Exame',
-        CONSULTA: 'Consulta',
-        CIRURGIA: 'Cirurgia',
-        TRATAMENTO: 'Tratamento',
-      }
-      return tipos[tipo] || tipo
-    },
-
-    getTipoRegistroColor(tipo) {
-      const colors = {
-        VACINA: 'positive',
-        VERMIFUGO: 'warning',
-        MEDICAMENTO: 'primary',
-        EXAME: 'info',
-        CONSULTA: 'secondary',
-        CIRURGIA: 'negative',
-        TRATAMENTO: 'accent',
-      }
-      return colors[tipo] || 'grey'
-    },
-
     // === VALIDAÇÕES ===
-    validarFormularioSaude(form) {
+    validarFormulario(form) {
       const erros = []
 
       if (!form.ID_ANIMAL) {
         erros.push('Animal é obrigatório')
       }
 
-      if (!form.TIPO_REGISTRO) {
-        erros.push('Tipo de registro é obrigatório')
+      if (!form.DATA_MEDICAO) {
+        erros.push('Data de medição é obrigatória')
       }
 
-      if (!form.DATA_OCORRENCIA) {
-        erros.push('Data de ocorrência é obrigatória')
+      // Pelo menos uma medida deve ser informada
+      const medidas = [
+        form.PESO,
+        form.ALTURA,
+        form.CIRCUNFERENCIA_CANELA,
+        form.CIRCUNFERENCIA_TORACICA,
+        form.COMPRIMENTO_CORPO,
+      ]
+      if (!medidas.some((medida) => medida && medida > 0)) {
+        erros.push('Pelo menos uma medida deve ser informada')
       }
 
-      // Se selecionou medicamento, deve informar quantidade
-      if (form.ID_MEDICAMENTO && !form.QUANTIDADE_APLICADA) {
-        erros.push('Quantidade aplicada é obrigatória quando medicamento é selecionado')
+      // Validar faixas de valores
+      if (form.PESO && (form.PESO <= 0 || form.PESO > 2000)) {
+        erros.push('Peso deve estar entre 0 e 2000 kg')
       }
 
-      // Se informou quantidade, deve selecionar medicamento
-      if (form.QUANTIDADE_APLICADA && !form.ID_MEDICAMENTO) {
-        erros.push('Medicamento deve ser selecionado quando quantidade é informada')
+      if (form.ALTURA && (form.ALTURA <= 0 || form.ALTURA > 300)) {
+        erros.push('Altura deve estar entre 0 e 300 cm')
       }
 
       return {
@@ -304,48 +242,85 @@ export const useCrescimentoStore = defineStore('crescimento', {
     },
 
     // === CÁLCULOS ===
-    calcularDiasProximaAplicacao(dataOcorrencia, proximaAplicacao) {
-      if (!proximaAplicacao) return null
+    calcularIMC(peso, altura) {
+      // IMC adaptado para cavalos (peso em kg, altura em cm)
+      if (!peso || !altura || altura === 0) return null
+      const alturaMetros = altura / 100
+      return (peso / (alturaMetros * alturaMetros)).toFixed(2)
+    },
 
-      const hoje = new Date()
-      const proxima = new Date(proximaAplicacao)
-      const diferenca = proxima.getTime() - hoje.getTime()
+    calcularTaxaCrescimento(pesoAtual, pesoAnterior, dias) {
+      if (!pesoAtual || !pesoAnterior || !dias || dias <= 0) return null
+      return ((pesoAtual - pesoAnterior) / dias).toFixed(3)
+    },
 
-      return Math.ceil(diferenca / (1000 * 3600 * 24))
+    // === COMPARAÇÕES ===
+    compararComMedia(valor, tipo) {
+      // Valores médios de referência (podem ser configuráveis)
+      const referencias = {
+        peso: { min: 300, max: 600, ideal: 450 },
+        altura: { min: 140, max: 180, ideal: 160 },
+        canela: { min: 18, max: 24, ideal: 21 },
+        toracica: { min: 160, max: 200, ideal: 180 },
+        corpo: { min: 140, max: 180, ideal: 160 },
+      }
+
+      const ref = referencias[tipo]
+      if (!ref || !valor) return 'INDEFINIDO'
+
+      if (valor < ref.min) return 'ABAIXO'
+      if (valor > ref.max) return 'ACIMA'
+      return 'NORMAL'
+    },
+
+    getClassificacaoColor(classificacao) {
+      const colors = {
+        ABAIXO: 'negative',
+        NORMAL: 'positive',
+        ACIMA: 'warning',
+        IDEAL: 'positive',
+        INDEFINIDO: 'grey',
+      }
+      return colors[classificacao] || 'grey'
     },
 
     // === BUSCA E FILTROS ===
-    getRegistrosByAnimal(animalId) {
-      return this.registrosSaude.filter((registro) => registro.ID_ANIMAL === animalId)
+    getCrescimentosByAnimal(animalId) {
+      return this.crescimentos.filter((c) => c.ID_ANIMAL === animalId)
     },
 
-    getUltimoRegistroTipo(animalId, tipo) {
-      const registros = this.registrosSaude
-        .filter((r) => r.ID_ANIMAL === animalId && r.TIPO_REGISTRO === tipo)
-        .sort((a, b) => new Date(b.DATA_OCORRENCIA) - new Date(a.DATA_OCORRENCIA))
-
-      return registros.length > 0 ? registros[0] : null
+    getUltimaMedicaoAnimal(animalId) {
+      const medicoes = this.getCrescimentosByAnimal(animalId)
+      return medicoes.length > 0 ? medicoes[0] : null // Já vem ordenado desc
     },
 
-    // === RELATÓRIOS ===
-    async getEstatisticasSaude() {
-      try {
-        const response = await api.get('/api/crescimento-saude/estatisticas-saude')
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar estatísticas'
-      }
+    // === FORMATAÇÃO ===
+    formatarMedida(valor, unidade = '') {
+      if (!valor) return '-'
+      return `${parseFloat(valor).toFixed(1)} ${unidade}`.trim()
     },
 
-    async getProximasAplicacoes(dias = 30) {
-      try {
-        const response = await api.get('/api/crescimento-saude/proximas-aplicacoes', {
-          params: { dias },
-        })
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar próximas aplicações'
-      }
+    formatarGanho(valor) {
+      if (!valor) return '-'
+      const sinal = valor > 0 ? '+' : ''
+      return `${sinal}${parseFloat(valor).toFixed(1)} kg`
+    },
+
+    // === EXPORTAÇÃO ===
+    prepararDadosExportacao(animalId = null) {
+      let dados = animalId ? this.getCrescimentosByAnimal(animalId) : this.crescimentos
+
+      return dados.map((crescimento) => ({
+        Animal: crescimento.animal_nome,
+        Data: crescimento.DATA_MEDICAO,
+        'Peso (kg)': crescimento.PESO || '-',
+        'Altura (cm)': crescimento.ALTURA || '-',
+        'Canela (cm)': crescimento.CIRCUNFERENCIA_CANELA || '-',
+        'Tórax (cm)': crescimento.CIRCUNFERENCIA_TORACICA || '-',
+        'Corpo (cm)': crescimento.COMPRIMENTO_CORPO || '-',
+        'Ganho Peso': this.formatarGanho(crescimento.ganho_peso),
+        Observações: crescimento.OBSERVACOES || '-',
+      }))
     },
   },
 })

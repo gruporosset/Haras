@@ -1,30 +1,23 @@
-from pydantic import BaseModel, Field, field_serializer, field_validator
+# backend/app/schemas/crescimento.py
 from typing import Optional
 from datetime import datetime
-from enum import Enum
-
-
-class TipoRegistroEnum(str, Enum):
-    VACINA = "VACINA"
-    VERMIFUGO = "VERMIFUGO"
-    MEDICAMENTO = "MEDICAMENTO"
-    EXAME = "EXAME"
-    CONSULTA = "CONSULTA"
-    CIRURGIA = "CIRURGIA"
-    TRATAMENTO = "TRATAMENTO"
-
-# Schemas Crescimento
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 
 class CrescimentoBase(BaseModel):
     ID_ANIMAL: int
     DATA_MEDICAO: datetime
-    PESO: Optional[float] = Field(None, ge=0)
-    ALTURA: Optional[float] = Field(None, ge=0)
-    PERIMETRO_TORACICO: Optional[float] = Field(None, ge=0)
-    COMPRIMENTO_CORPO: Optional[float] = Field(None, ge=0)
-    DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
-    OBSERVACOES: Optional[str] = Field(None, max_length=500)
+    PESO: Optional[float] = Field(
+        None, gt=0, le=2000, description="Peso em kg")
+    ALTURA: Optional[float] = Field(
+        None, gt=0, le=300, description="Altura em cm")
+    CIRCUNFERENCIA_CANELA: Optional[float] = Field(
+        None, gt=0, le=100, description="Circunferência da canela em cm")
+    CIRCUNFERENCIA_TORACICA: Optional[float] = Field(
+        None, gt=0, le=500, description="Circunferência torácica em cm")
+    COMPRIMENTO_CORPO: Optional[float] = Field(
+        None, gt=0, le=500, description="Comprimento do corpo em cm")
+    OBSERVACOES: Optional[str] = None
 
 
 class CrescimentoCreate(CrescimentoBase):
@@ -37,22 +30,34 @@ class CrescimentoCreate(CrescimentoBase):
             raise ValueError('Data de medição não pode ser no futuro')
         return v
 
+    @field_validator('PESO', 'ALTURA', 'CIRCUNFERENCIA_CANELA',
+                     'CIRCUNFERENCIA_TORACICA', 'COMPRIMENTO_CORPO')
+    @classmethod
+    def validate_medidas(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Medidas devem ser maiores que zero')
+        return v
+
 
 class CrescimentoUpdate(BaseModel):
     DATA_MEDICAO: Optional[datetime] = None
-    PESO: Optional[float] = Field(None, ge=0)
-    ALTURA: Optional[float] = Field(None, ge=0)
-    PERIMETRO_TORACICO: Optional[float] = Field(None, ge=0)
-    COMPRIMENTO_CORPO: Optional[float] = Field(None, ge=0)
-    DIAMETRO_CANELA: Optional[float] = Field(None, ge=0)
-    OBSERVACOES: Optional[str] = Field(None, max_length=500)
-    ID_USUARIO_REGISTRO: Optional[int] = None
+    PESO: Optional[float] = Field(None, gt=0, le=2000)
+    ALTURA: Optional[float] = Field(None, gt=0, le=300)
+    CIRCUNFERENCIA_CANELA: Optional[float] = Field(None, gt=0, le=100)
+    CIRCUNFERENCIA_TORACICA: Optional[float] = Field(None, gt=0, le=500)
+    COMPRIMENTO_CORPO: Optional[float] = Field(None, gt=0, le=500)
+    OBSERVACOES: Optional[str] = None
 
 
 class CrescimentoResponse(CrescimentoBase):
     ID: int
     ID_USUARIO_REGISTRO: int
     DATA_REGISTRO: Optional[datetime] = None
+
+    # Campos calculados
+    animal_nome: Optional[str] = None
+    ganho_peso: Optional[float] = None  # Comparado com medição anterior
+    dias_desde_ultima: Optional[int] = None
 
     @field_serializer('DATA_MEDICAO', 'DATA_REGISTRO')
     def serialize_dt(self, dt: datetime | None, _info):
@@ -61,96 +66,7 @@ class CrescimentoResponse(CrescimentoBase):
     class Config:
         from_attributes = True
 
-# Schemas Saúde
-
-
-class SaudeBase(BaseModel):
-    ID_ANIMAL: int
-    TIPO_REGISTRO: TipoRegistroEnum
-    DATA_OCORRENCIA: datetime
-    DESCRICAO: Optional[str] = Field(None, max_length=1000)
-    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
-    MEDICAMENTO_APLICADO: Optional[str] = Field(None, max_length=500)
-    DOSE_APLICADA: Optional[str] = Field(None, max_length=100)
-    PROXIMA_APLICACAO: Optional[datetime] = None
-    CUSTO: Optional[float] = Field(None, ge=0)
-    OBSERVACOES: Optional[str] = None
-    ID_MEDICAMENTO: Optional[int] = None
-    QUANTIDADE_APLICADA: Optional[float] = Field(None, gt=0)
-    UNIDADE_APLICADA: Optional[str] = Field(None, max_length=20)
-
-
-class SaudeCreate(SaudeBase):
-    ID_USUARIO_REGISTRO: int
-
-    @field_validator('DATA_OCORRENCIA')
-    @classmethod
-    def validate_data_ocorrencia(cls, v):
-        if v > datetime.now():
-            raise ValueError('Data de ocorrência não pode ser no futuro')
-        return v
-
-    @field_validator('PROXIMA_APLICACAO')
-    @classmethod
-    def validate_proxima_aplicacao(cls, v, info):
-        if v and info.data.get('DATA_OCORRENCIA'):
-            if v <= info.data['DATA_OCORRENCIA']:
-                raise ValueError(
-                    'Próxima aplicação deve ser após a data de ocorrência')
-        return v
-
-    @field_validator('QUANTIDADE_APLICADA')
-    @classmethod
-    def validate_quantidade_medicamento(cls, v, values):
-        # Se informou medicamento, deve informar quantidade
-        if 'ID_MEDICAMENTO' in values and values['ID_MEDICAMENTO'] and not v:
-            raise ValueError(
-                'Quantidade deve ser informada quando medicamento é selecionado')
-        return v
-
-
-class SaudeUpdate(BaseModel):
-    TIPO_REGISTRO: Optional[TipoRegistroEnum] = None
-    DATA_OCORRENCIA: Optional[datetime] = None
-    DESCRICAO: Optional[str] = Field(None, max_length=1000)
-    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
-    MEDICAMENTO_APLICADO: Optional[str] = Field(None, max_length=500)
-    DOSE_APLICADA: Optional[str] = Field(None, max_length=100)
-    PROXIMA_APLICACAO: Optional[datetime] = None
-    CUSTO: Optional[float] = Field(None, ge=0)
-    OBSERVACOES: Optional[str] = None
-    ID_MEDICAMENTO: Optional[int] = None
-    QUANTIDADE_APLICADA: Optional[float] = Field(None, gt=0)
-    UNIDADE_APLICADA: Optional[str] = Field(None, max_length=20)
-    ID_USUARIO_REGISTRO: Optional[int] = None
-
-
-class SaudeResponse(SaudeBase):
-    ID: int
-    ID_USUARIO_REGISTRO: int
-    DATA_REGISTRO: Optional[datetime] = None
-
-    animal_nome: Optional[str] = None
-    medicamento_nome: Optional[str] = None
-    estoque_suficiente: Optional[bool] = None
-
-    @field_serializer('DATA_OCORRENCIA', 'PROXIMA_APLICACAO', 'DATA_REGISTRO')
-    def serialize_dt(self, dt: datetime | None, _info):
-        return dt.strftime("%d/%m/%Y") if dt else None
-
-    class Config:
-        from_attributes = True
-
-
-class AplicacaoRapidaMedicamento(BaseModel):
-    ID_ANIMAL: int
-    ID_MEDICAMENTO: int
-    QUANTIDADE_APLICADA: float = Field(..., gt=0)
-    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
-    OBSERVACOES: Optional[str] = None
-
-
-# Schemas para Relatórios
+# Schemas para relatórios e estatísticas
 
 
 class EstatisticasCrescimento(BaseModel):
@@ -159,14 +75,27 @@ class EstatisticasCrescimento(BaseModel):
     total_medicoes: int
     peso_inicial: Optional[float]
     peso_atual: Optional[float]
-    ganho_peso: Optional[float]
-    media_peso: Optional[float]
+    ganho_peso_total: Optional[float]
+    ganho_peso_medio_mes: Optional[float]
+    altura_inicial: Optional[float]
+    altura_atual: Optional[float]
+    primeira_medicao: Optional[datetime]
+    ultima_medicao: Optional[datetime]
 
 
-class ProximasAplicacoes(BaseModel):
+class CrescimentoDetalhado(BaseModel):
+    medicao: CrescimentoResponse
+    variacao_peso: Optional[float] = None
+    variacao_altura: Optional[float] = None
+    dias_crescimento: Optional[int] = None
+    taxa_crescimento_dia: Optional[float] = None  # kg/dia
+
+
+class ComparacaoMedidas(BaseModel):
     animal_id: int
     animal_nome: str
-    tipo_registro: str
-    data_aplicacao: datetime
-    descricao: str
-    dias_restantes: int
+    idade_meses: Optional[int]
+    peso_atual: Optional[float]
+    peso_ideal_raca: Optional[float]  # Para futuro
+    altura_atual: Optional[float]
+    classificacao: str  # ABAIXO, IDEAL, ACIMA

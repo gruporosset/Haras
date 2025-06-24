@@ -59,11 +59,11 @@
               <q-item-section>Cadastro de Animais</q-item-section>
             </q-item>
 
-            <q-item to="/crescimento-saude" clickable v-ripple>
+            <q-item to="/crescimento" clickable v-ripple>
               <q-item-section avatar>
                 <q-icon name="trending_up" />
               </q-item-section>
-              <q-item-section>Crescimento & Saúde</q-item-section>
+              <q-item-section>Crescimento</q-item-section>
             </q-item>
             <q-item to="/reproducao" clickable v-ripple>
               <q-item-section avatar>

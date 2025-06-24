@@ -5,7 +5,9 @@ import DashboardPage from '../pages/DashboardPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import TerrenosPage from '../pages/TerrenosPage.vue'
 import AnimaisPage from '../pages/AnimaisPage.vue'
-import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
+// import CrescimentoSaudePage from '../pages/CrescimentoSaudePage.vue'
+import CrescimentoPage from '../pages/CrescimentoPage.vue'
+import CrescimentoAnimalPage from '../pages/CrescimentoAnimalPage.vue'
 import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
 import ReproducaoPage from '../pages/ReproducaoPage.vue'
 import ManejoPage from '../pages/ManejoPage.vue'
@@ -57,9 +59,15 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/crescimento-saude',
-    name: 'CrescimentoSaude',
-    component: CrescimentoSaudePage,
+    path: '/crescimento',
+    name: 'Crescimento',
+    component: CrescimentoPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/crescimento/animal/:id',
+    name: 'CrescimentoAnimal',
+    component: CrescimentoAnimalPage,
     meta: { requiresAuth: true },
   },
   {
