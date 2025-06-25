@@ -1,0 +1,54 @@
+.relatorios-manejo-container {
+  width: 100%;
+}
+
+.q-card {
+  border-radius: 8px;
+}
+
+.q-card-section {
+  padding: 16px;
+}
+
+/* Cards de estatísticas */
+.q-card.flat.bordered {
+  border: 1px solid #e0e0e0;
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .row.q-gutter-md > div {
+    margin-bottom: 8px;
+  }
+  
+  .col-md-6 {
+    width: 100% !important;
+  }
+}
+
+/* Cores das estatísticas */
+.text-primary { color: #1976d2; }
+.text-green { color: #4caf50; }
+.text-orange { color: #ff9800; }
+.text-purple { color: #9c27b0; }
+.text-blue { color: #2196f3; }
+.text-red { color: #f44336; }

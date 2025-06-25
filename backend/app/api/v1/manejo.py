@@ -1107,7 +1107,8 @@ async def delete_aplicacao(
 async def relatorio_consumo_terreno(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    terreno_id: Optional[int] = Query(None),
+    terreno_ids: Optional[str] = Query(
+        None, description="Lista de IDs de terrenos para filtrar"),
     tipo_produto: Optional[TipoProdutoEnum] = Query(None),
     data_inicio: Optional[datetime] = Query(None),
     data_fim: Optional[datetime] = Query(None)
@@ -1118,9 +1119,9 @@ async def relatorio_consumo_terreno(
         t.ID as terreno_id,
         t.NOME as terreno_nome,
         p.NOME as produto_nome,
-        mt.TIPO_MANEJO,
+        mt.TIPO_MANEJO as tipo_manejo,
         SUM(mt.QUANTIDADE) as total_aplicado,
-        p.UNIDADE_MEDIDA,
+        p.UNIDADE_MEDIDA as unidade_medida,
         COUNT(*) as numero_aplicacoes,
         MAX(mt.DATA_APLICACAO) as ultima_aplicacao,
         SUM(NVL(mt.CUSTO_TOTAL, 0)) as custo_total
@@ -1132,9 +1133,24 @@ async def relatorio_consumo_terreno(
 
     params = {}
 
-    if terreno_id:
-        query += " AND t.ID = :terreno_id"
-        params['terreno_id'] = terreno_id
+    if terreno_ids:
+        try:
+            # Converte a string "61,62" em uma lista de inteiros [61, 62]
+            terreno_id_list = [int(id.strip())
+                               for id in terreno_ids.split(',') if id.strip()]
+            if not terreno_id_list:
+                raise HTTPException(
+                    status_code=422, detail="Nenhum ID de terreno válido fornecido")
+            # Cria placeholders para a query SQL
+            placeholders = ','.join(
+                [f':terreno_id_{i}' for i in range(len(terreno_id_list))])
+            query += f" AND t.ID IN ({placeholders})"
+            # Adiciona os IDs como parâmetros
+            for i, terreno_id in enumerate(terreno_id_list):
+                params[f'terreno_id_{i}'] = terreno_id
+        except ValueError:
+            raise HTTPException(
+                status_code=422, detail="Formato inválido para terreno_ids. Use IDs inteiros separados por vírgula (ex.: 61,62)")
 
     if tipo_produto:
         query += " AND p.TIPO_PRODUTO = :tipo_produto"
@@ -1161,9 +1177,9 @@ async def relatorio_consumo_terreno(
             terreno_id=row.terreno_id,
             terreno_nome=row.terreno_nome,
             produto_nome=row.produto_nome,
-            tipo_manejo=row.TIPO_MANEJO,
+            tipo_manejo=row.tipo_manejo,
             total_aplicado=row.total_aplicado or 0,
-            unidade_medida=row.UNIDADE_MEDIDA,
+            unidade_medida=row.unidade_medida,
             numero_aplicacoes=row.numero_aplicacoes or 0,
             ultima_aplicacao=row.ultima_aplicacao,
             custo_total=row.custo_total
@@ -1212,6 +1228,8 @@ async def relatorio_previsao_consumo(
         HAVING AVG(monthly_consumption.total_mensal) > 0
         ORDER BY p.NOME
     """
+
+    print(query)
 
     result = db.execute(text(query), params).fetchall()
 
