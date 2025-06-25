@@ -1,8 +1,8 @@
 # backend/app/schemas/medicamento.py
-from pydantic import BaseModel, Field, field_validator, field_serializer
 from typing import Optional
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 
 class FormaFarmaceuticaEnum(str, Enum):
@@ -184,7 +184,7 @@ class AplicacaoMedicamento(BaseModel):
 # === RELATÓRIOS ===
 
 
-class EstoqueBaixo(BaseModel):
+class EstoqueMedicamentoBaixo(BaseModel):
     medicamento_id: int
     nome: str
     estoque_atual: float
@@ -215,7 +215,7 @@ class ConsumoPorAnimal(BaseModel):
     custo_total: Optional[float] = None
 
 
-class PrevisaoConsumo(BaseModel):
+class PrevisaoMedicamentoConsumo(BaseModel):
     medicamento_id: int
     medicamento_nome: str
     consumo_mensal_medio: float

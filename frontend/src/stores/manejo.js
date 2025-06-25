@@ -4,14 +4,33 @@ import api from '../boot/api'
 
 export const useManejoStore = defineStore('manejo', {
   state: () => ({
+    // === PRODUTOS MANEJO ===
     produtos: [],
-    analisesSolo: [],
+    alertasEstoque: [],
+    movimentacaoResumo: [],
+
+    // === MOVIMENTAÇÃO ESTOQUE ===
+    movimentacoes: [],
+
+    // === APLICAÇÕES ===
     aplicacoes: [],
+
+    // === ANÁLISES SOLO ===
+    analisesSolo: [],
+
+    // === RELATÓRIOS ===
     terrenosBloqueados: [],
     cronograma: [],
     capacidadeOcupacao: [],
     historicoNutricional: [],
+    consumoTerreno: [],
+    previsaoConsumo: [],
+    terrenosLiberacao: [],
+
+    // === CONTROLE ===
     loading: false,
+
+    // === FILTROS ===
     filters: {
       terreno_id: null,
       tipo_produto: null,
@@ -19,17 +38,22 @@ export const useManejoStore = defineStore('manejo', {
       data_inicio: '',
       data_fim: '',
       nome: '',
+      estoque_baixo: false,
+      ativo: 'S',
     },
+
+    // === PAGINAÇÃO ===
     pagination: {
       page: 1,
       rowsPerPage: 10,
       rowsNumber: 0,
-      sortBy: 'DATA_APLICACAO',
-      descending: true,
+      sortBy: 'NOME',
+      descending: false,
     },
   }),
 
   getters: {
+    // === OPÇÕES PARA SELECTS ===
     tiposProduto: () => [
       { value: 'FERTILIZANTE', label: 'Fertilizante' },
       { value: 'DEFENSIVO', label: 'Defensivo' },
@@ -42,20 +66,69 @@ export const useManejoStore = defineStore('manejo', {
       { value: 'CALAGEM', label: 'Calagem' },
       { value: 'PLANTIO', label: 'Plantio' },
       { value: 'APLICACAO_DEFENSIVO', label: 'Aplicação Defensivo' },
-      { value: 'ROÇADA', label: 'Roçada' },
-      { value: 'IRRIGACAO', label: 'Irrigação' },
+      { value: 'GESSAGEM', label: 'Gessagem' },
+      { value: 'SULCAGEM', label: 'Sulcagem' },
     ],
 
+    tiposMovimentacao: () => [
+      { value: 'ENTRADA', label: 'Entrada' },
+      { value: 'SAIDA', label: 'Saída' },
+      { value: 'AJUSTE', label: 'Ajuste' },
+    ],
+
+    statusEstoque: () => [
+      { value: 'SEM_ESTOQUE', label: 'Sem Estoque', color: 'red' },
+      { value: 'ESTOQUE_BAIXO', label: 'Estoque Baixo', color: 'orange' },
+      { value: 'VENCIMENTO_PROXIMO', label: 'Vencimento Próximo', color: 'purple' },
+      { value: 'OK', label: 'OK', color: 'green' },
+    ],
+
+    // === PRODUTOS FILTRADOS ===
     produtosAtivos: (state) => state.produtos.filter((p) => p.ATIVO === 'S'),
 
     produtosByTipo: (state) => (tipo) => {
       return state.produtos.filter((p) => p.TIPO_PRODUTO === tipo && p.ATIVO === 'S')
     },
 
-    terrenosComCarencia: (state) => {
-      return state.terrenosBloqueados.filter((t) => t.dias_restantes > 0)
+    produtosComEstoqueBaixo: (state) => {
+      return state.produtos.filter(
+        (p) =>
+          p.ATIVO === 'S' &&
+          (p.status_estoque === 'ESTOQUE_BAIXO' || p.status_estoque === 'SEM_ESTOQUE'),
+      )
     },
 
+    produtosVencendoProximo: (state) => {
+      return state.produtos.filter(
+        (p) => p.ATIVO === 'S' && p.status_estoque === 'VENCIMENTO_PROXIMO',
+      )
+    },
+
+    // === ESTATÍSTICAS PRODUTOS ===
+    estatisticasProdutos: (state) => {
+      const ativos = state.produtos.filter((p) => p.ATIVO === 'S')
+      const comEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) > 0)
+      const estoqueBaixo = ativos.filter(
+        (p) => (p.ESTOQUE_ATUAL || 0) <= (p.ESTOQUE_MINIMO || 0) && (p.ESTOQUE_ATUAL || 0) > 0,
+      )
+      const semEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) === 0)
+      const valorTotal = ativos.reduce(
+        (sum, p) => sum + (p.ESTOQUE_ATUAL || 0) * (p.PRECO_UNITARIO || 0),
+        0,
+      )
+
+      return {
+        totalProdutos: ativos.length,
+        comEstoque: comEstoque.length,
+        estoqueBaixo: estoqueBaixo.length,
+        semEstoque: semEstoque.length,
+        valorTotalEstoque: valorTotal,
+        percentualComEstoque:
+          ativos.length > 0 ? ((comEstoque.length / ativos.length) * 100).toFixed(1) : 0,
+      }
+    },
+
+    // === ESTATÍSTICAS GERAIS ===
     estatisticasGerais: (state) => {
       const totalAplicacoes = state.aplicacoes.length
       const custoTotal = state.aplicacoes.reduce((sum, a) => sum + (a.CUSTO_TOTAL || 0), 0)
@@ -72,15 +145,20 @@ export const useManejoStore = defineStore('manejo', {
   },
 
   actions: {
-    // === PRODUTOS ===
+    // ========================================
+    // PRODUTOS MANEJO
+    // ========================================
+
     async fetchProdutos(params = {}) {
       this.loading = true
       try {
         const queryParams = {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
+          sort_by: params.sortBy || this.pagination.sortBy,
+          order: params.descending ? 'desc' : 'asc',
           ...this.filters,
-          ...params.filters,
+          ...params.filtros,
         }
 
         // Converter objetos select para valores
@@ -90,7 +168,7 @@ export const useManejoStore = defineStore('manejo', {
 
         const response = await api.get('/api/manejo/produtos', { params: queryParams })
 
-        this.produtos = response.data.produtos
+        this.produtos = response.data.produtos || []
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
@@ -107,52 +185,110 @@ export const useManejoStore = defineStore('manejo', {
     },
 
     async createProduto(produtoData) {
+      this.loading = true
       try {
-        const response = await api.post('/api/manejo/produtos', produtoData)
-        await this.fetchProdutos()
+        // Converter valores dos selects
+        const data = { ...produtoData }
+        if (data.TIPO_PRODUTO?.value) {
+          data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
+        }
+
+        const response = await api.post('/api/manejo/produtos', data)
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao criar produto'
+      } finally {
+        this.loading = false
       }
     },
 
     async updateProduto(id, produtoData) {
+      this.loading = true
       try {
-        const response = await api.put(`/api/manejo/produtos/${id}`, produtoData)
-        await this.fetchProdutos()
+        // Converter valores dos selects
+        const data = { ...produtoData }
+        if (data.TIPO_PRODUTO?.value) {
+          data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
+        }
+
+        const response = await api.put(`/api/manejo/produtos/${id}`, data)
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar produto'
+      } finally {
+        this.loading = false
       }
     },
 
     async deleteProduto(id) {
+      this.loading = true
       try {
         await api.delete(`/api/manejo/produtos/${id}`)
-        await this.fetchProdutos()
+        return true
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao excluir produto'
+      } finally {
+        this.loading = false
       }
     },
 
-    // === ANÁLISES DE SOLO ===
-    async fetchAnalisesSolo(params = {}) {
+    async getProdutoById(id) {
+      try {
+        const response = await api.get(`/api/manejo/produtos/${id}`)
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar produto'
+      }
+    },
+
+    async getAutocompleProdutos(params = {}) {
+      try {
+        const response = await api.get('/api/manejo/produtos/autocomplete', { params })
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar autocomplete de produtos'
+      }
+    },
+
+    // === ALERTAS E RELATÓRIOS DE ESTOQUE ===
+    async getAlertasEstoque() {
+      try {
+        const response = await api.get('/api/manejo/estoque/alertas')
+        this.alertasEstoque = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar alertas de estoque'
+      }
+    },
+
+    async getResumoEstoque(tipoProducto = null) {
+      try {
+        const params = tipoProducto ? { tipo_produto: tipoProducto } : {}
+        const response = await api.get('/api/manejo/estoque/resumo', { params })
+        this.movimentacaoResumo = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar resumo de estoque'
+      }
+    },
+
+    // ========================================
+    // MOVIMENTAÇÃO DE ESTOQUE
+    // ========================================
+
+    async fetchMovimentacoes(params = {}) {
       this.loading = true
       try {
         const queryParams = {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
-          ...this.filters,
-          ...params.filters,
+          ...params.filtros,
         }
 
-        if (queryParams.terreno_id?.value) {
-          queryParams.terreno_id = queryParams.terreno_id.value
-        }
+        const response = await api.get('/api/manejo/estoque/movimentacoes', { params: queryParams })
+        this.movimentacoes = response.data.movimentacoes || []
 
-        const response = await api.get('/api/manejo/analises-solo', { params: queryParams })
-
-        this.analisesSolo = response.data.analises
+        // Atualizar paginação
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
@@ -162,58 +298,52 @@ export const useManejoStore = defineStore('manejo', {
 
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar análises de solo'
+        throw error.response?.data?.detail || 'Erro ao buscar movimentações'
       } finally {
         this.loading = false
       }
     },
 
-    async createAnaliseSolo(analiseData) {
+    async entradaEstoque(entradaData) {
+      this.loading = true
       try {
-        const response = await api.post('/api/manejo/analises-solo', analiseData)
-        await this.fetchAnalisesSolo()
+        const response = await api.post('/api/manejo/estoque/entrada', entradaData)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar análise de solo'
+        throw error.response?.data?.detail || 'Erro ao registrar entrada'
+      } finally {
+        this.loading = false
       }
     },
 
-    async updateAnaliseSolo(id, analiseData) {
+    async saidaEstoque(saidaData) {
+      this.loading = true
       try {
-        const response = await api.put(`/api/manejo/analises-solo/${id}`, analiseData)
-        await this.fetchAnalisesSolo()
+        const response = await api.post('/api/manejo/estoque/saida', saidaData)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar análise de solo'
+        throw error.response?.data?.detail || 'Erro ao registrar saída'
+      } finally {
+        this.loading = false
       }
     },
 
-    async deleteAnaliseSolo(id) {
+    async ajusteEstoque(ajusteData) {
+      this.loading = true
       try {
-        await api.delete(`/api/manejo/analises-solo/${id}`)
-        await this.fetchAnalisesSolo()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir análise de solo'
-      }
-    },
-
-    async uploadLaudo(id, arquivo) {
-      try {
-        const formData = new FormData()
-        formData.append('arquivo', arquivo)
-
-        const response = await api.post(`/api/manejo/analises-solo/${id}/upload-laudo`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
-
-        await this.fetchAnalisesSolo()
+        const response = await api.post('/api/manejo/estoque/ajuste', ajusteData)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao enviar laudo'
+        throw error.response?.data?.detail || 'Erro ao registrar ajuste'
+      } finally {
+        this.loading = false
       }
     },
 
-    // === APLICAÇÕES/MANEJO ===
+    // ========================================
+    // APLICAÇÕES EM TERRENOS
+    // ========================================
+
     async fetchAplicacoes(params = {}) {
       this.loading = true
       try {
@@ -221,20 +351,12 @@ export const useManejoStore = defineStore('manejo', {
           page: params.page || this.pagination.page,
           limit: params.limit || this.pagination.rowsPerPage,
           ...this.filters,
-          ...params.filters,
-        }
-
-        // Converter objetos select para valores
-        if (queryParams.terreno_id?.value) {
-          queryParams.terreno_id = queryParams.terreno_id.value
-        }
-        if (queryParams.tipo_manejo?.value) {
-          queryParams.tipo_manejo = queryParams.tipo_manejo.value
+          ...params.filtros,
         }
 
         const response = await api.get('/api/manejo/aplicacoes', { params: queryParams })
+        this.aplicacoes = response.data.aplicacoes || []
 
-        this.aplicacoes = response.data.aplicacoes
         this.pagination = {
           ...this.pagination,
           page: response.data.page,
@@ -251,109 +373,186 @@ export const useManejoStore = defineStore('manejo', {
     },
 
     async createAplicacao(aplicacaoData) {
+      this.loading = true
       try {
         const response = await api.post('/api/manejo/aplicacoes', aplicacaoData)
-        await this.fetchAplicacoes()
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao criar aplicação'
+      } finally {
+        this.loading = false
       }
     },
 
     async updateAplicacao(id, aplicacaoData) {
+      this.loading = true
       try {
         const response = await api.put(`/api/manejo/aplicacoes/${id}`, aplicacaoData)
-        await this.fetchAplicacoes()
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar aplicação'
+      } finally {
+        this.loading = false
       }
     },
 
     async deleteAplicacao(id) {
+      this.loading = true
       try {
         await api.delete(`/api/manejo/aplicacoes/${id}`)
-        await this.fetchAplicacoes()
+        return true
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao excluir aplicação'
+      } finally {
+        this.loading = false
       }
     },
 
-    // === VALIDAÇÕES ===
-    async fetchTerrenosBloqueados() {
-      try {
-        const response = await api.get('/api/manejo/terrenos-bloqueados')
-        this.terrenosBloqueados = response.data
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar terrenos bloqueados'
-      }
-    },
+    // ========================================
+    // ANÁLISES DE SOLO
+    // ========================================
 
-    async validarMovimentacao(terrenoId) {
+    async fetchAnalisesSolo(params = {}) {
+      this.loading = true
       try {
-        const response = await api.post('/api/manejo/validar-movimentacao', null, {
-          params: { terreno_id: terrenoId },
-        })
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao validar movimentação'
-      }
-    },
-
-    // === RELATÓRIOS ===
-    async fetchCronograma(dias = 30, terrenoId = null) {
-      try {
-        const params = { dias }
-        if (terrenoId) {
-          params.terreno_id = terrenoId
+        const queryParams = {
+          page: params.page || this.pagination.page,
+          limit: params.limit || this.pagination.rowsPerPage,
+          ...params.filtros,
         }
 
-        const response = await api.get('/api/manejo/relatorio/cronograma', { params })
-        this.cronograma = response.data
+        const response = await api.get('/api/manejo/analises-solo', { params: queryParams })
+        this.analisesSolo = response.data.analises || []
+
+        this.pagination = {
+          ...this.pagination,
+          page: response.data.page,
+          rowsNumber: response.data.total,
+          rowsPerPage: response.data.limit,
+        }
+
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar cronograma'
+        throw error.response?.data?.detail || 'Erro ao buscar análises de solo'
+      } finally {
+        this.loading = false
       }
     },
 
-    async fetchCapacidadeOcupacao() {
+    async createAnaliseSolo(analiseData) {
+      this.loading = true
       try {
-        const response = await api.get('/api/manejo/relatorio/capacidade-ocupacao')
-        this.capacidadeOcupacao = response.data
+        const response = await api.post('/api/manejo/analises-solo', analiseData)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar capacidade de ocupação'
+        throw error.response?.data?.detail || 'Erro ao criar análise'
+      } finally {
+        this.loading = false
       }
     },
 
-    async fetchHistoricoNutricional(ano = null) {
+    async updateAnaliseSolo(id, analiseData) {
+      this.loading = true
       try {
-        const params = ano ? { ano } : {}
-        const response = await api.get('/api/manejo/relatorio/historico-nutricional', { params })
-        this.historicoNutricional = response.data
+        const response = await api.put(`/api/manejo/analises-solo/${id}`, analiseData)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar histórico nutricional'
+        throw error.response?.data?.detail || 'Erro ao atualizar análise'
+      } finally {
+        this.loading = false
       }
     },
 
-    // === OPÇÕES PARA SELECTS ===
-    async loadProdutoOptions() {
+    async deleteAnaliseSolo(id) {
+      this.loading = true
       try {
-        await this.fetchProdutos({ limit: 100 })
-        return this.produtosAtivos.map((produto) => ({
-          value: produto.ID,
-          label: `${produto.NOME} (${produto.TIPO_PRODUTO})`,
-          tipo: produto.TIPO_PRODUTO,
-          unidade: produto.UNIDADE_MEDIDA,
-        }))
+        await api.delete(`/api/manejo/analises-solo/${id}`)
+        return true
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao excluir análise'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async uploadLaudoAnalise(analiseId, file) {
+      this.loading = true
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await api.post(
+          `/api/manejo/analises-solo/${analiseId}/upload-laudo`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        )
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao fazer upload do laudo'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // ========================================
+    // RELATÓRIOS AVANÇADOS
+    // ========================================
+
+    async getConsumoTerreno(params = {}) {
+      try {
+        const response = await api.get('/api/manejo/relatorios/consumo-terreno', { params })
+        this.consumoTerreno = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar consumo por terreno'
+      }
+    },
+
+    async getPrevisaoConsumo(tipoProducto = null) {
+      try {
+        const params = tipoProducto ? { tipo_produto: tipoProducto } : {}
+        const response = await api.get('/api/manejo/relatorios/previsao-consumo', { params })
+        this.previsaoConsumo = response.data
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+      }
+    },
+
+    async getTerrenosLiberacao(diasFuturo = 30) {
+      try {
+        const response = await api.get('/api/manejo/relatorios/terrenos-liberacao', {
+          params: { dias_futuro: diasFuturo },
+        })
+        this.terrenosLiberacao = response.data.liberacoes || []
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar terrenos para liberação'
+      }
+    },
+
+    // ========================================
+    // OPÇÕES PARA SELECTS
+    // ========================================
+
+    async loadProdutoOptions(apenasComEstoque = false) {
+      try {
+        const params = { apenas_com_estoque: apenasComEstoque }
+        const response = await api.get('/api/manejo/produtos/autocomplete', { params })
+        return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao carregar opções de produtos'
       }
     },
 
-    // === UTILITÁRIOS ===
+    // ========================================
+    // UTILITÁRIOS
+    // ========================================
+
     setFilters(newFilters) {
       this.filters = { ...this.filters, ...newFilters }
     },
@@ -366,6 +565,8 @@ export const useManejoStore = defineStore('manejo', {
         data_inicio: '',
         data_fim: '',
         nome: '',
+        estoque_baixo: false,
+        ativo: 'S',
       }
     },
 
@@ -390,99 +591,42 @@ export const useManejoStore = defineStore('manejo', {
         CALAGEM: 'Calagem',
         PLANTIO: 'Plantio',
         APLICACAO_DEFENSIVO: 'Aplicação Defensivo',
-        ROÇADA: 'Roçada',
-        IRRIGACAO: 'Irrigação',
+        GESSAGEM: 'Gessagem',
+        SULCAGEM: 'Sulcagem',
       }
       return tipos[tipo] || tipo
     },
 
-    getStatusSoloColor(status) {
-      const colors = {
-        BOM: 'positive',
-        REGULAR: 'warning',
-        RUIM: 'negative',
-        SEM_ANALISE: 'grey',
+    getStatusEstoqueColor(status) {
+      const cores = {
+        SEM_ESTOQUE: 'red',
+        ESTOQUE_BAIXO: 'orange',
+        VENCIMENTO_PROXIMO: 'purple',
+        OK: 'green',
       }
-      return colors[status] || 'grey'
+      return cores[status] || 'grey'
     },
 
-    getStatusLotacaoColor(status) {
-      const colors = {
-        ADEQUADA: 'positive',
-        SOBRELOTADO: 'negative',
-        SUBLOTADO: 'warning',
-        SEM_LIMITE: 'grey',
+    getMovimentacaoColor(tipo) {
+      const cores = {
+        ENTRADA: 'positive',
+        SAIDA: 'negative',
+        AJUSTE: 'warning',
       }
-      return colors[status] || 'grey'
+      return cores[tipo] || 'grey'
     },
 
-    getCronogramaStatusColor(status) {
-      const colors = {
-        APLICADO: 'info',
-        PENDENTE: 'warning',
-        LIBERADO: 'positive',
-      }
-      return colors[status] || 'grey'
+    formatarMoeda(valor) {
+      if (!valor) return 'R$ 0,00'
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(valor)
     },
 
-    // === CÁLCULOS AUTOMÁTICOS ===
-    calcularDoseTotal(doseHectare, areaAplicada) {
-      if (!doseHectare || !areaAplicada) return null
-      return (doseHectare * areaAplicada).toFixed(2)
-    },
-
-    calcularCustoHectare(custoTotal, areaAplicada) {
-      if (!custoTotal || !areaAplicada) return null
-      return (custoTotal / areaAplicada).toFixed(2)
-    },
-
-    // === RECOMENDAÇÕES AUTOMÁTICAS ===
-    gerarRecomendacaoSolo(analise) {
-      const recomendacoes = []
-
-      if (analise.PH_AGUA && analise.PH_AGUA < 5.5) {
-        recomendacoes.push('pH baixo - Recomenda-se calagem')
-      }
-
-      if (analise.SATURACAO_BASES && analise.SATURACAO_BASES < 50) {
-        recomendacoes.push('Saturação por bases baixa - Aplicar calcário')
-      }
-
-      if (analise.FOSFORO && analise.FOSFORO < 10) {
-        recomendacoes.push('Fósforo baixo - Aplicar superfosfato')
-      }
-
-      if (analise.POTASSIO && analise.POTASSIO < 0.2) {
-        recomendacoes.push('Potássio baixo - Aplicar cloreto de potássio')
-      }
-
-      if (analise.MATERIA_ORGANICA && analise.MATERIA_ORGANICA < 2.5) {
-        recomendacoes.push('Matéria orgânica baixa - Aplicar esterco ou compost')
-      }
-
-      return recomendacoes.length > 0 ? recomendacoes.join('; ') : 'Solo em boas condições'
-    },
-
-    // === BUSCA E FILTROS AVANÇADOS ===
-    searchProdutos(termo) {
-      if (!termo) return this.produtosAtivos
-
-      const termoLower = termo.toLowerCase()
-      return this.produtosAtivos.filter(
-        (produto) =>
-          produto.NOME.toLowerCase().includes(termoLower) ||
-          produto.TIPO_PRODUTO.toLowerCase().includes(termoLower) ||
-          (produto.PRINCIPIO_ATIVO && produto.PRINCIPIO_ATIVO.toLowerCase().includes(termoLower)),
-      )
-    },
-
-    getAplicacoesByTerreno(terrenoId) {
-      return this.aplicacoes.filter((aplicacao) => aplicacao.ID_TERRENO === terrenoId)
-    },
-
-    getUltimaAnaliseByTerreno(terrenoId) {
-      const analises = this.analisesSolo.filter((analise) => analise.ID_TERRENO === terrenoId)
-      return analises.length > 0 ? analises[0] : null // Já vem ordenado por data desc
+    formatarQuantidade(quantidade, unidade) {
+      if (!quantidade) return `0 ${unidade || ''}`
+      return `${quantidade.toLocaleString('pt-BR')} ${unidade || ''}`
     },
   },
 })

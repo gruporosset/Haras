@@ -1,4 +1,7 @@
---TABELAS 
+-- ========================================
+-- Tables
+-- ========================================
+
 create table usuarios (
    id                    number
       generated always as identity
@@ -53,12 +56,6 @@ create table animais (
    contato_proprietario  varchar2(200),
    cpf_cnpj_proprietario varchar2(20)
 );
-comment on column animais.proprietario is
-   'Nome do proprietário do animal';
-comment on column animais.contato_proprietario is
-   'Telefone/email do proprietário';
-comment on column animais.cpf_cnpj_proprietario is
-   'CPF ou CNPJ do proprietário';
 
 create table medicamentos (
    id                  number
@@ -148,6 +145,7 @@ create table terrenos (
    data_cadastro       date default sysdate
 );
 
+
 create table historico_crescimento (
    id                      number
       generated always as identity
@@ -228,7 +226,6 @@ create table reproducao (
           or data_parto_real >= data_cobertura ) )
 );
 
-
 create table saude_animais (
    id                      number
       generated always as identity
@@ -253,31 +250,73 @@ create table saude_animais (
    unidade_aplicada        varchar2(20)
 );
 
-comment on column saude_animais.id_medicamento is
-   'Referência ao medicamento aplicado';
-comment on column saude_animais.quantidade_aplicada is
-   'Quantidade do medicamento aplicada';
-comment on column saude_animais.unidade_aplicada is
-   'Unidade da quantidade aplicada';
 
--- Tabela de Produtos para Manejo
 create table produtos_manejo (
+   id                      number
+      generated always as identity
+   primary key,
+   nome                    varchar2(100) not null,
+   tipo_produto            varchar2(50) not null, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
+   principio_ativo         varchar2(200),
+   concentracao            varchar2(50),
+   unidade_medida          varchar2(20) not null, -- KG, L, SC (SACA)
+   fabricante              varchar2(100),
+   registro_ministerio     varchar2(50),
+   estoque_atual           number(12,3) default 0 not null,
+   estoque_minimo          number(12,3) default 0 not null,
+   estoque_maximo          number(12,3),
+   preco_unitario          number(12,2),
+   fornecedor_principal    varchar2(100),
+   codigo_fornecedor       varchar2(50),
+   lote_atual              varchar2(50),
+   data_validade           date,
+   data_ultima_compra      date,
+   dose_recomendada        number(8,3),
+   periodo_carencia        number(3),
+   requer_receituario      char(1) default 'N' check ( requer_receituario in ( 'S',
+                                                                          'N' ) ),
+   local_armazenamento     varchar2(100),
+   condicoes_armazenamento varchar2(200),
+   observacoes             clob,
+   ativo                   char(1) default 'S' check ( ativo in ( 'S',
+                                                'N' ) ),
+   id_usuario_cadastro     number
+      references usuarios ( id ),
+   data_cadastro           date default sysdate
+);
+
+
+create table movimentacao_produtos_manejo (
    id                  number
       generated always as identity
    primary key,
-   nome                varchar2(100) not null,
-   tipo_produto        varchar2(50) not null, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
-   principio_ativo     varchar2(200),
-   concentracao        varchar2(50),
-   unidade_medida      varchar2(20) not null, -- KG, L, SC (SACA)
-   fabricante          varchar2(100),
-   registro_ministerio varchar2(50),
+   id_produto          number not null
+      references produtos_manejo ( id ),
+   tipo_movimentacao   varchar2(20) not null check ( tipo_movimentacao in ( 'ENTRADA',
+                                                                          'SAIDA',
+                                                                          'AJUSTE' ) ),
+    -- Quantidades
+   quantidade          number(12,3) not null,
+   quantidade_anterior number(12,3),
+   quantidade_atual    number(12,3),
+    -- Referência para aplicação (saída)
+   id_manejo_terreno   number
+      references manejo_terrenos ( id ),
+   id_terreno          number
+      references terrenos ( id ),
+    -- Dados da entrada (compra)
+   nota_fiscal         varchar2(100),
+   fornecedor          varchar2(100),
+   preco_unitario      number(12,2),
+   lote                varchar2(50),
+   data_validade       date,
+   data_fabricacao     date,
+    -- Observações
+   motivo              varchar2(200),
    observacoes         clob,
-   ativo               char(1) default 'S' check ( ativo in ( 'S',
-                                                'N' ) ),
-   id_usuario_cadastro number
+   id_usuario_registro number
       references usuarios ( id ),
-   data_cadastro       date default sysdate
+   data_registro       date default sysdate
 );
 
 
@@ -303,23 +342,13 @@ create table manejo_terrenos (
       references usuarios ( id ),
    data_registro         date default sysdate,
    periodo_carencia      number(3), -- dias sem animais
-   data_liberacao        date -- calculado automaticamente    
-);
+   data_liberacao        date, -- calculado automaticamente    
+   custo_produto         number(12,2),
+   custo_aplicacao       number(12,2),
+   periodo_carencia      number(3), -- DIAS SEM ANIMAIS
+   data_liberacao        date -- CALCULADO AUTOMATICAMENTE
 
-alter table manejo_terrenos drop column produto_utilizado;
-alter table manejo_terrenos drop column custo;
-alter table manejo_terrenos add (
-   id_produto number not null
-      references produtos_manejo ( id )
 );
-alter table manejo_terrenos add (
-   dose_hectare          float,
-   area_aplicada         float,
-   custo_total           float,
-   equipamento_utilizado varchar2(100),
-   condicoes_climaticas  varchar2(100)
-);
-
 
 create table audit_log (
    id               number
@@ -376,39 +405,6 @@ create table embeddings (
    data_criacao date default sysdate
 );
 
-create index idx_sessoes_usuario_ativa on
-   sessoes (
-      id_usuario,
-      ativa
-   );
-create index idx_movimentacoes_animal_data on
-   movimentacoes_animais (
-      id_animal,
-      data_movimentacao
-   );
-create index idx_historico_animal_data on
-   historico_crescimento (
-      id_animal,
-      data_medicao
-   );
-create index idx_reproducao_egua on
-   reproducao (
-      id_egua
-   );
-create index idx_saude_animal_data on
-   saude_animais (
-      id_animal,
-      data_ocorrencia
-   );
-create index idx_audit_tabela_data on
-   audit_log (
-      tabela,
-      data_operacao
-   );
-
-
-
--- Tabela de Análises de Solo
 create table analises_solo (
    id                  number
       generated always as identity
@@ -444,13 +440,9 @@ create table analises_solo (
    data_cadastro       date default sysdate
 );
 
--- Tabela de Manejo de Terrenos (já existe, vamos adicionar as colunas)
-alter table manejo_terrenos add (
-   periodo_carencia number(3), -- dias sem animais
-   data_liberacao   date -- calculado automaticamente
-);
-
--- Comentários nas colunas para documentação
+-- ========================================
+-- Comments
+-- ========================================
 comment on column produtos_manejo.tipo_produto is
    'FERTILIZANTE, DEFENSIVO, CORRETIVO, SEMENTE';
 comment on column analises_solo.ph_agua is
@@ -463,8 +455,87 @@ comment on column manejo_terrenos.periodo_carencia is
    'Dias que os animais devem ficar fora do terreno';
 comment on column manejo_terrenos.data_liberacao is
    'Data calculada automaticamente para liberação do terreno';
+comment on column movimentacao_produtos_manejo.tipo_movimentacao is
+   'ENTRADA=Compra, SAIDA=Aplicação, AJUSTE=Correção';
+comment on column movimentacao_produtos_manejo.quantidade is
+   'Quantidade movimentada';
+comment on column movimentacao_produtos_manejo.quantidade_anterior is
+   'Estoque antes da movimentação';
+comment on column movimentacao_produtos_manejo.quantidade_atual is
+   'Estoque após a movimentação';
+comment on column produtos_manejo.estoque_atual is
+   'Quantidade atual em estoque';
+comment on column produtos_manejo.estoque_minimo is
+   'Quantidade mínima para alerta de reposição';
+comment on column produtos_manejo.estoque_maximo is
+   'Limite máximo de armazenamento';
+comment on column produtos_manejo.dose_recomendada is
+   'Dose padrão por hectare';
+comment on column produtos_manejo.periodo_carencia is
+   'Dias para liberação do terreno após aplicação';
+comment on column produtos_manejo.requer_receituario is
+   'S=Sim, N=Não - Para defensivos controlados';
+comment on column saude_animais.id_medicamento is
+   'Referência ao medicamento aplicado';
+comment on column saude_animais.quantidade_aplicada is
+   'Quantidade do medicamento aplicada';
+comment on column saude_animais.unidade_aplicada is
+   'Unidade da quantidade aplicada';
+comment on column animais.proprietario is
+   'Nome do proprietário do animal';
+comment on column animais.contato_proprietario is
+   'Telefone/email do proprietário';
+comment on column animais.cpf_cnpj_proprietario is
+   'CPF ou CNPJ do proprietário';
 
--- Índices para performance
+
+-- ========================================
+-- Indexes
+-- ========================================
+
+create index idx_medicamentos_nome on
+   medicamentos (
+      nome
+   );
+create index idx_medicamentos_estoque on
+   medicamentos (
+      estoque_atual,
+      estoque_minimo
+   );
+create index idx_movimentacao_medicamento on
+   movimentacao_medicamentos (
+      id_medicamento,
+      data_registro
+   );
+create index idx_movimentacao_animal on
+   movimentacao_medicamentos (
+      id_animal
+   );
+create index idx_saude_medicamento on
+   saude_animais (
+      id_medicamento
+   );
+
+create index idx_mov_produto_data on
+   movimentacao_produtos_manejo (
+      id_produto,
+      data_registro
+   );
+create index idx_mov_tipo on
+   movimentacao_produtos_manejo (
+      tipo_movimentacao,
+      data_registro
+   );
+create index idx_produtos_estoque_min on
+   produtos_manejo (
+      estoque_atual,
+      estoque_minimo
+   );
+create index idx_produtos_validade on
+   produtos_manejo (
+      data_validade
+   );
+
 create index idx_analises_terreno_data on
    analises_solo (
       id_terreno,
@@ -480,16 +551,138 @@ create index idx_manejo_liberacao on
       data_liberacao
    );
 
--- Trigger para calcular data de liberação automaticamente
-create or replace trigger trg_manejo_data_liberacao before
-   insert or update on manejo_terrenos
+create index idx_sessoes_usuario_ativa on
+   sessoes (
+      id_usuario,
+      ativa
+   );
+create index idx_movimentacoes_animal_data on
+   movimentacoes_animais (
+      id_animal,
+      data_movimentacao
+   );
+create index idx_historico_animal_data on
+   historico_crescimento (
+      id_animal,
+      data_medicao
+   );
+create index idx_reproducao_egua on
+   reproducao (
+      id_egua
+   );
+create index idx_saude_animal_data on
+   saude_animais (
+      id_animal,
+      data_ocorrencia
+   );
+create index idx_audit_tabela_data on
+   audit_log (
+      tabela,
+      data_operacao
+   );
+
+-- ========================================
+-- Triggers
+-- ========================================
+
+-- TRIGGER PARA CONTROLE AUTOMÁTICO DE ESTOQUE
+create or replace trigger trg_movimentacao_estoque_manejo before
+   insert on movimentacao_produtos_manejo
+   for each row
+declare
+   v_estoque_atual number(
+      12,
+      3
+   );
+begin
+    -- Buscar estoque atual
+   select estoque_atual
+     into v_estoque_atual
+     from produtos_manejo
+    where id = :new.id_produto;
+    
+    -- Armazenar quantidade anterior
+   :new.quantidade_anterior := v_estoque_atual;
+    
+    -- Calcular nova quantidade
+   if :new.tipo_movimentacao = 'ENTRADA' then
+      :new.quantidade_atual := v_estoque_atual + :new.quantidade;
+   elsif :new.tipo_movimentacao = 'SAIDA' then
+      :new.quantidade_atual := v_estoque_atual - :new.quantidade;
+        -- Validar se há estoque suficiente
+      if :new.quantidade_atual < 0 then
+         raise_application_error(
+            -20001,
+            'Estoque insuficiente. Disponível: ' || v_estoque_atual
+         );
+      end if;
+   elsif :new.tipo_movimentacao = 'AJUSTE' then
+      :new.quantidade_atual := :new.quantidade;
+   end if;
+    
+    -- Atualizar estoque na tabela principal
+   update produtos_manejo
+      set estoque_atual = :new.quantidade_atual,
+          data_ultima_compra =
+             case
+                when :new.tipo_movimentacao = 'ENTRADA' then
+                   sysdate
+                else
+                   data_ultima_compra
+             end
+    where id = :new.id_produto;
+end;
+
+
+-- TRIGGER PARA ATUALIZAR ESTOQUE QUANDO HOUVER APLICAÇÃO EM TERRENO
+create or replace trigger trg_manejo_terreno_estoque after
+   insert on manejo_terrenos
    for each row
 begin
+    -- Criar movimentação de saída automaticamente
+   insert into movimentacao_produtos_manejo (
+      id_produto,
+      tipo_movimentacao,
+      quantidade,
+      id_manejo_terreno,
+      id_terreno,
+      motivo,
+      id_usuario_registro
+   ) values ( :new.id_produto,
+              'SAIDA',
+              :new.quantidade,
+              :new.id,
+              :new.id_terreno,
+              'Aplicação em terreno - ' || :new.tipo_manejo,
+              :new.id_usuario_registro );
+end;
+
+-- Trigger para baixa automática no estoque
+create or replace trigger trg_saude_baixa_estoque after
+   insert on saude_animais
+   for each row
+begin
+    -- Se foi especificado um medicamento e quantidade
    if
-      :new.periodo_carencia is not null
-      and :new.data_aplicacao is not null
+      :new.id_medicamento is not null
+      and :new.quantidade_aplicada is not null
    then
-      :new.data_liberacao := :new.data_aplicacao + :new.periodo_carencia;
+        -- Registrar saída no estoque
+      insert into movimentacao_medicamentos (
+         id_medicamento,
+         tipo_movimentacao,
+         quantidade,
+         id_animal,
+         id_saude_animal,
+         motivo,
+         id_usuario_registro
+      ) values ( :new.id_medicamento,
+                 'SAIDA',
+                 :new.quantidade_aplicada,
+                 :new.id_animal,
+                 :new.id,
+                 'Aplicação em animal - ' || :new.tipo_registro,
+                 :new.id_usuario_registro );
    end if;
 end;
 
@@ -537,35 +730,124 @@ begin
     where id = :new.id_medicamento;
 end;
 
-
--- Trigger para baixa automática no estoque
-create or replace trigger trg_saude_baixa_estoque after
-   insert on saude_animais
+-- Trigger para calcular data de liberação automaticamente
+create or replace trigger trg_manejo_data_liberacao before
+   insert or update on manejo_terrenos
    for each row
 begin
-    -- Se foi especificado um medicamento e quantidade
    if
-      :new.id_medicamento is not null
-      and :new.quantidade_aplicada is not null
+      :new.periodo_carencia is not null
+      and :new.data_aplicacao is not null
    then
-        -- Registrar saída no estoque
-      insert into movimentacao_medicamentos (
-         id_medicamento,
-         tipo_movimentacao,
-         quantidade,
-         id_animal,
-         id_saude_animal,
-         motivo,
-         id_usuario_registro
-      ) values ( :new.id_medicamento,
-                 'SAIDA',
-                 :new.quantidade_aplicada,
-                 :new.id_animal,
-                 :new.id,
-                 'Aplicação em animal - ' || :new.tipo_registro,
-                 :new.id_usuario_registro );
+      :new.data_liberacao := :new.data_aplicacao + :new.periodo_carencia;
    end if;
 end;
+
+-- ========================================
+-- Views
+-- ========================================
+
+-- VIEWS PARA PRODUTOS COM ESTOQUE BAIXO
+create or replace view vw_produtos_estoque_baixo as
+   select p.id,
+          p.nome,
+          p.tipo_produto,
+          p.estoque_atual,
+          p.estoque_minimo,
+          p.unidade_medida,
+          p.fornecedor_principal,
+          p.data_validade,
+          case
+             when p.estoque_atual = 0                 then
+                'SEM_ESTOQUE'
+             when p.estoque_atual <= p.estoque_minimo then
+                'ESTOQUE_BAIXO'
+             when p.data_validade is not null
+                and p.data_validade <= sysdate + 30 then
+                'VENCIMENTO_PROXIMO'
+             else
+                'OK'
+          end as status_alerta,
+          case
+             when p.data_validade is not null then
+                greatest(
+                   0,
+                   trunc(p.data_validade - sysdate)
+                )
+             else
+                null
+          end as dias_vencimento
+     from produtos_manejo p
+    where p.ativo = 'S'
+      and ( p.estoque_atual <= p.estoque_minimo
+       or ( p.data_validade is not null
+      and p.data_validade <= sysdate + 30 ) )
+    order by
+      case
+         when p.estoque_atual = 0                 then
+            1
+         when p.estoque_atual <= p.estoque_minimo then
+            2
+         when p.data_validade is not null
+            and p.data_validade <= sysdate + 30 then
+            3
+         else
+            4
+      end,
+      p.estoque_atual;
+
+-- VIEW PARA MOVIMENTAÇÃO DE ESTOQUE (RELATÓRIOS)
+create or replace view vw_movimentacao_estoque_resumo as
+   select p.id as produto_id,
+          p.nome as produto_nome,
+          p.tipo_produto,
+          p.estoque_atual,
+          p.estoque_minimo,
+          p.unidade_medida,
+          nvl(
+             entradas.total_entradas,
+             0
+          ) as total_entradas,
+          nvl(
+             saidas.total_saidas,
+             0
+          ) as total_saidas,
+          nvl(
+             entradas.valor_entradas,
+             0
+          ) as valor_entradas,
+          movs.ultima_movimentacao
+     from produtos_manejo p
+     left join (
+      select id_produto,
+             sum(quantidade) as total_entradas,
+             sum(quantidade * nvl(
+                preco_unitario,
+                0
+             )) as valor_entradas
+        from movimentacao_produtos_manejo
+       where tipo_movimentacao = 'ENTRADA'
+       group by id_produto
+   ) entradas
+   on p.id = entradas.id_produto
+     left join (
+      select id_produto,
+             sum(quantidade) as total_saidas
+        from movimentacao_produtos_manejo
+       where tipo_movimentacao = 'SAIDA'
+       group by id_produto
+   ) saidas
+   on p.id = saidas.id_produto
+     left join (
+      select id_produto,
+             max(data_registro) as ultima_movimentacao
+        from movimentacao_produtos_manejo
+       group by id_produto
+   ) movs
+   on p.id = movs.id_produto
+    where p.ativo = 'S'
+    order by p.nome;
+
 
 -- View para medicamentos com estoque baixo
 create or replace view vw_medicamentos_estoque_baixo as
@@ -597,27 +879,3 @@ create or replace view vw_medicamentos_estoque_baixo as
     where m.ativo = 'S'
       and ( m.estoque_atual <= m.estoque_minimo
        or m.data_validade <= sysdate + 30 );
-
--- 9. Índices para performance
-create index idx_medicamentos_nome on
-   medicamentos (
-      nome
-   );
-create index idx_medicamentos_estoque on
-   medicamentos (
-      estoque_atual,
-      estoque_minimo
-   );
-create index idx_movimentacao_medicamento on
-   movimentacao_medicamentos (
-      id_medicamento,
-      data_registro
-   );
-create index idx_movimentacao_animal on
-   movimentacao_medicamentos (
-      id_animal
-   );
-create index idx_saude_medicamento on
-   saude_animais (
-      id_medicamento
-   );

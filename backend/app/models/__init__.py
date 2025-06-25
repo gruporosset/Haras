@@ -10,7 +10,7 @@ from .medicamento import Medicamento, MovimentacaoMedicamento
 from .saude import SaudeAnimais
 from .movimentacao import MovimentacaoAnimais
 from .reproducao import Reproducao
-from .manejo import ProdutoManejo, AnalisesSolo, ManejoTerrenos
+from .manejo import ProdutoManejo, MovimentacaoProdutoManejo, AnalisesSolo, ManejoTerrenos
 
 # Garante que todos os modelos são importados e registrados
 __all__ = ['User',
@@ -25,6 +25,7 @@ __all__ = ['User',
            'MovimentacaoAnimais',
            'Reproducao',
            'ProdutoManejo',
+           'MovimentacaoProdutoManejo',
            'AnalisesSolo',
            'ManejoTerrenos'
            ]

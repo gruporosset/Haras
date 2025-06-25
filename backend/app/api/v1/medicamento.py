@@ -14,7 +14,8 @@ from app.schemas.medicamento import (
     MedicamentoCreate, MedicamentoUpdate, MedicamentoResponse,
     MovimentacaoMedicamentoResponse,
     EntradaEstoque, AplicacaoMedicamento,
-    EstoqueBaixo, MovimentacaoEstoque, ConsumoPorAnimal, PrevisaoConsumo,
+    EstoqueMedicamentoBaixo, MovimentacaoEstoque, ConsumoPorAnimal,
+    PrevisaoMedicamentoConsumo,
     FormaFarmaceuticaEnum, TipoMovimentacaoEnum, StatusEstoqueEnum
 )
 
@@ -315,7 +316,7 @@ async def list_movimentacoes(
 # === RELATÓRIOS ===
 
 
-@router.get("/relatorio/estoque-baixo", response_model=List[EstoqueBaixo])
+@router.get("/relatorio/estoque-baixo", response_model=List[EstoqueMedicamentoBaixo])
 async def get_estoque_baixo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -347,7 +348,7 @@ async def get_estoque_baixo(
             status = StatusEstoqueEnum.OK
             dias = None
 
-        resultado.append(EstoqueBaixo(
+        resultado.append(EstoqueMedicamentoBaixo(
             medicamento_id=med.ID,
             nome=med.NOME,
             estoque_atual=med.ESTOQUE_ATUAL,
@@ -419,7 +420,7 @@ async def get_consumo_por_animal(
     return consumos
 
 
-@router.get("/relatorio/previsao-consumo", response_model=List[PrevisaoConsumo])
+@router.get("/relatorio/previsao-consumo", response_model=List[PrevisaoMedicamentoConsumo])
 async def get_previsao_consumo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -468,7 +469,7 @@ async def get_previsao_consumo(
             data_prevista = datetime.now() + timedelta(days=999)
             recomendacao = "SEM_CONSUMO"
 
-        previsoes.append(PrevisaoConsumo(
+        previsoes.append(PrevisaoMedicamentoConsumo(
             medicamento_id=consumo.ID_MEDICAMENTO,
             medicamento_nome=consumo.medicamento_nome,
             consumo_mensal_medio=round(consumo_mensal, 2),
