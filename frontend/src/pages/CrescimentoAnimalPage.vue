@@ -225,9 +225,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { useCrescimentoStore } from '../stores/crescimento'
-import { useAnimalStore } from '../stores/animal'
-import CrescimentoChart from '../components/CrescimentoChart.vue'
+import { useCrescimentoStore } from 'stores/crescimento'
+import { useAnimalStore } from 'stores/animal'
+import CrescimentoChart from 'components/crescimento/CrescimentoChart.vue'
 
 const route = useRoute()
 const $q = useQuasar()

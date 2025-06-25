@@ -552,10 +552,10 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from '../stores/auth'
-import { useReproducaoStore } from '../stores/reproducao'
-import { useAnimalStore } from '../stores/animal'
-import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { useAuthStore } from 'stores/auth'
+import { useReproducaoStore } from 'stores/reproducao'
+import { useAnimalStore } from 'stores/animal'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 import { formatDate, prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()

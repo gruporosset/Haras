@@ -147,7 +147,7 @@
 
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useSaudeStore } from 'src/stores/saude'
+import { useSaudeStore } from 'stores/saude'
 
 export default {
   name: 'CalendarioSaude',

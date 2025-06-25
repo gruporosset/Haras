@@ -349,9 +349,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from '../stores/auth'
-import { useTerrenoStore } from '../stores/terreno'
-import TerrenoMap from '../components/TerrenoMap.vue'
+import { useAuthStore } from 'stores/auth'
+import { useTerrenoStore } from 'stores/terreno'
+import TerrenoMap from 'components/terrenos/TerrenoMap.vue'
 import { formatDateTime } from '../utils/dateUtils'
 
 const $q = useQuasar()

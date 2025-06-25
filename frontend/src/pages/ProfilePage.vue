@@ -79,7 +79,7 @@
 
 <script>
 import { ref, computed } from 'vue';
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from 'stores/auth';
 import { useQuasar } from 'quasar';
 
 export default {

@@ -171,13 +171,13 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useManejoStore } from '../stores/manejo'
-import { useTerrenoStore } from '../stores/terreno'
-import { useAuthStore } from '../stores/auth'
+import { useManejoStore } from 'stores/manejo'
+import { useTerrenoStore } from 'stores/terreno'
+import { useAuthStore } from 'stores/auth'
 
 // Importar componentes
-import ProdutosManejo from 'components/ProdutosManejo.vue'
-import CalendarioComponent from 'components/CalendarioComponent.vue'
+import ProdutosManejo from 'components/manejo/ProdutosManejo.vue'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
 const $q = useQuasar()

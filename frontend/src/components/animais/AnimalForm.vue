@@ -174,7 +174,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAnimalStore } from 'stores/animal'
-import CalendarioComponent from 'components/CalendarioComponent.vue'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 const props = defineProps({
   modelValue: Object,

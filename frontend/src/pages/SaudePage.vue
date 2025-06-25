@@ -515,9 +515,9 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useSaudeStore } from 'src/stores/saude'
-import { useAnimalStore } from 'src/stores/animal'
-import CalendarioComponent from 'src/components/CalendarioComponent.vue'
+import { useSaudeStore } from 'stores/saude'
+import { useAnimalStore } from 'stores/animal'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 import Chart from 'chart.js/auto'
 
     const $q = useQuasar()

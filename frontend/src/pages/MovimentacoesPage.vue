@@ -424,11 +424,11 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from '../stores/auth'
-import { useMovimentacaoStore } from '../stores/movimentacao'
-import { useAnimalStore } from '../stores/animal'
-import { useTerrenoStore } from '../stores/terreno'
-import CalendarioComponent from '../components/CalendarioComponent.vue'
+import { useAuthStore } from 'stores/auth'
+import { useMovimentacaoStore } from 'stores/movimentacao'
+import { useAnimalStore } from 'stores/animal'
+import { useTerrenoStore } from 'stores/terreno'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 import { formatDate, convertToISO } from '../utils/dateUtils'
 
 const $q = useQuasar()

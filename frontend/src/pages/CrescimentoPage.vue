@@ -496,9 +496,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from 'stores/auth'
 import { useCrescimentoStore } from 'stores/crescimento'
 import { useAnimalStore } from 'stores/animal'
-import CalendarioComponent from 'components/CalendarioComponent.vue'
-import CrescimentoChart from 'components/CrescimentoChart.vue'
-import CrescimentoForm from 'components/CrescimentoForm.vue'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+import CrescimentoChart from 'components/crescimento/CrescimentoChart.vue'
+import CrescimentoForm from 'components/crescimento/CrescimentoForm.vue'
 import { prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()

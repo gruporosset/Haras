@@ -680,7 +680,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useManejoStore } from 'stores/manejo'
-import CalendarioComponent from 'components/CalendarioComponent.vue'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 
 // Composables

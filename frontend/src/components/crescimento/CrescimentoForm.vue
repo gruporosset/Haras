@@ -184,8 +184,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useCrescimentoStore } from '../stores/crescimento'
-import CalendarioComponent from './CalendarioComponent.vue'
+import { useCrescimentoStore } from 'stores/crescimento'
+import CalendarioComponent from '../widgets/CalendarioComponent.vue'
 
 const crescimentoStore = useCrescimentoStore()
 

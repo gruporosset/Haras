@@ -424,7 +424,7 @@ import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'stores/auth'
 import { useAnimalStore } from 'stores/animal'
-import AnimalForm from 'components/AnimalForm.vue'
+import AnimalForm from 'components/animais/AnimalForm.vue'
 import { formatDate, prepareFormData } from '../utils/dateUtils'
 
 const $q = useQuasar()

@@ -75,7 +75,7 @@
 
 <script>
 import { ref } from 'vue';
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from 'stores/auth';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 
