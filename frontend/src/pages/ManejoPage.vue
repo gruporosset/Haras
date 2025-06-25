@@ -84,20 +84,7 @@
           <!-- ABA ANÁLISES DE SOLO -->
           <!-- ========================================= -->
           <q-tab-panel name="analises">
-            <div class="text-h6 q-mb-md">Análises de Solo</div>
-            <div class="text-body2 text-grey-7">
-              Componente em desenvolvimento...
-            </div>
-            
-            <!-- PLACEHOLDER -->
-            <q-card flat class="q-mt-md">
-              <q-card-section>
-                <div class="row q-gutter-md">
-                  <q-btn color="primary" icon="add" label="Nova Análise" />
-                  <q-btn color="secondary" icon="upload_file" label="Upload Laudo" />
-                </div>
-              </q-card-section>
-            </q-card>
+            <AnalisesSolo />
           </q-tab-panel>
 
           <!-- ========================================= -->
@@ -144,14 +131,15 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useManejoStore } from '../stores/manejo'
-import { useTerrenoStore } from '../stores/terreno'
-// import { useAuthStore } from '../stores/auth'
+import { useManejoStore } from 'stores/manejo'
+import { useTerrenoStore } from 'stores/terreno'
+// import { useAuthStore } from 'stores/auth'
 
 // Importar componentes
 import ProdutosManejo from 'components/manejo/ProdutosManejo.vue'
 import MovimentacaoEstoque from 'components/manejo/MovimentacaoEstoque.vue'
 import AplicacoesTerrenos from 'components/manejo/AplicacoesTerrenos.vue'
+import AnalisesSolo from 'components/manejo/AnalisesSolo.vue'
 import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
@@ -161,7 +149,7 @@ const terrenoStore = useTerrenoStore()
 // const authStore = useAuthStore()
 
 // Estado reativo
-const activeTab = ref('aplicacoes') // Iniciar na aba de aplicações para testar
+const activeTab = ref('analises') // Iniciar na aba de análises para testar
 const quickViewDialog = ref(false)
 const quickViewTitle = ref('')
 const quickViewContent = ref('')
@@ -248,12 +236,13 @@ async function refreshAllData() {
         await manejoStore.getTerrenosLiberacao()
         break
       case 'analises':
-        // Implementar quando criar o componente
+        // Atualizar análises de solo
         await manejoStore.fetchAnalisesSolo()
         break
       case 'relatorios':
         // Implementar quando criar o componente
         await manejoStore.getConsumoTerreno()
+        await manejoStore.getPrevisaoConsumo()
         break
     }
 
@@ -305,7 +294,10 @@ watch(activeTab, async (newTab) => {
         await manejoStore.getTerrenosLiberacao(30)
         break
       case 'analises':
-        // Carregar análises quando implementado
+        // Carregar análises de solo se ainda não foram carregadas
+        if (manejoStore.analisesSolo.length === 0) {
+          await manejoStore.fetchAnalisesSolo()
+        }
         break
       case 'relatorios':
         // Carregar relatórios quando implementado

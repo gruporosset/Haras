@@ -1,10 +1,10 @@
-# backend/app/api/v1/manejo.py
 import os
 import shutil
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import desc, text
 from sqlalchemy import and_, or_
@@ -559,8 +559,8 @@ async def list_analises_solo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     terreno_id: Optional[int] = Query(None),
-    data_inicio: Optional[datetime] = Query(None),
-    data_fim: Optional[datetime] = Query(None),
+    data_inicio: Optional[str] = Query(None),
+    data_fim: Optional[str] = Query(None),
     laboratorio: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
@@ -568,13 +568,32 @@ async def list_analises_solo(
     """Listar análises de solo"""
     query = db.query(AnalisesSolo).join(Terreno)
 
+    # Converter datas se fornecidas
+    data_inicio_dt = None
+    data_fim_dt = None
+
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.fromisoformat(
+                data_inicio.replace('Z', '+00:00'))
+        except ValueError:
+            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+
+    if data_fim:
+        try:
+            data_fim_dt = datetime.fromisoformat(
+                data_fim.replace('Z', '+00:00'))
+        except ValueError:
+            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
+
     # Filtros
     if terreno_id:
         query = query.filter(AnalisesSolo.ID_TERRENO == terreno_id)
-    if data_inicio:
-        query = query.filter(AnalisesSolo.DATA_COLETA >= data_inicio)
-    if data_fim:
-        query = query.filter(AnalisesSolo.DATA_COLETA <= data_fim)
+    if data_inicio_dt:
+        query = query.filter(AnalisesSolo.DATA_COLETA >= data_inicio_dt)
+    if data_fim_dt:
+        query = query.filter(AnalisesSolo.DATA_COLETA <= data_fim_dt)
     if laboratorio:
         query = query.filter(
             AnalisesSolo.LABORATORIO.ilike(f"%{laboratorio}%"))
@@ -689,6 +708,100 @@ async def upload_laudo_analise(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
+
+
+@router.get("/analises-solo/{analise_id}/download-laudo")
+async def download_laudo_analise(
+    analise_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Download do laudo de análise de solo"""
+    # Verificar se análise existe
+    analise = db.query(AnalisesSolo).filter(
+        AnalisesSolo.ID == analise_id).first()
+    if not analise:
+        raise HTTPException(status_code=404, detail="Análise não encontrada")
+
+    # Verificar se tem arquivo de laudo
+    if not analise.ARQUIVO_LAUDO:
+        raise HTTPException(
+            status_code=404, detail="Nenhum laudo disponível para esta análise")
+
+    # Verificar se arquivo existe no sistema
+    if not os.path.exists(analise.ARQUIVO_LAUDO):
+        raise HTTPException(
+            status_code=404, detail="Arquivo de laudo não encontrado no servidor")
+
+    # Obter informações do terreno para nome do arquivo
+    terreno = db.query(Terreno).filter(
+        Terreno.ID == analise.ID_TERRENO).first()
+    terreno_nome = terreno.NOME if terreno else f"Terreno_{analise.ID_TERRENO}"
+
+    # Formatar data para nome do arquivo
+    data_formatada = analise.DATA_COLETA.strftime(
+        "%d-%m-%Y") if analise.DATA_COLETA else "sem-data"
+
+    # Obter extensão do arquivo original
+    extensao = os.path.splitext(analise.ARQUIVO_LAUDO)[1]
+
+    # Nome descritivo para download
+    nome_download = f"Laudo_Analise_{terreno_nome}_{data_formatada}{extensao}"
+
+    # Limpar caracteres especiais do nome
+    import re
+    nome_download = re.sub(r'[<>:"/\\|?*]', '_', nome_download)
+
+    try:
+        return FileResponse(
+            path=analise.ARQUIVO_LAUDO,
+            filename=nome_download,
+            media_type='application/octet-stream'
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao fazer download: {str(e)}")
+
+
+@router.get("/analises-solo/{analise_id}/laudo-info")
+async def get_laudo_info(
+    analise_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Obter informações do laudo (tamanho, tipo, etc.)"""
+    analise = db.query(AnalisesSolo).filter(
+        AnalisesSolo.ID == analise_id).first()
+    if not analise:
+        raise HTTPException(status_code=404, detail="Análise não encontrada")
+
+    if not analise.ARQUIVO_LAUDO:
+        raise HTTPException(status_code=404, detail="Nenhum laudo disponível")
+
+    if not os.path.exists(analise.ARQUIVO_LAUDO):
+        return {
+            "tem_arquivo": False,
+            "erro": "Arquivo não encontrado no servidor"
+        }
+
+    try:
+        stat_info = os.stat(analise.ARQUIVO_LAUDO)
+        nome_arquivo = os.path.basename(analise.ARQUIVO_LAUDO)
+        extensao = os.path.splitext(nome_arquivo)[1].lower()
+
+        return {
+            "tem_arquivo": True,
+            "nome_arquivo": nome_arquivo,
+            "tamanho_bytes": stat_info.st_size,
+            "tamanho_mb": round(stat_info.st_size / 1024 / 1024, 2),
+            "extensao": extensao,
+            "data_modificacao": stat_info.st_mtime
+        }
+    except Exception as e:
+        return {
+            "tem_arquivo": False,
+            "erro": f"Erro ao obter informações: {str(e)}"
+        }
 
 
 @router.delete("/analises-solo/{analise_id}")

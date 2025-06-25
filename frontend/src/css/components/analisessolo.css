@@ -1,0 +1,62 @@
+.analises-solo-container {
+  width: 100%;
+}
+
+.analises-table {
+  border-radius: 8px;
+}
+
+.analises-table .q-table__top {
+  padding: 16px;
+}
+
+/* Cards de resumo */
+.q-card {
+  border-radius: 8px;
+}
+
+.q-card-section {
+  padding: 16px;
+}
+
+/* Card de análise no formulário */
+.bg-blue-1 {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+}
+
+.bg-green-1 {
+  background-color: #e8f5e8;
+  border: 1px solid #c8e6c9;
+}
+
+/* Alertas de solo */
+.bg-orange-1 {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .row.q-gutter-md > div {
+    margin-bottom: 8px;
+  }
+  
+  .q-dialog .q-card {
+    min-width: 95vw !important;
+    max-width: 95vw !important;
+  }
+}
+
+/* Estilos para parâmetros */
+.text-positive {
+  color: #4caf50 !important;
+}
+
+.text-warning {
+  color: #ff9800 !important;
+}
+
+.text-negative {
+  color: #f44336 !important;
+}

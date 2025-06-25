@@ -447,6 +447,11 @@ export const useManejoStore = defineStore('manejo', {
           ...params.filtros,
         }
 
+        // Converter objetos select para valores
+        if (queryParams.terreno_id?.value) {
+          queryParams.terreno_id = queryParams.terreno_id.value
+        }
+
         const response = await api.get('/api/manejo/analises-solo', { params: queryParams })
         this.analisesSolo = response.data.analises || []
 
@@ -521,6 +526,65 @@ export const useManejoStore = defineStore('manejo', {
         throw error.response?.data?.detail || 'Erro ao fazer upload do laudo'
       } finally {
         this.loading = false
+      }
+    },
+
+    async downloadLaudoAnalise(analiseId) {
+      this.loading = true
+      try {
+        // Fazer requisição para download
+        const response = await api.get(`/api/manejo/analises-solo/${analiseId}/download-laudo`, {
+          responseType: 'blob', // Importante para arquivos binários
+        })
+
+        // Obter nome do arquivo do header Content-Disposition ou usar padrão
+        let nomeArquivo = `laudo_analise_${analiseId}.pdf`
+
+        const contentDisposition = response.headers['content-disposition']
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          if (match && match[1]) {
+            nomeArquivo = match[1].replace(/['"]/g, '')
+          }
+        }
+
+        // Criar blob e URL para download
+        const blob = new Blob([response.data], {
+          type: response.headers['content-type'] || 'application/octet-stream',
+        })
+
+        const url = window.URL.createObjectURL(blob)
+
+        // Criar elemento <a> temporário para download
+        const link = document.createElement('a')
+        link.href = url
+        link.download = nomeArquivo
+
+        // Adicionar ao DOM, clicar e remover
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        // Limpar URL do blob
+        window.URL.revokeObjectURL(url)
+
+        return { success: true, nomeArquivo }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          throw new Error('Laudo não encontrado')
+        }
+        throw error.response?.data?.detail || 'Erro ao fazer download do laudo'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async getLaudoInfo(analiseId) {
+      try {
+        const response = await api.get(`/api/manejo/analises-solo/${analiseId}/laudo-info`)
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao obter informações do laudo'
       }
     },
 
