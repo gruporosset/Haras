@@ -7,55 +7,14 @@
 
     <q-card>
       <q-card-section>
-        <!-- Filtros Globais (opcional - podem ser movidos para cada componente) -->
-        <div class="col-12 q-mb-md">
-          <q-card flat bordered class="q-pa-md">
-            <div class="row q-gutter-md">
-              <div class="col-md-3 col-12">
-                <q-select
-                  v-model="globalFilters.terreno_id"
-                  :options="terrenoOptions"
-                  label="Filtrar por Terreno"
-                  clearable
-                  use-input
-                  @filter="filterTerrenos"
-                  @update:model-value="onGlobalFilterChange"
-                />
-              </div>
-              <div class="col-md-2 col-12">
-                <calendario-component
-                  v-model="globalFilters.data_inicio"
-                  label="Data Início"
-                  @update:model-value="onGlobalFilterChange"
-                />
-              </div>
-              <div class="col-md-2 col-12">
-                <calendario-component
-                  v-model="globalFilters.data_fim"
-                  label="Data Fim"
-                  @update:model-value="onGlobalFilterChange"
-                />
-              </div>
-              <div class="col-auto">
-                <q-btn
-                  flat
-                  color="primary"
-                  icon="refresh"
-                  label="Atualizar"
-                  @click="refreshAllData"
-                />
-              </div>
-            </div>
-          </q-card>
-        </div>
         
         <!-- Abas dos Módulos -->
-        <q-tabs v-model="activeTab" class="q-mb-md" align="left">
-          <q-tab name="produtos" icon="inventory_2" label="Produtos Manejo" />
-          <q-tab name="estoque" icon="inventory" label="Movimentação Estoque" />
-          <q-tab name="aplicacoes" icon="agriculture" label="Aplicações Terrenos" />
-          <q-tab name="analises" icon="biotech" label="Análises de Solo" />
-          <q-tab name="relatorios" icon="analytics" label="Relatórios" />
+        <q-tabs v-model="activeTab" class="q-mb-md" align="center">
+          <q-tab name="produtos" label="Produtos Manejo" />
+          <q-tab name="estoque" label="Movimentação Estoque" />
+          <q-tab name="aplicacoes" label="Aplicações Terrenos" />
+          <q-tab name="analises" label="Análises de Solo" />
+          <q-tab name="relatorios" label="Relatórios" />
         </q-tabs>
         
         <q-tab-panels v-model="activeTab" animated>
@@ -115,10 +74,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useManejoStore } from 'stores/manejo'
-import { useTerrenoStore } from 'stores/terreno'
 
 // Importar componentes
 import ProdutosManejo from 'components/manejo/ProdutosManejo.vue'
@@ -126,77 +84,18 @@ import MovimentacaoEstoque from 'components/manejo/MovimentacaoEstoque.vue'
 import AplicacoesTerrenos from 'components/manejo/AplicacoesTerrenos.vue'
 import AnalisesSolo from 'components/manejo/AnalisesSolo.vue'
 import RelatoriosManejo from 'components/manejo/RelatoriosManejo.vue'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
 const $q = useQuasar()
 const manejoStore = useManejoStore()
-const terrenoStore = useTerrenoStore()
 
 // Estado reativo
-const activeTab = ref('relatorios') // Iniciar na aba de análises para testar
+const activeTab = ref('produtos') 
 const quickViewDialog = ref(false)
 const quickViewTitle = ref('')
 const quickViewContent = ref('')
 
-// Filtros globais (opcionais)
-const globalFilters = ref({
-  terreno_id: null,
-  data_inicio: '',
-  data_fim: ''
-})
-
-// Opções para selects
-const terrenoOptions = ref([])
-
 // Métodos
-async function loadInitialData() {
-  try {
-    // Carregar opções de terrenos
-    await terrenoStore.fetchTerrenos({ limit: 100 })
-    terrenoOptions.value = terrenoStore.terrenos.map(t => ({
-      value: t.ID,
-      label: t.NOME
-    }))
-
-    // Carregar dados iniciais do manejo (se necessário)
-    // Cada componente carregará seus próprios dados
-    
-  } catch (error) {
-    console.error('Erro ao carregar dados iniciais:', error)
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao carregar dados iniciais'
-    })
-  }
-}
-
-function filterTerrenos(val, update) {
-  update(() => {
-    if (val === '') {
-      terrenoOptions.value = terrenoStore.terrenos.map(t => ({
-        value: t.ID,
-        label: t.NOME
-      }))
-    } else {
-      const needle = val.toLowerCase()
-      terrenoOptions.value = terrenoStore.terrenos
-        .filter(t => t.NOME.toLowerCase().includes(needle))
-        .map(t => ({
-          value: t.ID,
-          label: t.NOME
-        }))
-    }
-  })
-}
-
-function onGlobalFilterChange() {
-  // Aplicar filtros globais se implementado
-  console.log('Filtros globais alterados:', globalFilters.value)
-  
-  // Notificar componentes filhos sobre mudança de filtros (se necessário)
-  // Por enquanto, cada componente gerencia seus próprios filtros
-}
 
 async function refreshAllData() {
   try {
@@ -261,7 +160,6 @@ function showQuickView(title, content) {
 // Watchers
 watch(activeTab, async (newTab) => {
   // Carregar dados específicos quando trocar de aba
-  console.log('Aba ativa:', newTab)
   
   try {
     switch (newTab) {
@@ -297,32 +195,15 @@ watch(activeTab, async (newTab) => {
   }
 })
 
-// Lifecycle
-onMounted(async () => {
-  await loadInitialData()
-  
-  // Carregar dados da aba inicial (produtos)
-  try {
-    // ProdutosManejo carregará seus próprios dados automaticamente
-  } catch (error) {
-    console.error('Erro ao carregar dados iniciais da aba:', error)
-  }
-})
 
 // Expor funções para componentes filhos (se necessário)
 defineExpose({
   showQuickView,
-  globalFilters,
   refreshAllData
 })
 </script>
 
 <style scoped>
-/* Estilos específicos da página */
-.q-page {
-  max-width: 1400px;
-  margin: 0 auto;
-}
 
 /* Melhorar espaçamento das abas */
 .q-tabs {

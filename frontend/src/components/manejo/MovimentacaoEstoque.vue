@@ -173,6 +173,7 @@
       <template v-slot:body-cell-saldo="props">
         <q-td :props="props">
           <div class="row items-center q-gutter-xs">
+            <div class="col-12 flex justify-center">
             <div>
               <div class="text-caption text-grey-6">Anterior</div>
               <div class="text-body2">
@@ -189,6 +190,7 @@
               <div class="text-body2 text-weight-medium">
                 {{ (props.row.QUANTIDADE_ATUAL || 0).toLocaleString('pt-BR') }}
               </div>
+            </div>
             </div>
           </div>
         </q-td>
