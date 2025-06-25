@@ -665,8 +665,8 @@ async function refreshAllReports() {
     await Promise.all([
       loadConsumoTerreno(),
       loadPrevisaoConsumo(),
-    //   loadTerrenosLiberacao(),
-    //   loadResumoEstoque()
+      loadTerrenosLiberacao(),
+      loadResumoEstoque()
     ])
     
     $q.notify({

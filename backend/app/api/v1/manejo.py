@@ -494,7 +494,17 @@ async def resumo_estoque(
 ):
     """Resumo de movimentação de estoque"""
     # Usando a VIEW criada no Oracle
-    query = "SELECT * FROM VW_MOVIMENTACAO_ESTOQUE_RESUMO"
+    query = """SELECT PRODUTO_ID as produto_id,
+                      PRODUTO_NOME as produto_nome,
+                      TIPO_PRODUTO as tipo_produto,
+                      ESTOQUE_ATUAL as estoque_atual,
+                      ESTOQUE_MINIMO as estoque_minimo,
+                      UNIDADE_MEDIDA as unidade_medida,
+                      TOTAL_ENTRADAS as total_entradas,
+                      TOTAL_SAIDAS as total_saidas,
+                      VALOR_ENTRADAS as valor_entradas,
+                      ULTIMA_MOVIMENTACAO as ultima_movimentacao
+                 FROM VW_MOVIMENTACAO_ESTOQUE_RESUMO"""
     params = {}
 
     if tipo_produto:
@@ -508,16 +518,16 @@ async def resumo_estoque(
     resumos = []
     for row in result:
         resumos.append(MovimentacaoResumo(
-            produto_id=row.PRODUTO_ID,
-            produto_nome=row.PRODUTO_NOME,
-            tipo_produto=row.TIPO_PRODUTO,
-            estoque_atual=row.ESTOQUE_ATUAL or 0,
-            estoque_minimo=row.ESTOQUE_MINIMO or 0,
-            unidade_medida=row.UNIDADE_MEDIDA,
-            total_entradas=row.TOTAL_ENTRADAS or 0,
-            total_saidas=row.TOTAL_SAIDAS or 0,
-            valor_entradas=row.VALOR_ENTRADAS or 0,
-            ultima_movimentacao=row.ULTIMA_MOVIMENTACAO
+            produto_id=row.produto_id,
+            produto_nome=row.produto_nome,
+            tipo_produto=row.tipo_produto,
+            estoque_atual=row.estoque_atual or 0,
+            estoque_minimo=row.estoque_minimo or 0,
+            unidade_medida=row.unidade_medida,
+            total_entradas=row.total_entradas or 0,
+            total_saidas=row.total_saidas or 0,
+            valor_entradas=row.valor_entradas or 0,
+            ultima_movimentacao=row.ultima_movimentacao
         ))
 
     return resumos
@@ -1198,24 +1208,24 @@ async def relatorio_previsao_consumo(
     # Calcular consumo médio mensal dos últimos 6 meses
     query = """
     WITH consumo_mensal AS (
-        SELECT 
-            p.ID,
-            p.NOME,
-            p.ESTOQUE_ATUAL,
-            p.UNIDADE_MEDIDA,
-            AVG(monthly_consumption.total_mensal) as consumo_mensal_medio
-        FROM PRODUTOS_MANEJO p
-        LEFT JOIN (
-            SELECT 
-                ID_PRODUTO,
-                EXTRACT(YEAR FROM DATA_APLICACAO) as ano,
-                EXTRACT(MONTH FROM DATA_APLICACAO) as mes,
-                SUM(QUANTIDADE) as total_mensal
-            FROM MANEJO_TERRENOS 
-            WHERE DATA_APLICACAO >= ADD_MONTHS(SYSDATE, -6)
-            GROUP BY ID_PRODUTO, EXTRACT(YEAR FROM DATA_APLICACAO), EXTRACT(MONTH FROM DATA_APLICACAO)
-        ) monthly_consumption ON p.ID = monthly_consumption.ID_PRODUTO
-        WHERE p.ATIVO = 'S'
+        SELECT
+            ID_PRODUTO,
+            EXTRACT(YEAR FROM DATA_APLICACAO) as ano,
+            EXTRACT(MONTH FROM DATA_APLICACAO) as mes,
+            SUM(QUANTIDADE) as total_mensal
+        FROM MANEJO_TERRENOS
+        WHERE DATA_APLICACAO >= ADD_MONTHS(SYSDATE, -6)
+        GROUP BY ID_PRODUTO, EXTRACT(YEAR FROM DATA_APLICACAO), EXTRACT(MONTH FROM DATA_APLICACAO)
+    )
+    SELECT
+        p.ID as id,
+        p.NOME as nome,
+        p.ESTOQUE_ATUAL as estoque_atual,
+        p.UNIDADE_MEDIDA as unidade_medida,
+        AVG(cm.total_mensal) as consumo_mensal_medio
+    FROM PRODUTOS_MANEJO p
+    LEFT JOIN consumo_mensal cm ON p.ID = cm.ID_PRODUTO
+    WHERE p.ATIVO = 'S'
     """
 
     params = {}
@@ -1224,19 +1234,17 @@ async def relatorio_previsao_consumo(
         params['tipo_produto'] = tipo_produto.value
 
     query += """
-        GROUP BY p.ID, p.NOME, p.ESTOQUE_ATUAL, p.UNIDADE_MEDIDA
-        HAVING AVG(monthly_consumption.total_mensal) > 0
-        ORDER BY p.NOME
+    GROUP BY p.ID, p.NOME, p.ESTOQUE_ATUAL, p.UNIDADE_MEDIDA
+    HAVING AVG(cm.total_mensal) > 0
+    ORDER BY p.NOME
     """
-
-    print(query)
 
     result = db.execute(text(query), params).fetchall()
 
     previsoes = []
     for row in result:
         consumo_mensal = row.consumo_mensal_medio or 0
-        estoque_atual = row.ESTOQUE_ATUAL or 0
+        estoque_atual = row.estoque_atual or 0
 
         if consumo_mensal > 0:
             dias_restantes = int((estoque_atual / consumo_mensal) * 30)
@@ -1251,8 +1259,8 @@ async def relatorio_previsao_consumo(
                 recomendacao = "OK"
 
             previsoes.append(PrevisaoConsumo(
-                produto_id=row.ID,
-                produto_nome=row.NOME,
+                produto_id=row.id,
+                produto_nome=row.nome,
                 consumo_mensal_medio=consumo_mensal,
                 estoque_atual=estoque_atual,
                 dias_restantes=dias_restantes,
