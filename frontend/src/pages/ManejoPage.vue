@@ -77,20 +77,7 @@
           <!-- ABA APLICAÇÕES EM TERRENOS -->
           <!-- ========================================= -->
           <q-tab-panel name="aplicacoes">
-            <div class="text-h6 q-mb-md">Aplicações em Terrenos</div>
-            <div class="text-body2 text-grey-7">
-              Componente em desenvolvimento...
-            </div>
-            
-            <!-- PLACEHOLDER -->
-            <q-card flat class="q-mt-md">
-              <q-card-section>
-                <div class="row q-gutter-md">
-                  <q-btn color="primary" icon="add" label="Nova Aplicação" />
-                  <q-btn color="info" icon="schedule" label="Cronograma" />
-                </div>
-              </q-card-section>
-            </q-card>
+            <AplicacoesTerrenos />
           </q-tab-panel>
 
           <!-- ========================================= -->
@@ -157,25 +144,24 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useQuasar } from 'quasar'
-import { useManejoStore } from 'stores/manejo'
-import { useTerrenoStore } from 'stores/terreno'
-import { useAuthStore } from 'stores/auth'
+import { useManejoStore } from '../stores/manejo'
+import { useTerrenoStore } from '../stores/terreno'
+// import { useAuthStore } from '../stores/auth'
 
 // Importar componentes
 import ProdutosManejo from 'components/manejo/ProdutosManejo.vue'
 import MovimentacaoEstoque from 'components/manejo/MovimentacaoEstoque.vue'
+import AplicacoesTerrenos from 'components/manejo/AplicacoesTerrenos.vue'
 import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
 const $q = useQuasar()
 const manejoStore = useManejoStore()
 const terrenoStore = useTerrenoStore()
-const authStore = useAuthStore()
-
-console.log(authStore.user)
+// const authStore = useAuthStore()
 
 // Estado reativo
-const activeTab = ref('produtos') // Iniciar na aba de produtos
+const activeTab = ref('aplicacoes') // Iniciar na aba de aplicações para testar
 const quickViewDialog = ref(false)
 const quickViewTitle = ref('')
 const quickViewContent = ref('')
@@ -257,8 +243,9 @@ async function refreshAllData() {
         await manejoStore.getAlertasEstoque()
         break
       case 'aplicacoes':
-        // Implementar quando criar o componente
+        // Atualizar aplicações e terrenos em carência
         await manejoStore.fetchAplicacoes()
+        await manejoStore.getTerrenosLiberacao()
         break
       case 'analises':
         // Implementar quando criar o componente
@@ -310,7 +297,12 @@ watch(activeTab, async (newTab) => {
         }
         break
       case 'aplicacoes':
-        // Carregar aplicações quando implementado
+        // Carregar aplicações se ainda não foram carregadas
+        if (manejoStore.aplicacoes.length === 0) {
+          await manejoStore.fetchAplicacoes()
+        }
+        // Carregar terrenos em carência
+        await manejoStore.getTerrenosLiberacao(30)
         break
       case 'analises':
         // Carregar análises quando implementado

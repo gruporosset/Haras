@@ -758,7 +758,7 @@ async def create_aplicacao(
 
     # Criar aplicação
     db_aplicacao = ManejoTerrenos(
-        **aplicacao.dict(),
+        **aplicacao.model_dump(),
         DATA_LIBERACAO=data_liberacao,
         ID_USUARIO_REGISTRO=current_user.ID
     )
@@ -784,13 +784,32 @@ async def list_aplicacoes(
     terreno_id: Optional[int] = Query(None),
     produto_id: Optional[int] = Query(None),
     tipo_manejo: Optional[TipoManejoEnum] = Query(None),
-    data_inicio: Optional[datetime] = Query(None),
-    data_fim: Optional[datetime] = Query(None),
+    data_inicio: Optional[str] = Query(None),
+    data_fim: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
 ):
     """Listar aplicações em terrenos"""
     query = db.query(ManejoTerrenos).join(Terreno).join(ProdutoManejo)
+
+    # Converter datas se fornecidas
+    data_inicio_dt = None
+    data_fim_dt = None
+
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.fromisoformat(
+                data_inicio.replace('Z', '+00:00'))
+        except ValueError:
+            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+
+    if data_fim:
+        try:
+            data_fim_dt = datetime.fromisoformat(
+                data_fim.replace('Z', '+00:00'))
+        except ValueError:
+            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
 
     # Filtros
     if terreno_id:
@@ -799,10 +818,10 @@ async def list_aplicacoes(
         query = query.filter(ManejoTerrenos.ID_PRODUTO == produto_id)
     if tipo_manejo:
         query = query.filter(ManejoTerrenos.TIPO_MANEJO == tipo_manejo)
-    if data_inicio:
-        query = query.filter(ManejoTerrenos.DATA_APLICACAO >= data_inicio)
-    if data_fim:
-        query = query.filter(ManejoTerrenos.DATA_APLICACAO <= data_fim)
+    if data_inicio_dt:
+        query = query.filter(ManejoTerrenos.DATA_APLICACAO >= data_inicio_dt)
+    if data_fim_dt:
+        query = query.filter(ManejoTerrenos.DATA_APLICACAO <= data_fim_dt)
 
     # Paginação
     total = query.count()
@@ -823,6 +842,14 @@ async def list_aplicacoes(
         response.produto_nome = produto.NOME if produto else None
         response.produto_tipo = produto.TIPO_PRODUTO.value if produto else None
         aplicacoes_response.append(response)
+
+    return {
+        "aplicacoes": aplicacoes_response,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
 
 
 @router.get("/aplicacoes/{aplicacao_id}", response_model=ManejoTerrenosResponse)
@@ -1117,9 +1144,9 @@ async def relatorio_terrenos_liberacao(
         t.ID as terreno_id,
         t.NOME as terreno_nome,
         p.NOME as produto_nome,
-        mt.TIPO_MANEJO,
-        mt.DATA_APLICACAO,
-        mt.DATA_LIBERACAO,
+        mt.TIPO_MANEJO as tipo_manejo,
+        mt.DATA_APLICACAO as data_aplicacao,
+        mt.DATA_LIBERACAO as data_liberacao,
         TRUNC(mt.DATA_LIBERACAO - SYSDATE) as dias_para_liberacao
     FROM MANEJO_TERRENOS mt
     JOIN TERRENOS t ON mt.ID_TERRENO = t.ID
@@ -1138,9 +1165,9 @@ async def relatorio_terrenos_liberacao(
             "terreno_id": row.terreno_id,
             "terreno_nome": row.terreno_nome,
             "produto_nome": row.produto_nome,
-            "tipo_manejo": row.TIPO_MANEJO,
-            "data_aplicacao": row.DATA_APLICACAO.strftime("%d/%m/%Y") if row.DATA_APLICACAO else None,
-            "data_liberacao": row.DATA_LIBERACAO.strftime("%d/%m/%Y") if row.DATA_LIBERACAO else None,
+            "tipo_manejo": row.tipo_manejo,
+            "data_aplicacao": row.data_aplicacao.strftime("%d/%m/%Y") if row.data_aplicacao else None,
+            "data_liberacao": row.data_liberacao.strftime("%d/%m/%Y") if row.data_liberacao else None,
             "dias_para_liberacao": row.dias_para_liberacao or 0
         })
 

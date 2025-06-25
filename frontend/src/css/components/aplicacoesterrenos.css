@@ -1,0 +1,48 @@
+.aplicacoes-terrenos-container {
+  width: 100%;
+}
+
+.aplicacoes-table {
+  border-radius: 8px;
+}
+
+.aplicacoes-table .q-table__top {
+  padding: 16px;
+}
+
+/* Cards de resumo */
+.q-card {
+  border-radius: 8px;
+}
+
+.q-card-section {
+  padding: 16px;
+}
+
+/* Estilos para chips */
+.q-chip {
+  font-weight: 500;
+}
+
+/* Card de resumo no formulário */
+.bg-blue-1 {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .row.q-gutter-md > div {
+    margin-bottom: 8px;
+  }
+  
+  .q-dialog .q-card {
+    min-width: 95vw !important;
+  }
+}
+
+/* Alertas de carência */
+.bg-warning-1 {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}

@@ -363,6 +363,23 @@ export const useManejoStore = defineStore('manejo', {
           ...params.filtros,
         }
 
+        // Converter objetos select para valores
+        if (queryParams.produto_id?.value) {
+          queryParams.produto_id = queryParams.produto_id.value
+        }
+
+        if (queryParams.terreno_id?.value) {
+          queryParams.terreno_id = queryParams.terreno_id.value
+        }
+
+        if (queryParams.tipo_manejo?.value) {
+          queryParams.tipo_manejo = queryParams.tipo_manejo.value
+        }
+
+        if (queryParams.tipo_produto?.value) {
+          queryParams.tipo_produto = queryParams.tipo_produto.value
+        }
+
         const response = await api.get('/api/manejo/aplicacoes', { params: queryParams })
         this.aplicacoes = response.data.aplicacoes || []
 
