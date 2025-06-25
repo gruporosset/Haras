@@ -1,0 +1,54 @@
+.movimentacao-estoque-container {
+  width: 100%;
+}
+
+.movimentacoes-table {
+  border-radius: 8px;
+}
+
+.movimentacoes-table .q-table__top {
+  padding: 16px;
+}
+
+/* Cards de resumo */
+.q-card {
+  border-radius: 8px;
+}
+
+.q-card-section {
+  padding: 16px;
+}
+
+/* Estilos para chips de tipo */
+.q-chip {
+  font-weight: 500;
+}
+
+/* Preview cards */
+.bg-positive-1 {
+  background-color: #e8f5e8;
+}
+
+.bg-orange-1 {
+  background-color: #fff3e0;
+}
+
+.bg-blue-1 {
+  background-color: #e3f2fd;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .row.q-gutter-md > div {
+    margin-bottom: 8px;
+  }
+  
+  .q-btn-group {
+    flex-direction: column;
+  }
+  
+  .q-btn-group .q-btn {
+    border-radius: 4px !important;
+    margin-bottom: 4px;
+  }
+}

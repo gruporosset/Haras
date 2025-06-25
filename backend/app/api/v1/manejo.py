@@ -363,13 +363,32 @@ async def list_movimentacoes(
     current_user: User = Depends(get_current_user),
     produto_id: Optional[int] = Query(None),
     tipo_movimentacao: Optional[TipoMovimentacaoManejoEnum] = Query(None),
-    data_inicio: Optional[datetime] = Query(None),
-    data_fim: Optional[datetime] = Query(None),
+    data_inicio: Optional[str] = Query(None),
+    data_fim: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
 ):
     """Listar movimentações de estoque"""
-    query = db.query(MovimentacaoProdutoManejo).join(ProdutoManejo)
+    query = db.query(MovimentacaoProdutoManejo)
+
+    # Converter datas se fornecidas
+    data_inicio_dt = None
+    data_fim_dt = None
+
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.fromisoformat(
+                data_inicio.replace('Z', '+00:00'))
+        except ValueError:
+            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+
+    if data_fim:
+        try:
+            data_fim_dt = datetime.fromisoformat(
+                data_fim.replace('Z', '+00:00'))
+        except ValueError:
+            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
 
     # Filtros
     if produto_id:
@@ -378,12 +397,12 @@ async def list_movimentacoes(
     if tipo_movimentacao:
         query = query.filter(
             MovimentacaoProdutoManejo.TIPO_MOVIMENTACAO == tipo_movimentacao)
-    if data_inicio:
+    if data_inicio_dt:
         query = query.filter(
-            MovimentacaoProdutoManejo.DATA_REGISTRO >= data_inicio)
-    if data_fim:
+            MovimentacaoProdutoManejo.DATA_REGISTRO >= data_inicio_dt)
+    if data_fim_dt:
         query = query.filter(
-            MovimentacaoProdutoManejo.DATA_REGISTRO <= data_fim)
+            MovimentacaoProdutoManejo.DATA_REGISTRO <= data_fim_dt)
 
     # Paginação
     total = query.count()
@@ -395,12 +414,23 @@ async def list_movimentacoes(
     movimentacoes_response = []
     for mov in movimentacoes:
         response = MovimentacaoEstoqueResponse.from_orm(mov)
-        response.produto_nome = mov.produto.NOME if hasattr(
-            mov, 'produto') else None
+
+        # Buscar produto diretamente
+        produto = db.query(ProdutoManejo).filter(
+            ProdutoManejo.ID == mov.ID_PRODUTO).first()
+        if produto:
+            response.produto_nome = produto.NOME
+            response.produto_unidade = produto.UNIDADE_MEDIDA
+        else:
+            response.produto_nome = f"Produto ID {mov.ID_PRODUTO}"
+            response.produto_unidade = ""
+
+        # Buscar terreno se existir
         if mov.ID_TERRENO:
             terreno = db.query(Terreno).filter(
                 Terreno.ID == mov.ID_TERRENO).first()
             response.terreno_nome = terreno.NOME if terreno else None
+
         movimentacoes_response.append(response)
 
     return {

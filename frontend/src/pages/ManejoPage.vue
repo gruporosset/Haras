@@ -70,21 +70,7 @@
           <!-- ABA MOVIMENTAÇÃO ESTOQUE -->
           <!-- ========================================= -->
           <q-tab-panel name="estoque">
-            <div class="text-h6 q-mb-md">Movimentação de Estoque</div>
-            <div class="text-body2 text-grey-7">
-              Componente em desenvolvimento...
-            </div>
-            
-            <!-- PLACEHOLDER - será substituído pelo componente -->
-            <q-card flat class="q-mt-md">
-              <q-card-section>
-                <div class="row q-gutter-md">
-                  <q-btn color="positive" icon="add_box" label="Entrada Estoque" />
-                  <q-btn color="negative" icon="remove_circle" label="Saída Estoque" />
-                  <q-btn color="warning" icon="build" label="Ajuste Estoque" />
-                </div>
-              </q-card-section>
-            </q-card>
+            <MovimentacaoEstoque />
           </q-tab-panel>
 
           <!-- ========================================= -->
@@ -177,6 +163,7 @@ import { useAuthStore } from 'stores/auth'
 
 // Importar componentes
 import ProdutosManejo from 'components/manejo/ProdutosManejo.vue'
+import MovimentacaoEstoque from 'components/manejo/MovimentacaoEstoque.vue'
 import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
@@ -185,13 +172,7 @@ const manejoStore = useManejoStore()
 const terrenoStore = useTerrenoStore()
 const authStore = useAuthStore()
 
-if (manejoStore) {
-  console.log('Manejo Store loaded:', manejoStore)
-}
-
-if (authStore) {
-  console.log('Auth Store loaded:', authStore)
-}
+console.log(authStore.user)
 
 // Estado reativo
 const activeTab = ref('produtos') // Iniciar na aba de produtos
@@ -268,18 +249,24 @@ async function refreshAllData() {
     switch (activeTab.value) {
       case 'produtos':
         // O componente ProdutosManejo tem seu próprio refresh
+        await manejoStore.fetchProdutos()
         break
       case 'estoque':
-        // Implementar quando criar o componente
+        // Atualizar movimentações e alertas
+        await manejoStore.fetchMovimentacoes()
+        await manejoStore.getAlertasEstoque()
         break
       case 'aplicacoes':
         // Implementar quando criar o componente
+        await manejoStore.fetchAplicacoes()
         break
       case 'analises':
         // Implementar quando criar o componente
+        await manejoStore.fetchAnalisesSolo()
         break
       case 'relatorios':
         // Implementar quando criar o componente
+        await manejoStore.getConsumoTerreno()
         break
     }
 
@@ -307,14 +294,46 @@ function showQuickView(title, content) {
 }
 
 // Watchers
-watch(activeTab, (newTab) => {
-  // Fazer algo quando a aba muda (se necessário)
+watch(activeTab, async (newTab) => {
+  // Carregar dados específicos quando trocar de aba
   console.log('Aba ativa:', newTab)
+  
+  try {
+    switch (newTab) {
+      case 'produtos':
+        // ProdutosManejo carrega seus próprios dados
+        break
+      case 'estoque':
+        // Carregar movimentações se ainda não foram carregadas
+        if (manejoStore.movimentacoes.length === 0) {
+          await manejoStore.fetchMovimentacoes()
+        }
+        break
+      case 'aplicacoes':
+        // Carregar aplicações quando implementado
+        break
+      case 'analises':
+        // Carregar análises quando implementado
+        break
+      case 'relatorios':
+        // Carregar relatórios quando implementado
+        break
+    }
+  } catch (error) {
+    console.error('Erro ao carregar dados da aba:', error)
+  }
 })
 
 // Lifecycle
 onMounted(async () => {
   await loadInitialData()
+  
+  // Carregar dados da aba inicial (produtos)
+  try {
+    // ProdutosManejo carregará seus próprios dados automaticamente
+  } catch (error) {
+    console.error('Erro ao carregar dados iniciais da aba:', error)
+  }
 })
 
 // Expor funções para componentes filhos (se necessário)

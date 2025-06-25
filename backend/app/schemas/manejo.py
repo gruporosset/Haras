@@ -188,6 +188,7 @@ class MovimentacaoEstoqueResponse(MovimentacaoEstoqueBase):
 
     # Campos relacionados
     produto_nome: Optional[str] = None
+    produto_unidade: Optional[str] = None
     terreno_nome: Optional[str] = None
 
     class Config:

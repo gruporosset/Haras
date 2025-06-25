@@ -285,6 +285,15 @@ export const useManejoStore = defineStore('manejo', {
           ...params.filtros,
         }
 
+        // Converter objetos select para valores
+        if (queryParams.produto_id?.value) {
+          queryParams.produto_id = queryParams.produto_id.value
+        }
+
+        if (queryParams.tipo_movimentacao?.value) {
+          queryParams.tipo_movimentacao = queryParams.tipo_movimentacao.value
+        }
+
         const response = await api.get('/api/manejo/estoque/movimentacoes', { params: queryParams })
         this.movimentacoes = response.data.movimentacoes || []
 
