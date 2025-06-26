@@ -125,7 +125,7 @@
               <div class="row q-gutter-md">
                 <div class="col-12">
                   <q-card flat bordered class="q-pa-md">
-                    <div class="text-h6 q-mb-md">Próximas Aplicações</div>
+                    <div class="text-h6 q-mb-md">Próximos Eventos</div>
                     
                     <q-list bordered separator v-if="proximasAplicacoes.length">
                       <q-item v-for="aplicacao in proximasAplicacoes" :key="aplicacao.animal_id + aplicacao.data_aplicacao">
@@ -136,8 +136,8 @@
                         </q-item-section>
                         <q-item-section>
                           <q-item-label>{{ aplicacao.animal_nome }}</q-item-label>
-                          <q-item-label caption>{{ aplicacao.descricao }}</q-item-label>
-                          <q-item-label caption>{{ aplicacao.data_aplicacao }}</q-item-label>
+                          <q-item-label caption>{{ getLabelEvento(aplicacao)}}</q-item-label>
+                          <q-item-label caption>{{ formatDateForDisplay(aplicacao.data_aplicacao) }}</q-item-label>
                         </q-item-section>
                         <q-item-section side>
                           <q-chip
@@ -151,7 +151,7 @@
                     </q-list>
 
                     <div v-else class="text-center q-pa-lg text-grey-6">
-                      Nenhuma aplicação agendada
+                      Nenhum evento agendado para os próximos dias.
                     </div>
                   </q-card>
                 </div>
@@ -178,7 +178,7 @@
                 </div>
 
                 <!-- Top Veterinários -->
-                <div class="col-12">
+                <!-- <div class="col-12">
                   <q-card flat bordered class="q-pa-md">
                     <div class="text-h6 q-mb-md">Veterinários Mais Ativos</div>
                     <q-table
@@ -189,7 +189,7 @@
                       :rows-per-page-options="[0]"
                     />
                   </q-card>
-                </div>
+                </div> -->
               </div>
             </q-tab-panel>
 
@@ -251,23 +251,9 @@
                             dense
                           />
                         </div>
-                        <div class="col-md-3 col-12">
-                          <q-input
-                            v-model="aplicacaoRapida.MEDICAMENTO_APLICADO"
-                            label="Medicamento Aplicado"
-                            dense
-                          />
-                        </div>
                       </div>
 
                       <div class="row q-gutter-md">
-                        <div class="col-md-6 col-12">
-                          <q-input
-                            v-model="aplicacaoRapida.DOSE_APLICADA"
-                            label="Dose"
-                            dense
-                          />
-                        </div>
                         <div class="col-md-6 col-12">
                           <q-input
                             v-model="aplicacaoRapida.VETERINARIO_RESPONSAVEL"
@@ -336,14 +322,16 @@
               <div class="col-md-6 col-12">
                 <CalendarioComponent
                   v-model="formRegistro.DATA_OCORRENCIA"
-                  label="Data/Hora da Ocorrência *"
-                  :rules="[val => !!val || 'Data é obrigatória']"
+                  label="Data da Ocorrência *"
+                  :rules="[val => !!val || 'Data é obrigatória', 
+                          val => val && new Date(convertToISO(val)) <= new Date() || 'Data não pode ser futura']"
                 />
               </div>
               <div class="col-md-6 col-12">
                 <CalendarioComponent
+                  v-if="formRegistro.TIPO_REGISTRO"
                   v-model="formRegistro.PROXIMA_APLICACAO"
-                  label="Próxima Aplicação"
+                  :label="getProximoLabel(formRegistro.TIPO_REGISTRO)"
                 />
               </div>
             </div>
@@ -404,25 +392,6 @@
                 <q-input
                   v-model="formRegistro.UNIDADE_APLICADA"
                   label="Unidade"
-                />
-              </div>
-            </div>
-
-            <!-- Medicamento Manual -->
-            <q-separator />
-            <div class="text-subtitle2 q-mt-md">Ou informar medicamento manualmente</div>
-            
-            <div class="row q-gutter-md">
-              <div class="col-md-6 col-12">
-                <q-input
-                  v-model="formRegistro.MEDICAMENTO_APLICADO"
-                  label="Medicamento Aplicado"
-                />
-              </div>
-              <div class="col-md-6 col-12">
-                <q-input
-                  v-model="formRegistro.DOSE_APLICADA"
-                  label="Dose Aplicada"
                 />
               </div>
             </div>
@@ -496,7 +465,7 @@
 
             <div class="row q-gutter-md" v-if="registroSelecionado.PROXIMA_APLICACAO">
               <div class="col-12">
-                <strong>Próxima Aplicação:</strong> {{ registroSelecionado.PROXIMA_APLICACAO }}
+                <strong>{{getProximoLabel(registroSelecionado.TIPO_REGISTRO)}}</strong> {{ registroSelecionado.PROXIMA_APLICACAO }}
               </div>
             </div>
 
@@ -519,6 +488,8 @@ import { useSaudeStore } from 'stores/saude'
 import { useAnimalStore } from 'stores/animal'
 import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 import Chart from 'chart.js/auto'
+import { ErrorHandler } from 'src/utils/errorHandler'
+import { convertToISO, formatDateForDisplay } from 'src/utils/dateUtils'
 
     const $q = useQuasar()
     const saudeStore = useSaudeStore()
@@ -588,9 +559,15 @@ import Chart from 'chart.js/auto'
     })
 
     // Opções
+
     const tiposRegistro = [
-      'VACINA', 'VERMIFUGO', 'MEDICAMENTO', 'EXAME', 
-      'CONSULTA', 'CIRURGIA', 'TRATAMENTO'
+      { value: 'VACINA', label: 'Vacina' , genero: 'feminino' },
+      { value: 'VERMIFUGO', label: 'Vermífugo', genero: 'masculino' },
+      { value: 'MEDICAMENTO', label: 'Medicamento', genero: 'masculino' },
+      { value: 'EXAME', label: 'Exame', genero: 'masculino' },
+      { value: 'CONSULTA', label: 'Consulta', genero: 'feminino' },
+      { value: 'CIRURGIA', label: 'Cirurgia', genero: 'feminino' },
+      { value: 'TRATAMENTO', label: 'Tratamento', genero: 'masculino' }
     ]
 
     // Colunas da tabela
@@ -605,12 +582,12 @@ import Chart from 'chart.js/auto'
       { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
     ]
 
-    const columnsVeterinarios = [
-      { name: 'veterinario', label: 'Veterinário', field: 'veterinario', align: 'left' },
-      { name: 'total_aplicacoes', label: 'Aplicações', field: 'total_aplicacoes', align: 'center' },
-      { name: 'tipos_diferentes', label: 'Tipos', field: 'tipos_diferentes', align: 'center' },
-      { name: 'ultimo_atendimento', label: 'Último Atendimento', field: 'ultimo_atendimento', align: 'center' }
-    ]
+    // const columnsVeterinarios = [
+    //   { name: 'veterinario', label: 'Veterinário', field: 'veterinario', align: 'left' },
+    //   { name: 'total_aplicacoes', label: 'Aplicações', field: 'total_aplicacoes', align: 'center' },
+    //   { name: 'tipos_diferentes', label: 'Tipos', field: 'tipos_diferentes', align: 'center' },
+    //   { name: 'ultimo_atendimento', label: 'Último Atendimento', field: 'ultimo_atendimento', align: 'center' }
+    // ]
 
     // Métodos
     const buscarRegistros = async () => {
@@ -626,10 +603,7 @@ import Chart from 'chart.js/auto'
         registros.value = response.registros
         pagination.value.rowsNumber = response.total
       } catch (error) {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao buscar registros: ' + error.message
-        })
+        ErrorHandler.handle(error, 'Erro ao buscar registros')
       } finally {
         loading.value = false
       }
@@ -648,7 +622,7 @@ import Chart from 'chart.js/auto'
           label: `${animal.NOME} - ${animal.NUMERO_REGISTRO || 'S/N'}`
         }))
       } catch (error) {
-        console.error('Erro ao carregar animais:', error)
+        ErrorHandler.handle(error, 'Erro ao carregar animais')
       }
     }
 
@@ -664,7 +638,7 @@ import Chart from 'chart.js/auto'
           unidade: med.unidade
         }))
       } catch (error) {
-        console.error('Erro ao carregar medicamentos:', error)
+        ErrorHandler.handle(error, 'Erro ao carregar medicamentos')
         medicamentosEstoque.value = []
       }
     }
@@ -687,9 +661,9 @@ import Chart from 'chart.js/auto'
 
     const carregarProximasAplicacoes = async () => {
       try {
-        proximasAplicacoes.value = await saudeStore.proximasAplicacoes()
+        proximasAplicacoes.value = await saudeStore.getProximasAplicacoes()
       } catch (error) {
-        console.error('Erro ao carregar próximas aplicações:', error)
+        ErrorHandler.handle(error, 'Erro ao carregar próximas aplicações')
       }
     }
 
@@ -709,7 +683,7 @@ import Chart from 'chart.js/auto'
           renderMensalChart(aplicacoesMensais)
         })
       } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error)
+        ErrorHandler.handle(error, 'Erro ao carregar estatísticas')
       }
     }
 
@@ -833,26 +807,17 @@ import Chart from 'chart.js/auto'
       try {
         if (editandoRegistro.value) {
           await saudeStore.atualizarRegistro(formRegistro.value.ID, formRegistro.value)
-          $q.notify({
-            type: 'positive',
-            message: 'Registro atualizado com sucesso!'
-          })
+          ErrorHandler.success('Registro atualizado com sucesso!')
         } else {
           await saudeStore.criarRegistro(formRegistro.value)
-          $q.notify({
-            type: 'positive',
-            message: 'Registro criado com sucesso!'
-          })
+          
+          ErrorHandler.success('Registro criado com sucesso!')
         }
         
         modalRegistro.value = false
         buscarRegistros()
       } catch (error) {
-        console.log('Erro ao salvar registro:', error)
-        $q.notify({
-          type: 'negative',
-          message: 'Erro ao salvar registro: ' + error.message
-        })
+        ErrorHandler.handle(error, 'Erro ao salvar registro')
       } finally {
         loading.value = false
       }
@@ -872,16 +837,10 @@ import Chart from 'chart.js/auto'
       }).onOk(async () => {
         try {
           await saudeStore.excluirRegistro(registro.ID)
-          $q.notify({
-            type: 'positive',
-            message: 'Registro excluído com sucesso!'
-          })
+          ErrorHandler.success('Registro excluído com sucesso!')
           buscarRegistros()
         } catch (error) {
-          $q.notify({
-            type: 'negative',
-            message: 'Erro ao excluir registro: ' + error.message
-          })
+          ErrorHandler.handle(error, 'Erro ao excluir registro')
         }
       })
     }
@@ -890,10 +849,7 @@ import Chart from 'chart.js/auto'
       loadingAplicacao.value = true
       try {
         await saudeStore.aplicacaoRapida(aplicacaoRapida.value)
-        $q.notify({
-          type: 'positive',
-          message: 'Aplicação registrada com sucesso!'
-        })
+        ErrorHandler.success('Aplicação registrada com sucesso!')
         
         // Limpar formulário
         aplicacaoRapida.value = {
@@ -912,10 +868,7 @@ import Chart from 'chart.js/auto'
           buscarRegistros()
         }
       } catch (error) {
-        $q.notify({
-          type: 'negative',
-          message: 'Erro na aplicação: ' + error.message
-        })
+        ErrorHandler.handle(error, 'Erro na aplicação')
       } finally {
         loadingAplicacao.value = false
       }
@@ -951,6 +904,19 @@ import Chart from 'chart.js/auto'
         'BAIXA': 'green'
       }
       return cores[prioridade] || 'grey'
+    }
+
+    const getProximoLabel = (tipo) => {
+      if (typeof tipo === 'string') {
+        tipo = tiposRegistro.find(t => t.value === tipo)
+      }
+
+      const label = tipo.genero === 'masculino' ? 'Próximo' : 'Próxima'
+      return `${label} ${tipo.label}`
+    }
+
+    const getLabelEvento = (aplicacao) => {
+      return `${aplicacao.tipo_registro}: ${aplicacao.descricao}`
     }
 
     function filterAnimais(val, update) {

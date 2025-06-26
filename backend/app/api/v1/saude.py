@@ -9,6 +9,7 @@ from app.core.security import get_current_user
 from app.models.saude import SaudeAnimais, TipoRegistroEnum
 from app.models.animal import Animal
 from app.models.user import User
+from app.models.medicamento import Medicamento, MovimentacaoMedicamento, TipoMovimentacaoEnum
 from app.schemas.saude import (
     SaudeCreate, SaudeUpdate, SaudeResponse, AplicacaoRapida,
     EstatisticasSaude, ProximasAplicacoes, HistoricoSaude,
@@ -33,7 +34,6 @@ async def create_registro_saude(
     # Se especificou medicamento do estoque, fazer validações
     if saude.ID_MEDICAMENTO and saude.QUANTIDADE_APLICADA:
         # Importar aqui para evitar dependência circular
-        from app.models.medicamento import Medicamento, MovimentacaoMedicamento, TipoMovimentacaoEnum
 
         medicamento = db.query(Medicamento).filter(
             Medicamento.ID == saude.ID_MEDICAMENTO).first()
@@ -65,12 +65,12 @@ async def create_registro_saude(
 
     # Criar registro de saúde
     db_saude = SaudeAnimais(**saude.dict())
+    db_saude.ID_USUARIO_REGISTRO = current_user.ID
     db.add(db_saude)
     db.flush()  # Para obter o ID antes do commit
 
     # Se tem medicamento do estoque, criar movimentação
     if saude.ID_MEDICAMENTO and saude.QUANTIDADE_APLICADA:
-        from app.models.medicamento import MovimentacaoMedicamento, TipoMovimentacaoEnum
 
         movimentacao = MovimentacaoMedicamento(
             ID_MEDICAMENTO=saude.ID_MEDICAMENTO,
@@ -145,15 +145,15 @@ async def list_registros_saude(
 async def get_proximas_aplicacoes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    dias: int = Query(30, description="Próximos X dias")
+    dias: int = Query(365, description="Próximos X dias")
 ):
     """Lista próximas aplicações programadas"""
     data_limite = datetime.now() + timedelta(days=dias)
 
     registros = db.query(SaudeAnimais, Animal.NOME).join(Animal).filter(
-        SaudeAnimais.PROXIMA_APLICACAO.isnot(None),
-        SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
-        SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
+        SaudeAnimais.PROXIMA_APLICACAO.isnot(None)
+        # SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
+        # SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
     ).order_by(SaudeAnimais.PROXIMA_APLICACAO).all()
 
     proximas = []
@@ -172,7 +172,6 @@ async def get_proximas_aplicacoes(
         medicamento_nome = None
         if saude.ID_MEDICAMENTO:
             try:
-                from app.models.medicamento import Medicamento
                 medicamento = db.query(Medicamento).filter(
                     Medicamento.ID == saude.ID_MEDICAMENTO).first()
                 medicamento_nome = medicamento.NOME if medicamento else None
@@ -228,7 +227,6 @@ async def update_registro_saude(
 
     # Se alterou medicamento, reverter movimentação anterior
     if medicamento_alterado and db_saude.ID_MEDICAMENTO:
-        from app.models.medicamento import MovimentacaoMedicamento, TipoMovimentacaoEnum
 
         # Reverter movimentação anterior (criar entrada para compensar)
         if db_saude.QUANTIDADE_APLICADA:
@@ -250,7 +248,6 @@ async def update_registro_saude(
 
     # Se tem novo medicamento, criar nova movimentação
     if db_saude.ID_MEDICAMENTO and db_saude.QUANTIDADE_APLICADA:
-        from app.models.medicamento import Medicamento, MovimentacaoMedicamento, TipoMovimentacaoEnum
 
         medicamento = db.query(Medicamento).filter(
             Medicamento.ID == db_saude.ID_MEDICAMENTO).first()
@@ -293,7 +290,6 @@ async def delete_registro_saude(
 
     # Se tinha medicamento do estoque, reverter movimentação
     if db_saude.ID_MEDICAMENTO and db_saude.QUANTIDADE_APLICADA:
-        from app.models.medicamento import MovimentacaoMedicamento, TipoMovimentacaoEnum
 
         reversao = MovimentacaoMedicamento(
             ID_MEDICAMENTO=db_saude.ID_MEDICAMENTO,
@@ -347,13 +343,15 @@ async def autocomplete_medicamentos_saude(
 ):
     """Autocomplete para medicamentos com estoque > 0 para uso em saúde"""
     try:
-        from app.models.medicamento import Medicamento
 
         medicamentos = db.query(Medicamento).filter(
-            Medicamento.NOME.ilike(f"%{termo}%"),
+            Medicamento.NOME.ilike(f"%{termo}%") if termo != ' ' else True,
             Medicamento.ATIVO == 'S',
             Medicamento.ESTOQUE_ATUAL > 0
         ).order_by(Medicamento.NOME).limit(limit).all()
+
+        print(
+            f"Buscando medicamentos com termo '{termo}' - Encontrados: {len(medicamentos)}")
 
         return [
             MedicamentoAutocomplete(
@@ -382,7 +380,6 @@ async def validar_estoque_medicamento(
 ):
     """Valida se há estoque suficiente para aplicação"""
     try:
-        from app.models.medicamento import Medicamento
 
         medicamento = db.query(Medicamento).filter(
             Medicamento.ID == medicamento_id).first()
@@ -735,7 +732,6 @@ async def _enrich_saude_response(saude: SaudeAnimais, db: Session) -> SaudeRespo
 
     if saude.ID_MEDICAMENTO:
         try:
-            from app.models.medicamento import Medicamento
             medicamento = db.query(Medicamento).filter(
                 Medicamento.ID == saude.ID_MEDICAMENTO).first()
             if medicamento and saude.QUANTIDADE_APLICADA:

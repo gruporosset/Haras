@@ -34,7 +34,7 @@ class SaudeBase(BaseModel):
 
 
 class SaudeCreate(SaudeBase):
-    ID_USUARIO_REGISTRO: int
+    # ID_USUARIO_REGISTRO: int
 
     @field_validator('DATA_OCORRENCIA')
     @classmethod

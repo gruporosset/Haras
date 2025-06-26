@@ -150,3 +150,41 @@ export function prepareFormData(formData, dateFields = []) {
 
   return prepared
 }
+
+export function formatDateForDisplay(dateStr, withTime = false) {
+  if (!dateStr) return 'N/A'
+
+  try {
+    let date
+
+    if (dateStr.includes('-')) {
+      date = new Date(dateStr)
+    } else if (dateStr.includes('/')) {
+      const [datePart, timePart] = dateStr.split(' ')
+      const [day, month, year] = datePart.split('/')
+      const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      date = new Date(`${isoDate}T${timePart || '00:00:00'}`)
+    } else {
+      date = new Date(dateStr)
+    }
+
+    if (isNaN(date.getTime())) {
+      return dateStr
+    }
+
+    if (!withTime) {
+      return date.toLocaleDateString('pt-BR')
+    }
+
+    return date.toLocaleDateString('pt-BR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  } catch {
+    return dateStr
+  }
+}

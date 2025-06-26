@@ -40,6 +40,15 @@ export const useSaudeStore = defineStore('saude', {
     // === CRUD REGISTROS ===
 
     async listarRegistros(params = {}) {
+      // Converter objetos select para valores
+      if (params.animal_id?.value) {
+        params.animal_id = params.animal_id.value
+      }
+
+      if (params.tipo_registro?.value) {
+        params.tipo_registro = params.tipo_registro.value
+      }
+
       this.loading = true
       try {
         const response = await api.get('/api/saude/', { params })
@@ -83,7 +92,7 @@ export const useSaudeStore = defineStore('saude', {
     async atualizarRegistro(id, dadosRegistro) {
       try {
         // Preparar dados para envio
-        const dados = prepareFormData(dadosRegistro)
+        const dados = prepareFormData(dadosRegistro, ['DATA_OCORRENCIA', 'PROXIMA_APLICACAO'])
 
         const response = await api.put(`/api/saude/${id}`, dados)
 
@@ -155,7 +164,7 @@ export const useSaudeStore = defineStore('saude', {
       }
     },
 
-    async proximasAplicacoes(params = {}) {
+    async getProximasAplicacoes(params = {}) {
       try {
         const response = await api.get('/api/saude/proximas-aplicacoes', { params })
         this.proximasAplicacoes = response.data
