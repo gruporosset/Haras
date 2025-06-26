@@ -178,7 +178,8 @@ class EntradaEstoque(BaseModel):
 class AplicacaoMedicamento(BaseModel):
     ID_MEDICAMENTO: int
     ID_ANIMAL: int
-    QUANTIDADE: float = Field(..., gt=0)
+    QUANTIDADE_APLICADA: float = Field(..., gt=0)
+    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=100)
     OBSERVACOES: Optional[str] = None
 
 # === RELATÓRIOS ===

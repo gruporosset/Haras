@@ -38,7 +38,7 @@
             />
           </div>
           
-          <div class="col-auto">
+          <!-- <div class="col-auto">
             <q-btn
               color="primary"
               icon="refresh"
@@ -54,7 +54,7 @@
               label="Exportar Tudo"
               @click="exportAllReports"
             />
-          </div>
+          </div> -->
         </div>
       </q-card-section>
     </q-card>
@@ -529,6 +529,7 @@ import { useQuasar } from 'quasar'
 import { useManejoStore } from 'stores/manejo'
 import { useTerrenoStore } from 'stores/terreno'
 import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+import { formatDate } from '../../utils/dateUtils'
 
 // Composables
 const $q = useQuasar()
@@ -709,13 +710,13 @@ async function onGlobalFilterChange() {
 
 function getPeriodoAtual() {
   if (filtrosGlobais.value.data_inicio && filtrosGlobais.value.data_fim) {
-    return `${formatarData(filtrosGlobais.value.data_inicio)} a ${formatarData(filtrosGlobais.value.data_fim)}`
+    return `${formatDate(filtrosGlobais.value.data_inicio)} a ${formatDate(filtrosGlobais.value.data_fim)}`
   }
   if (filtrosGlobais.value.data_inicio) {
-    return `A partir de ${formatarData(filtrosGlobais.value.data_inicio)}`
+    return `A partir de ${formatDate(filtrosGlobais.value.data_inicio)}`
   }
   if (filtrosGlobais.value.data_fim) {
-    return `Até ${formatarData(filtrosGlobais.value.data_fim)}`
+    return `Até ${formatDate(filtrosGlobais.value.data_fim)}`
   }
   return 'Todos os períodos'
 }
@@ -736,36 +737,36 @@ function getFullReportTitle() {
 }
 
 // Exportação
-async function exportAllReports() {
-  try {
-    $q.loading.show({ message: 'Gerando relatórios...' })
+// async function exportAllReports() {
+//   try {
+//     $q.loading.show({ message: 'Gerando relatórios...' })
     
-    // Simular geração de relatório
-    await new Promise(resolve => setTimeout(resolve, 2000))
+//     // Simular geração de relatório
+//     await new Promise(resolve => setTimeout(resolve, 2000))
     
-    $q.notify({
-      type: 'positive',
-      message: 'Relatório completo gerado com sucesso!',
-      actions: [
-        {
-          label: 'Download',
-          color: 'white',
-          handler: () => {
-            // Implementar download real
-            console.log('Iniciando download do relatório completo')
-          }
-        }
-      ]
-    })
-  } catch {
-    $q.notify({
-      type: 'negative',
-      message: 'Erro ao gerar relatório'
-    })
-  } finally {
-    $q.loading.hide()
-  }
-}
+//     $q.notify({
+//       type: 'positive',
+//       message: 'Relatório completo gerado com sucesso!',
+//       actions: [
+//         {
+//           label: 'Download',
+//           color: 'white',
+//           handler: () => {
+//             // Implementar download real
+//             console.log('Iniciando download do relatório completo')
+//           }
+//         }
+//       ]
+//     })
+//   } catch {
+//     $q.notify({
+//       type: 'negative',
+//       message: 'Erro ao gerar relatório'
+//     })
+//   } finally {
+//     $q.loading.hide()
+//   }
+// }
 
 async function exportConsumoTerreno() {
   await exportReport('consumo-terreno', consumoTerreno.value)

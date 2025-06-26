@@ -4,7 +4,7 @@
     <q-card flat class="q-mb-md">
       <q-card-section>
         <div class="row q-gutter-md items-end">
-          <div class="col-md-3 col-12">
+          <div class="col-md-2 col-12">
             <q-select
               v-model="filtros.terreno_id"
               :options="terrenoOptions"
@@ -57,6 +57,9 @@
             />
           </div>
           
+        </div>
+
+        <div class="row q-gutter-md items-end q-mt-sm">
           <div class="col-auto">
             <q-btn
               color="primary"
@@ -70,7 +73,7 @@
     </q-card>
 
     <!-- CARDS DE RESUMO -->
-    <div class="row q-gutter-md q-mb-md">
+    <div class="row q-gutter-md q-mb-md justify-center">
       <div class="col-md-3 col-12">
         <q-card>
           <q-card-section>
@@ -116,7 +119,7 @@
         </q-card>
       </div>
       
-      <div class="col-md-3 col-12">
+      <div class="col-md-2 col-12">
         <q-card>
           <q-card-section>
             <div class="text-h6 text-purple">

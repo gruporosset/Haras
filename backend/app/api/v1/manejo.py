@@ -1286,13 +1286,13 @@ async def relatorio_terrenos_liberacao(
         mt.TIPO_MANEJO as tipo_manejo,
         mt.DATA_APLICACAO as data_aplicacao,
         mt.DATA_LIBERACAO as data_liberacao,
-        TRUNC(mt.DATA_LIBERACAO - SYSDATE) as dias_para_liberacao
+        TRUNC(mt.DATA_LIBERACAO - TRUNC(SYSDATE)) as dias_para_liberacao
     FROM MANEJO_TERRENOS mt
     JOIN TERRENOS t ON mt.ID_TERRENO = t.ID
     JOIN PRODUTOS_MANEJO p ON mt.ID_PRODUTO = p.ID
     WHERE mt.DATA_LIBERACAO IS NOT NULL
-        AND mt.DATA_LIBERACAO BETWEEN SYSDATE AND SYSDATE + :dias_futuro
-        AND mt.DATA_LIBERACAO > SYSDATE
+        AND mt.DATA_LIBERACAO BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE) + :dias_futuro
+        AND mt.DATA_LIBERACAO > TRUNC(SYSDATE)
     ORDER BY mt.DATA_LIBERACAO, t.NOME
     """
 

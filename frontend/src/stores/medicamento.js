@@ -206,7 +206,9 @@ export const useMedicamentoStore = defineStore('medicamento', {
           queryParams.tipo = queryParams.tipo.value
         }
 
-        const response = await api.get('/api/medicamentos/movimentacoes', { params: queryParams })
+        const response = await api.get('/api/medicamentos/movimentacoes/lista', {
+          params: queryParams,
+        })
 
         this.movimentacoes = response.data.movimentacoes
         this.pagination = {

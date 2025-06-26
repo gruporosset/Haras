@@ -165,6 +165,9 @@ export const useManejoStore = defineStore('manejo', {
         if (queryParams.tipo_produto?.value) {
           queryParams.tipo_produto = queryParams.tipo_produto.value
         }
+        if (queryParams.ativo?.value) {
+          queryParams.ativo = queryParams.ativo.value
+        }
 
         const response = await api.get('/api/manejo/produtos', { params: queryParams })
 

@@ -570,7 +570,7 @@
                 <div class="row q-gutter-md q-mt-md">
                 <q-input
                     v-model.number="estoqueForm.QUANTIDADE"
-                    label="Quantidade"
+                    label="Quantidade *"
                     type="number"
                     step="0.1"
                     :suffix="estoqueForm.unidade_medida || ''"
@@ -581,11 +581,10 @@
                     v-model="estoqueForm.LOTE"
                     label="Lote"
                     class="col-4"
-                    :rules="[val => !!val || 'Lote é obrigatório']"
                 />
                 <calendario-component
                     v-model="estoqueForm.DATA_VALIDADE"
-                    label="Data Validade"
+                    label="Data Validade *"
                     class="col-4"
                     :rules="[val => !!val || 'Data de validade é obrigatória']"
                 />
@@ -704,7 +703,7 @@
                 <div class="row q-gutter-md">
                 <q-input
                     v-model="form.NOME"
-                    label="Nome do Medicamento"
+                    label="Nome do Medicamento *"
                     class="col-6"
                     :rules="[val => !!val || 'Nome é obrigatório']"
                 />
@@ -724,13 +723,14 @@
                 <q-select
                     v-model="form.FORMA_FARMACEUTICA"
                     :options="medicamentoStore.formasFarmaceuticas"
-                    label="Forma Farmacêutica"
+                    label="Forma Farmacêutica *"
                     class="col-4"
+                    :rules="[val => !!val || 'Forma Farmacêutica é obrigatória']"
                 />
                 <q-select
                     v-model="form.UNIDADE_MEDIDA"
                     :options="medicamentoStore.unidadesMedida"
-                    label="Unidade de Medida"
+                    label="Unidade de Medida *"
                     class="col-4"
                     :rules="[val => !!val || 'Unidade é obrigatória']"
                 />
@@ -759,11 +759,12 @@
                 />
                 <q-input
                     v-model.number="form.PRECO_UNITARIO"
-                    label="Preço Unitário"
+                    label="Preço Unitário *"
                     type="number"
                     step="0.01"
                     prefix="R$"
                     class="col-4"
+                    :rules="[val => !!val || 'Preço Unitário é obrigatório']"
                 />
                 <q-input
                     v-model.number="form.PERIODO_CARENCIA"

@@ -43,7 +43,9 @@
               @update:model-value="onFilterChange"
             />
           </div>
+        </div>
           
+        <div class="row q-gutter-md items-end q-mt-sm">
           <div class="col-auto">
             <q-btn-group>
               <q-btn
@@ -72,7 +74,7 @@
     </q-card>
 
     <!-- CARDS DE RESUMO -->
-    <div class="row q-gutter-md q-mb-md">
+    <div class="row q-gutter-md q-mb-md justify-center">
       <div class="col-md-3 col-12">
         <q-card>
           <q-card-section>

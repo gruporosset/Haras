@@ -11,6 +11,7 @@
               dense
               clearable
               @update:model-value="onFilterChange"
+              debounce="300"
             >
               <template v-slot:prepend>
                 <q-icon name="search" />
@@ -46,11 +47,14 @@
                 { label: 'Todos', value: '' }
               ]"
               label="Status"
+              clearable
               dense
               @update:model-value="onFilterChange"
             />
           </div>
+        </div>
           
+        <div class="row q-gutter-md items-end q-mt-sm">
           <div class="col-auto">
             <q-btn
               color="primary"
@@ -701,7 +705,7 @@ const filtros = ref({
   nome: '',
   tipo_produto: null,
   estoque_baixo: false,
-  ativo: 'S'
+  ativo: null
 })
 
 // Formulários

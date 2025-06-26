@@ -848,6 +848,7 @@ import Chart from 'chart.js/auto'
         modalRegistro.value = false
         buscarRegistros()
       } catch (error) {
+        console.log('Erro ao salvar registro:', error)
         $q.notify({
           type: 'negative',
           message: 'Erro ao salvar registro: ' + error.message

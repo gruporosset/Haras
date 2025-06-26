@@ -219,11 +219,14 @@ async def aplicar_medicamento(
             status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
 
     # Verificar estoque
-    if medicamento.ESTOQUE_ATUAL < aplicacao.QUANTIDADE:
+    if medicamento.ESTOQUE_ATUAL < aplicacao.QUANTIDADE_APLICADA:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
         )
+
+    custo = medicamento.PRECO_UNITARIO * \
+        aplicacao.QUANTIDADE_APLICADA if medicamento.PRECO_UNITARIO else 0
 
     # Criar registro de saúde
     saude = SaudeAnimais(
@@ -231,43 +234,46 @@ async def aplicar_medicamento(
         TIPO_REGISTRO="MEDICAMENTO",
         DATA_OCORRENCIA=datetime.now(),
         DESCRICAO=f"Aplicação de {medicamento.NOME}",
+        VETERINARIO_RESPONSAVEL=aplicacao.VETERINARIO_RESPONSAVEL,
         MEDICAMENTO_APLICADO=medicamento.NOME,
-        DOSE_APLICADA=f"{aplicacao.QUANTIDADE} {medicamento.UNIDADE_MEDIDA}",
-        ID_MEDICAMENTO=aplicacao.ID_MEDICAMENTO,
-        QUANTIDADE_APLICADA=aplicacao.QUANTIDADE,
-        UNIDADE_APLICADA=medicamento.UNIDADE_MEDIDA,
+        DOSE_APLICADA=f"{aplicacao.QUANTIDADE_APLICADA} {medicamento.UNIDADE_MEDIDA}",
+        CUSTO=custo,
         OBSERVACOES=aplicacao.OBSERVACOES,
+        DATA_REGISTRO=datetime.now(),
+        ID_MEDICAMENTO=aplicacao.ID_MEDICAMENTO,
+        QUANTIDADE_APLICADA=aplicacao.QUANTIDADE_APLICADA,
+        UNIDADE_APLICADA=medicamento.UNIDADE_MEDIDA,
         ID_USUARIO_REGISTRO=current_user.ID
     )
 
     db.add(saude)
-    db.flush()  # Para obter o ID
+    # db.flush()  # Para obter o ID
 
     # Movimentação será criada automaticamente pelo trigger
     # Mas vamos criar manualmente para ter controle total
-    movimentacao = MovimentacaoMedicamento(
-        ID_MEDICAMENTO=aplicacao.ID_MEDICAMENTO,
-        TIPO_MOVIMENTACAO=TipoMovimentacaoEnum.SAIDA,
-        QUANTIDADE=aplicacao.QUANTIDADE,
-        ID_ANIMAL=aplicacao.ID_ANIMAL,
-        ID_SAUDE_ANIMAL=saude.ID,
-        MOTIVO=f"Aplicação em {animal.NOME}",
-        OBSERVACOES=aplicacao.OBSERVACOES,
-        ID_USUARIO_REGISTRO=current_user.ID
-    )
+    # movimentacao = MovimentacaoMedicamento(
+    #     ID_MEDICAMENTO=aplicacao.ID_MEDICAMENTO,
+    #     TIPO_MOVIMENTACAO=TipoMovimentacaoEnum.SAIDA,
+    #     QUANTIDADE=aplicacao.QUANTIDADE_APLICADA,
+    #     ID_ANIMAL=aplicacao.ID_ANIMAL,
+    #     ID_SAUDE_ANIMAL=saude.ID,
+    #     MOTIVO=f"Aplicação em {animal.NOME}",
+    #     OBSERVACOES=aplicacao.OBSERVACOES,
+    #     ID_USUARIO_REGISTRO=current_user.ID
+    # )
 
-    db.add(movimentacao)
+    # db.add(movimentacao)
     db.commit()
 
     return {
         "message": "Medicamento aplicado com sucesso",
-        "saude_id": saude.ID,
-        "movimentacao_id": movimentacao.ID,
-        "estoque_restante": movimentacao.QUANTIDADE_ATUAL
+        "saude_id": saude.ID
+        # "movimentacao_id": movimentacao.ID,
+        # "estoque_restante": movimentacao.QUANTIDADE_ATUAL
     }
 
 
-@router.get("/movimentacoes", response_model=dict)
+@router.get("/movimentacoes/lista", response_model=dict)
 async def list_movimentacoes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
