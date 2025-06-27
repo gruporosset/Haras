@@ -34,4 +34,7 @@ from .saude import (SaudeBase, SaudeCreate, SaudeUpdate,
                     AplicacaoRapida, EstatisticasSaude, ProximasAplicacoes,
                     HistoricoSaude, CalendarioSaude, ConsumoPorTipo, MedicamentoAutocomplete,
                     VeterinarioEstatisticas)
+from .ferrageamento import (FerrageamentoCreate, FerrageamentoUpdate, FerrageamentoResponse,
+                            EstatisticasFerrageamento, FerradorEstatisticas, AlertaVencimento,
+                            RelatorioFerrageamento, FerrageamentoRapido, TipoFerrageamentoEnum)
 from .sessao import SessaoRefreshTokenRequest

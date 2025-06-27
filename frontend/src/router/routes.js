@@ -1,17 +1,18 @@
-import LoginPage from '../pages/LoginPage.vue'
-import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue'
-import ResetPasswordPage from '../pages/ResetPasswordPage.vue'
-import DashboardPage from '../pages/DashboardPage.vue'
-import ProfilePage from '../pages/ProfilePage.vue'
-import TerrenosPage from '../pages/TerrenosPage.vue'
-import AnimaisPage from '../pages/AnimaisPage.vue'
-import CrescimentoPage from '../pages/CrescimentoPage.vue'
-import CrescimentoAnimalPage from '../pages/CrescimentoAnimalPage.vue'
-import MovimentacoesPage from '../pages/MovimentacoesPage.vue'
-import ReproducaoPage from '../pages/ReproducaoPage.vue'
-import ManejoPage from '../pages/ManejoPage.vue'
-import MedicamentosPage from '../pages/MedicamentosPage.vue'
+import LoginPage from 'pages/LoginPage.vue'
+import ForgotPasswordPage from 'pages/ForgotPasswordPage.vue'
+import ResetPasswordPage from 'pages/ResetPasswordPage.vue'
+import DashboardPage from 'pages/DashboardPage.vue'
+import ProfilePage from 'pages/ProfilePage.vue'
+import TerrenosPage from 'pages/TerrenosPage.vue'
+import AnimaisPage from 'pages/AnimaisPage.vue'
+import CrescimentoPage from 'pages/CrescimentoPage.vue'
+import CrescimentoAnimalPage from 'pages/CrescimentoAnimalPage.vue'
+import MovimentacoesPage from 'pages/MovimentacoesPage.vue'
+import ReproducaoPage from 'pages/ReproducaoPage.vue'
+import ManejoPage from 'pages/ManejoPage.vue'
+import MedicamentosPage from 'pages/MedicamentosPage.vue'
 import SaudePage from 'pages/SaudePage.vue'
+import FerrageamentoPage from 'pages/FerrageamentoPage.vue'
 
 const routes = [
   {
@@ -101,6 +102,12 @@ const routes = [
     meta: {
       requiresAuth: true,
     },
+  },
+  {
+    path: '/ferrageamento',
+    name: 'Ferrageamento',
+    component: FerrageamentoPage,
+    meta: { requiresAuth: true },
   },
 
   {

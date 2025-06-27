@@ -11,7 +11,7 @@ from .saude import SaudeAnimais
 from .movimentacao import MovimentacaoAnimais
 from .reproducao import Reproducao
 from .manejo import ProdutoManejo, MovimentacaoProdutoManejo, AnalisesSolo, ManejoTerrenos
-
+from .ferrageamento import FerrageamentoResumo, FerrageamentoMixin
 # Garante que todos os modelos são importados e registrados
 __all__ = ['User',
            'MFAConfig',
@@ -27,5 +27,7 @@ __all__ = ['User',
            'ProdutoManejo',
            'MovimentacaoProdutoManejo',
            'AnalisesSolo',
-           'ManejoTerrenos'
+           'ManejoTerrenos',
+           'FerrageamentoResumo',
+           'FerrageamentoMixin'
            ]

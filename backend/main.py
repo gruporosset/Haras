@@ -12,6 +12,7 @@ from app.api.v1.movimentacao import router as movimentacao_router
 from app.api.v1.reproducao import router as reproducao_router
 from app.api.v1.manejo import router as manejo_router
 from app.api.v1.medicamento import router as medicamento_router
+from app.api.v1.ferrageamento import router as ferrageamento_router
 from app.core.database import engine
 
 app = FastAPI(title="Haras System API")
@@ -44,6 +45,7 @@ app.include_router(movimentacao_router)
 app.include_router(reproducao_router)
 app.include_router(manejo_router)
 app.include_router(medicamento_router)
+app.include_router(ferrageamento_router)
 
 
 @app.get("/")

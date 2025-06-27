@@ -72,6 +72,13 @@
               </q-item-section>
               <q-item-section>Saúde</q-item-section>
             </q-item>
+
+            <q-item to="/ferrageamento" clickable v-ripple>
+              <q-item-section avatar>
+                <q-icon name="construction" />
+              </q-item-section>
+              <q-item-section>Ferrageamento</q-item-section>
+            </q-item>            
             
             <q-item to="/reproducao" clickable v-ripple>
               <q-item-section avatar>
@@ -79,6 +86,7 @@
               </q-item-section>
               <q-item-section>Reprodução</q-item-section>
             </q-item>
+
             <q-item to="/movimentacoes" clickable v-ripple>
               <q-item-section avatar>
                 <q-icon name="swap_horiz" />

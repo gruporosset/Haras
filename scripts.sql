@@ -2,880 +2,753 @@
 -- Tables
 -- ========================================
 
-create table usuarios (
-   id                    number
-      generated always as identity
-   primary key,
-   nome_completo         varchar2(200) not null,
-   email                 varchar2(100) not null unique,
-   senha_hash            varchar2(500), -- Aumentar para algoritmos modernos 
-   salt                  varchar2(100), -- CRÍTICO: Salt único por usuário 
-   data_cadastro         date default sysdate,
-   data_ultimo_login     date,
-   token_cadastro        varchar2(500),
-   token_cadastro_expira date, -- CRÍTICO: Expiração do token
-   reset_password_token  varchar2(500),
-   reset_token_expira    date, -- CRÍTICO: Expiração do reset 
-   tentativas_login      number default 0, -- Controle de força bruta
-   bloqueado_ate         date, -- Bloqueio temporário 
-   perfil                varchar2(20) default 'USER' check ( perfil in ( 'ADMIN',
-                                                          'USER',
-                                                          'READONLY' ) ),
-   primeiro_acesso       char(1) default 'S',
-   ativo                 char(1) default 'S' check ( ativo in ( 'S',
-                                                'N' ) ),
-   mfa_ativo             char(1) default 'N' check ( mfa_ativo in ( 'S',
-                                                        'N' ) )
+CREATE TABLE USUARIOS ( 
+   ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, 
+   NOME_COMPLETO VARCHAR2(200) NOT NULL, 
+   EMAIL VARCHAR2(100) NOT NULL UNIQUE, 
+   SENHA_HASH VARCHAR2(500), -- Aumentar para algoritmos modernos 
+   SALT VARCHAR2(100), -- CRÍTICO: Salt único por usuário 
+   DATA_CADASTRO DATE DEFAULT SYSDATE, 
+   DATA_ULTIMO_LOGIN DATE, 
+   TOKEN_CADASTRO VARCHAR2(500), 
+   TOKEN_CADASTRO_EXPIRA DATE, -- CRÍTICO: Expiração do token
+   RESET_PASSWORD_TOKEN VARCHAR2(500), 
+   RESET_TOKEN_EXPIRA DATE, -- CRÍTICO: Expiração do reset 
+   TENTATIVAS_LOGIN NUMBER DEFAULT 0, -- Controle de força bruta
+   BLOQUEADO_ATE DATE, -- Bloqueio temporário 
+   PERFIL VARCHAR2(20) DEFAULT 'USER' CHECK (PERFIL IN ('ADMIN', 'USER', 'READONLY')), 
+   PRIMEIRO_ACESSO CHAR(1) DEFAULT 'S', 
+   ATIVO CHAR(1) DEFAULT 'S' CHECK (ATIVO IN ('S', 'N')),
+   MFA_ATIVO CHAR(1) DEFAULT 'N' CHECK (MFA_ATIVO IN ('S', 'N'))
 );
 
-create table animais (
-   id                    number
-      generated always as identity
-   primary key,
-   nome                  varchar2(100) not null,
-   numero_registro       varchar2(50) unique,
-   chip_identificacao    varchar2(50) unique,
-   sexo                  char(1) check ( sexo in ( 'M',
-                                  'F' ) ),
-   data_nascimento       date,
-   pelagem               varchar2(50),
-   status_animal         varchar2(20) default 'ATIVO',
-   id_pai                number
-      references animais ( id ),
-   id_mae                number
-      references animais ( id ),
-   origem                varchar2(100),
-   id_usuario_cadastro   number
-      references usuarios ( id ),
-   data_cadastro         date default sysdate,
-   id_usuario_alteracao  number
-      references usuarios ( id ),
-   data_alteracao        date,
-   observacoes           clob,
-   proprietario          varchar2(200),
-   contato_proprietario  varchar2(200),
-   cpf_cnpj_proprietario varchar2(20)
+CREATE TABLE ANIMAIS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    NOME VARCHAR2(100) NOT NULL,
+    NUMERO_REGISTRO VARCHAR2(50) UNIQUE,
+    CHIP_IDENTIFICACAO VARCHAR2(50) UNIQUE,
+    SEXO CHAR(1) CHECK (SEXO IN ('M', 'F')),
+    DATA_NASCIMENTO DATE,
+    PELAGEM VARCHAR2(50),
+    STATUS_ANIMAL VARCHAR2(20) DEFAULT 'ATIVO',
+    ID_PAI NUMBER REFERENCES ANIMAIS(ID),
+    ID_MAE NUMBER REFERENCES ANIMAIS(ID),
+    ORIGEM VARCHAR2(100),
+    ID_USUARIO_CADASTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_CADASTRO DATE DEFAULT SYSDATE,
+    ID_USUARIO_ALTERACAO NUMBER REFERENCES USUARIOS(ID),
+    DATA_ALTERACAO DATE,
+    OBSERVACOES CLOB,
+	PROPRIETARIO VARCHAR2(200),
+    CONTATO_PROPRIETARIO VARCHAR2(200),
+    CPF_CNPJ_PROPRIETARIO VARCHAR2(20)    
 );
 
-create table medicamentos (
-   id                  number
-      generated always as identity
-   primary key,
-   nome                varchar2(200) not null,
-   principio_ativo     varchar2(200),
-   concentracao        varchar2(100),
-   forma_farmaceutica  varchar2(50), -- INJETAVEL, ORAL, TOPICO
-   fabricante          varchar2(100),
-   registro_mapa       varchar2(50),
+CREATE TABLE MEDICAMENTOS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    NOME VARCHAR2(200) NOT NULL,
+    PRINCIPIO_ATIVO VARCHAR2(200),
+    CONCENTRACAO VARCHAR2(100),
+    FORMA_FARMACEUTICA VARCHAR2(50), -- INJETAVEL, ORAL, TOPICO
+    FABRICANTE VARCHAR2(100),
+    REGISTRO_MAPA VARCHAR2(50),
     
     -- Controle de Estoque
-   estoque_atual       number(10,2) default 0,
-   estoque_minimo      number(10,2) default 0,
-   unidade_medida      varchar2(20) not null, -- ML, G, COMPRIMIDO, DOSE
+    ESTOQUE_ATUAL NUMBER(10,2) DEFAULT 0,
+    ESTOQUE_MINIMO NUMBER(10,2) DEFAULT 0,
+    UNIDADE_MEDIDA VARCHAR2(20) NOT NULL, -- ML, G, COMPRIMIDO, DOSE
     
     -- Validade e Lote
-   lote_atual          varchar2(50),
-   data_validade       date,
-   data_fabricacao     date,
+    LOTE_ATUAL VARCHAR2(50),
+    DATA_VALIDADE DATE,
+    DATA_FABRICACAO DATE,
     
     -- Custos
-   preco_unitario      number(10,2),
-   fornecedor          varchar2(100),
+    PRECO_UNITARIO NUMBER(10,2),
+    FORNECEDOR VARCHAR2(100),
     
     -- Prescrição
-   requer_receita      char(1) default 'N' check ( requer_receita in ( 'S',
-                                                                  'N' ) ),
-   periodo_carencia    number(3), -- dias para abate
-
-   observacoes         clob,
-   ativo               char(1) default 'S' check ( ativo in ( 'S',
-                                                'N' ) ),
-   id_usuario_cadastro number
-      references usuarios ( id ),
-   data_cadastro       date default sysdate
+    REQUER_RECEITA CHAR(1) DEFAULT 'N' CHECK (REQUER_RECEITA IN ('S', 'N')),
+    PERIODO_CARENCIA NUMBER(3), -- dias para abate
+    
+    OBSERVACOES CLOB,
+    ATIVO CHAR(1) DEFAULT 'S' CHECK (ATIVO IN ('S', 'N')),
+    ID_USUARIO_CADASTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_CADASTRO DATE DEFAULT SYSDATE
 );
 
-create table movimentacao_medicamentos (
-   id                  number
-      generated always as identity
-   primary key,
-   id_medicamento      number not null
-      references medicamentos ( id ),
-   tipo_movimentacao   varchar2(20) not null, -- ENTRADA, SAIDA, AJUSTE
-   quantidade          number(10,2) not null,
-   quantidade_anterior number(10,2),
-   quantidade_atual    number(10,2),
+CREATE TABLE MOVIMENTACAO_MEDICAMENTOS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_MEDICAMENTO NUMBER NOT NULL REFERENCES MEDICAMENTOS(ID),
+    TIPO_MOVIMENTACAO VARCHAR2(20) NOT NULL, -- ENTRADA, SAIDA, AJUSTE
+    QUANTIDADE NUMBER(10,2) NOT NULL,
+    QUANTIDADE_ANTERIOR NUMBER(10,2),
+    QUANTIDADE_ATUAL NUMBER(10,2),
     
     -- Referência para saída (aplicação em animal)
-   id_animal           number
-      references animais ( id ),
-   id_saude_animal     number
-      references saude_animais ( id ),
+    ID_ANIMAL NUMBER REFERENCES ANIMAIS(ID),
+    ID_SAUDE_ANIMAL NUMBER REFERENCES SAUDE_ANIMAIS(ID),
     
     -- Dados da entrada (compra)
-   nota_fiscal         varchar2(100),
-   fornecedor          varchar2(100),
-   preco_unitario      number(10,2),
-   lote                varchar2(50),
-   data_validade       date,
-   motivo              varchar2(200),
-   observacoes         clob,
-   id_usuario_registro number
-      references usuarios ( id ),
-   data_registro       date default sysdate
+    NOTA_FISCAL VARCHAR2(100),
+    FORNECEDOR VARCHAR2(100),
+    PRECO_UNITARIO NUMBER(10,2),
+    LOTE VARCHAR2(50),
+    DATA_VALIDADE DATE,
+    
+    MOTIVO VARCHAR2(200),
+    OBSERVACOES CLOB,
+    ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_REGISTRO DATE DEFAULT SYSDATE
 );
 
 
-create table terrenos (
-   id                  number
-      generated always as identity
-   primary key,
-   nome                varchar2(100) not null,
-   area_hectares       number(8,4) not null,
-   tipo_solo           varchar2(50),
-   topografia          varchar2(50),
-   tipo_pastagem       varchar2(100),
-   capacidade_animais  number(3),
-   latitude            number(9,6) not null,
-   longitude           number(9,6) not null,
-   status_terreno      varchar2(20) default 'DISPONIVEL',
-   observacoes         clob,
-   id_usuario_cadastro number
-      references usuarios ( id ),
-   data_cadastro       date default sysdate
+CREATE TABLE TERRENOS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    NOME VARCHAR2(100) NOT NULL,
+    AREA_HECTARES NUMBER(8,4) NOT NULL,
+    TIPO_SOLO VARCHAR2(50),
+    TOPOGRAFIA VARCHAR2(50),
+    TIPO_PASTAGEM VARCHAR2(100),
+    CAPACIDADE_ANIMAIS NUMBER(3),
+    LATITUDE NUMBER(9,6) NOT NULL,
+    LONGITUDE NUMBER(9,6) NOT NULL,
+    STATUS_TERRENO VARCHAR2(20) DEFAULT 'DISPONIVEL',
+    OBSERVACOES CLOB,
+    ID_USUARIO_CADASTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_CADASTRO DATE DEFAULT SYSDATE
 );
 
 
-create table historico_crescimento (
-   id                      number
-      generated always as identity
-   primary key,
-   id_animal               number not null
-      references animais ( id ),
-   data_medicao            date not null,
-   peso                    number(6,2),
-   altura                  number(5,2),
-   circunferencia_canela   number(5,2),
-   circunferencia_toracica number(5,2),
-   comprimento_corpo       number(5,2),
-   observacoes             varchar2(500),
-   id_usuario_registro     number
-      references usuarios ( id ),
-   data_registro           date default sysdate
+CREATE TABLE HISTORICO_CRESCIMENTO (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_ANIMAL NUMBER NOT NULL REFERENCES ANIMAIS(ID),
+    DATA_MEDICAO DATE NOT NULL,
+    PESO NUMBER(6,2),
+    ALTURA NUMBER(5,2),
+    CIRCUNFERENCIA_CANELA NUMBER(5,2),
+    CIRCUNFERENCIA_TORACICA NUMBER(5,2),
+    COMPRIMENTO_CORPO NUMBER(5,2),
+    OBSERVACOES VARCHAR2(500),
+    ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_REGISTRO DATE DEFAULT SYSDATE
 );
 
-create table movimentacoes_animais (
-   id                  number
-      generated always as identity
-   primary key,
-   id_animal           number not null
-      references animais ( id ),
-   tipo_movimentacao   varchar2(50) not null,
-   data_movimentacao   date not null,
-   id_terreno_origem   number
-      references terrenos ( id ), -- FK em vez de texto
-   id_terreno_destino  number
-      references terrenos ( id ), -- FK em vez de texto
-   origem_externa      varchar2(100), -- Para origens fora da fazenda
-   destino_externo     varchar2(100), -- Para destinos fora da fazenda 
-   motivo              varchar2(200),
-   observacoes         clob,
-   id_usuario_registro number
-      references usuarios ( id ),
-   data_registro       date default sysdate, -- Constraint para garantir origem ou destino 
-   constraint chk_movimentacao_origem
-      check ( id_terreno_origem is not null
-          or origem_externa is not null ),
-   constraint chk_movimentacao_destino
-      check ( id_terreno_destino is not null
-          or destino_externo is not null )
+CREATE TABLE MOVIMENTACOES_ANIMAIS ( 
+   ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, 
+   ID_ANIMAL NUMBER NOT NULL REFERENCES ANIMAIS(ID), 
+   TIPO_MOVIMENTACAO VARCHAR2(50) NOT NULL, 
+   DATA_MOVIMENTACAO DATE NOT NULL, 
+   ID_TERRENO_ORIGEM NUMBER REFERENCES TERRENOS(ID), -- FK em vez de texto
+   ID_TERRENO_DESTINO NUMBER REFERENCES TERRENOS(ID), -- FK em vez de texto
+   ORIGEM_EXTERNA VARCHAR2(100), -- Para origens fora da fazenda
+   DESTINO_EXTERNO VARCHAR2(100), -- Para destinos fora da fazenda 
+   MOTIVO VARCHAR2(200), 
+   OBSERVACOES CLOB, 
+   ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID), 
+   DATA_REGISTRO DATE DEFAULT SYSDATE, -- Constraint para garantir origem ou destino 
+   CONSTRAINT chk_movimentacao_origem CHECK ( ID_TERRENO_ORIGEM IS NOT NULL OR ORIGEM_EXTERNA IS NOT NULL ), 
+   CONSTRAINT chk_movimentacao_destino CHECK ( ID_TERRENO_DESTINO IS NOT NULL OR DESTINO_EXTERNO IS NOT NULL ) 
 );
 
-create table reproducao (
-   id                    number
-      generated always as identity
-   primary key,
-   id_egua               number not null
-      references animais ( id ),
-   id_parceiro           number
-      references animais ( id ),
-   tipo_cobertura        varchar2(20) check ( tipo_cobertura in ( 'NATURAL',
-                                                           'IA',
-                                                           'TE' ) ),
-   data_cobertura        date not null,
-   data_diagnostico      date,
-   resultado_diagnostico varchar2(20) check ( resultado_diagnostico in ( 'POSITIVO',
-                                                                         'NEGATIVO',
-                                                                         'PENDENTE' ) ),
-   data_parto_prevista   date,
-   data_parto_real       date,
-   observacoes           clob,
-   status_reproducao     varchar2(20) default 'ATIVO' check ( status_reproducao in ( 'ATIVO',
-                                                                                 'CONCLUIDO',
-                                                                                 'FALHADO' ) ), -- Ativo, Concluído, Falhado
-   id_usuario_registro   number
-      references usuarios ( id ),
-   data_registro         date default sysdate,
+CREATE TABLE REPRODUCAO (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_EGUA NUMBER NOT NULL REFERENCES ANIMAIS(ID),
+    ID_PARCEIRO NUMBER REFERENCES ANIMAIS(ID),
+    TIPO_COBERTURA VARCHAR2(20) CHECK (TIPO_COBERTURA IN ('NATURAL', 'IA', 'TE')),
+    DATA_COBERTURA DATE NOT NULL,
+    DATA_DIAGNOSTICO DATE,
+    RESULTADO_DIAGNOSTICO VARCHAR2(20) CHECK (RESULTADO_DIAGNOSTICO IN ('POSITIVO', 'NEGATIVO', 'PENDENTE')),
+    DATA_PARTO_PREVISTA DATE,
+    DATA_PARTO_REAL DATE,
+    OBSERVACOES CLOB,
+    STATUS_REPRODUCAO VARCHAR2(20) DEFAULT 'ATIVO' CHECK (STATUS_REPRODUCAO IN ('ATIVO', 'CONCLUIDO', 'FALHADO')), -- Ativo, Concluído, Falhado
+    ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_REGISTRO DATE DEFAULT SYSDATE,
     
     -- Validações importantes
-   constraint chk_datas_logicas
-      check ( data_diagnostico >= data_cobertura
-         and ( data_parto_prevista is null
-          or data_parto_prevista >= data_cobertura )
-         and ( data_parto_real is null
-          or data_parto_real >= data_cobertura ) )
+    CONSTRAINT chk_datas_logicas CHECK (
+        DATA_DIAGNOSTICO >= DATA_COBERTURA AND
+        (DATA_PARTO_PREVISTA IS NULL OR DATA_PARTO_PREVISTA >= DATA_COBERTURA) AND
+        (DATA_PARTO_REAL IS NULL OR DATA_PARTO_REAL >= DATA_COBERTURA)
+    )
 );
 
-create table saude_animais (
-   id                      number
-      generated always as identity
-   primary key,
-   id_animal               number not null
-      references animais ( id ),
-   tipo_registro           varchar2(50) not null,
-   data_ocorrencia         date not null,
-   descricao               varchar2(1000), -- Aumentar limite 
-   veterinario_responsavel varchar2(200),
-   medicamento_aplicado    varchar2(500),
-   dose_aplicada           varchar2(100),
-   proxima_aplicacao       date, -- Para vacinas/vermífugos 
-   custo                   number(10,2),
-   observacoes             clob,
-   id_usuario_registro     number
-      references usuarios ( id ),
-   data_registro           date default sysdate,
-   id_medicamento          number
-      references medicamentos ( id ),
-   quantidade_aplicada     number(10,2),
-   unidade_aplicada        varchar2(20)
+CREATE TABLE SAUDE_ANIMAIS ( 
+   ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, 
+   ID_ANIMAL NUMBER NOT NULL REFERENCES ANIMAIS(ID), 
+   TIPO_REGISTRO VARCHAR2(50) NOT NULL, 
+   DATA_OCORRENCIA DATE NOT NULL, 
+   DESCRICAO VARCHAR2(1000), -- Aumentar limite 
+   VETERINARIO_RESPONSAVEL VARCHAR2(200), 
+   MEDICAMENTO_APLICADO VARCHAR2(500), 
+   DOSE_APLICADA VARCHAR2(100), 
+   PROXIMA_APLICACAO DATE, -- Para vacinas/vermífugos 
+   CUSTO NUMBER(10,2), 
+   OBSERVACOES CLOB, 
+   ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID), 
+   DATA_REGISTRO DATE DEFAULT SYSDATE,
+   ID_MEDICAMENTO NUMBER REFERENCES MEDICAMENTOS(ID),
+   QUANTIDADE_APLICADA NUMBER(10,2),
+   UNIDADE_APLICADA VARCHAR2(20),
+   tipo_ferradura      VARCHAR2(100),  -- Tipo de ferradura aplicada
+   membro_tratado      VARCHAR2(50),   -- AD, AE, PD, PE, TODOS
+   problema_detectado  VARCHAR2(500),  -- Problemas encontrados no casco
+   tecnica_aplicada    VARCHAR2(200),  -- Técnica utilizada
+   ferrador_responsavel VARCHAR2(200), -- Nome do ferrador terceirizado
+   status_casco        VARCHAR2(100),  -- Estado geral do casco
+   proxima_avaliacao   DATE,            -- Data sugerida para próxima avaliação
+   CONSTRAINT chk_membro_tratado 
+    CHECK (membro_tratado IN ('AD', 'AE', 'PD', 'PE', 'TODOS')),
+   CONSTRAINT chk_status_casco 
+    CHECK (status_casco IN ('BOM', 'REGULAR', 'RUIM', 'PROBLEMA'))
+);
+
+ALTER TABLE saude_animais ADD CONSTRAINT chk_status_casco 
+    CHECK (status_casco IN ('BOM', 'REGULAR', 'RUIM', 'PROBLEMA'));
+
+CREATE TABLE PRODUTOS_MANEJO (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    NOME VARCHAR2(100) NOT NULL,
+    TIPO_PRODUTO VARCHAR2(50) NOT NULL, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
+    PRINCIPIO_ATIVO VARCHAR2(200),
+    CONCENTRACAO VARCHAR2(50),
+    UNIDADE_MEDIDA VARCHAR2(20) NOT NULL, -- KG, L, SC (SACA)
+    FABRICANTE VARCHAR2(100),
+    REGISTRO_MINISTERIO VARCHAR2(50),
+    ESTOQUE_ATUAL           NUMBER(12,3) DEFAULT 0 NOT NULL,
+    ESTOQUE_MINIMO          NUMBER(12,3) DEFAULT 0 NOT NULL,
+    ESTOQUE_MAXIMO          NUMBER(12,3),
+    PRECO_UNITARIO          NUMBER(12,2),
+    FORNECEDOR_PRINCIPAL    VARCHAR2(100),
+    CODIGO_FORNECEDOR       VARCHAR2(50),
+    LOTE_ATUAL              VARCHAR2(50),
+    DATA_VALIDADE           DATE,
+    DATA_ULTIMA_COMPRA      DATE,
+    DOSE_RECOMENDADA        NUMBER(8,3),
+    PERIODO_CARENCIA        NUMBER(3),
+    REQUER_RECEITUARIO      CHAR(1) DEFAULT 'N' CHECK (REQUER_RECEITUARIO IN ('S', 'N')),
+    LOCAL_ARMAZENAMENTO     VARCHAR2(100),
+    CONDICOES_ARMAZENAMENTO VARCHAR2(200),    
+    OBSERVACOES CLOB,
+    ATIVO CHAR(1) DEFAULT 'S' CHECK (ATIVO IN ('S', 'N')),
+    ID_USUARIO_CADASTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_CADASTRO DATE DEFAULT SYSDATE
 );
 
 
-create table produtos_manejo (
-   id                      number
-      generated always as identity
-   primary key,
-   nome                    varchar2(100) not null,
-   tipo_produto            varchar2(50) not null, -- FERTILIZANTE, DEFENSIVO, CORRETIVO
-   principio_ativo         varchar2(200),
-   concentracao            varchar2(50),
-   unidade_medida          varchar2(20) not null, -- KG, L, SC (SACA)
-   fabricante              varchar2(100),
-   registro_ministerio     varchar2(50),
-   estoque_atual           number(12,3) default 0 not null,
-   estoque_minimo          number(12,3) default 0 not null,
-   estoque_maximo          number(12,3),
-   preco_unitario          number(12,2),
-   fornecedor_principal    varchar2(100),
-   codigo_fornecedor       varchar2(50),
-   lote_atual              varchar2(50),
-   data_validade           date,
-   data_ultima_compra      date,
-   dose_recomendada        number(8,3),
-   periodo_carencia        number(3),
-   requer_receituario      char(1) default 'N' check ( requer_receituario in ( 'S',
-                                                                          'N' ) ),
-   local_armazenamento     varchar2(100),
-   condicoes_armazenamento varchar2(200),
-   observacoes             clob,
-   ativo                   char(1) default 'S' check ( ativo in ( 'S',
-                                                'N' ) ),
-   id_usuario_cadastro     number
-      references usuarios ( id ),
-   data_cadastro           date default sysdate
-);
-
-
-create table movimentacao_produtos_manejo (
-   id                  number
-      generated always as identity
-   primary key,
-   id_produto          number not null
-      references produtos_manejo ( id ),
-   tipo_movimentacao   varchar2(20) not null check ( tipo_movimentacao in ( 'ENTRADA',
-                                                                          'SAIDA',
-                                                                          'AJUSTE' ) ),
+CREATE TABLE MOVIMENTACAO_PRODUTOS_MANEJO (
+    ID                    NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_PRODUTO            NUMBER NOT NULL REFERENCES PRODUTOS_MANEJO(ID),
+    TIPO_MOVIMENTACAO     VARCHAR2(20) NOT NULL CHECK (TIPO_MOVIMENTACAO IN ('ENTRADA', 'SAIDA', 'AJUSTE')),
     -- Quantidades
-   quantidade          number(12,3) not null,
-   quantidade_anterior number(12,3),
-   quantidade_atual    number(12,3),
+    QUANTIDADE            NUMBER(12,3) NOT NULL,
+    QUANTIDADE_ANTERIOR   NUMBER(12,3),
+    QUANTIDADE_ATUAL      NUMBER(12,3),
     -- Referência para aplicação (saída)
-   id_manejo_terreno   number
-      references manejo_terrenos ( id ),
-   id_terreno          number
-      references terrenos ( id ),
+    ID_MANEJO_TERRENO     NUMBER REFERENCES MANEJO_TERRENOS(ID),
+    ID_TERRENO            NUMBER REFERENCES TERRENOS(ID),
     -- Dados da entrada (compra)
-   nota_fiscal         varchar2(100),
-   fornecedor          varchar2(100),
-   preco_unitario      number(12,2),
-   lote                varchar2(50),
-   data_validade       date,
-   data_fabricacao     date,
+    NOTA_FISCAL           VARCHAR2(100),
+    FORNECEDOR            VARCHAR2(100),
+    PRECO_UNITARIO        NUMBER(12,2),
+    LOTE                  VARCHAR2(50),
+    DATA_VALIDADE         DATE,
+    DATA_FABRICACAO       DATE,
     -- Observações
-   motivo              varchar2(200),
-   observacoes         clob,
-   id_usuario_registro number
-      references usuarios ( id ),
-   data_registro       date default sysdate
+    MOTIVO                VARCHAR2(200),
+    OBSERVACOES           CLOB,
+    ID_USUARIO_REGISTRO   NUMBER REFERENCES USUARIOS(ID),
+    DATA_REGISTRO         DATE DEFAULT SYSDATE
 );
 
 
-create table manejo_terrenos (
-   id                    number
-      generated always as identity
-   primary key,
-   id_terreno            number not null
-      references terrenos ( id ),
-   tipo_manejo           varchar2(50) not null,
-   data_aplicacao        date not null,
-   id_produto            number not null
-      references produtos_manejo ( id ),
-   quantidade            number(10,3),
-   unidade_medida        varchar2(20),
-   observacoes           clob,
-   dose_hectare          float,
-   area_aplicada         float,
-   custo_total           float,
-   equipamento_utilizado varchar2(100),
-   condicoes_climaticas  varchar2(100),
-   id_usuario_registro   number
-      references usuarios ( id ),
-   data_registro         date default sysdate,
-   periodo_carencia      number(3), -- dias sem animais
-   data_liberacao        date, -- calculado automaticamente    
-   custo_produto         number(12,2),
-   custo_aplicacao       number(12,2),
-   periodo_carencia      number(3), -- DIAS SEM ANIMAIS
-   data_liberacao        date -- CALCULADO AUTOMATICAMENTE
-
+CREATE TABLE MANEJO_TERRENOS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_TERRENO NUMBER NOT NULL REFERENCES TERRENOS(ID),
+    TIPO_MANEJO VARCHAR2(50) NOT NULL,
+    DATA_APLICACAO DATE NOT NULL,
+    ID_PRODUTO NUMBER NOT NULL REFERENCES PRODUTOS_MANEJO(ID),
+    QUANTIDADE NUMBER(10,3),
+    UNIDADE_MEDIDA VARCHAR2(20),
+    OBSERVACOES CLOB,
+    DOSE_HECTARE FLOAT, 
+    AREA_APLICADA FLOAT, 
+    CUSTO_TOTAL FLOAT, 
+    EQUIPAMENTO_UTILIZADO VARCHAR2(100), 
+    CONDICOES_CLIMATICAS VARCHAR2(100),
+    ID_USUARIO_REGISTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_REGISTRO DATE DEFAULT SYSDATE,
+	PERIODO_CARENCIA NUMBER(3), -- dias sem animais
+	DATA_LIBERACAO DATE, -- calculado automaticamente    
+    CUSTO_PRODUTO         NUMBER(12,2),
+    CUSTO_APLICACAO       NUMBER(12,2),
+    PERIODO_CARENCIA NUMBER(3), -- DIAS SEM ANIMAIS
+    DATA_LIBERACAO DATE -- CALCULADO AUTOMATICAMENTE
+	
 );
 
-create table audit_log (
-   id               number
-      generated always as identity
-   primary key,
-   tabela           varchar2(50) not null,
-   id_registro      number not null,
-   operacao         varchar2(10) not null,
-   dados_anteriores clob,
-   dados_novos      clob,
-   id_usuario       number
-      references usuarios ( id )
-   not null,
-   data_operacao    date default sysdate,
-   ip_usuario       varchar2(15)
+CREATE TABLE AUDIT_LOG (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    TABELA VARCHAR2(50) NOT NULL,
+    ID_REGISTRO NUMBER NOT NULL,
+    OPERACAO VARCHAR2(10) NOT NULL,
+    DADOS_ANTERIORES CLOB,
+    DADOS_NOVOS CLOB,
+    ID_USUARIO NUMBER REFERENCES USUARIOS(ID) NOT NULL,
+    DATA_OPERACAO DATE DEFAULT SYSDATE,
+    IP_USUARIO VARCHAR2(15)
 );
 
 
-create table sessoes (
-   id                 number
-      generated always as identity
-   primary key,
-   id_usuario         number not null
-      references usuarios ( id ),
-   token_sessao       varchar2(500) not null unique,
-   ip_origem          varchar2(45), -- Suporte IPv6
-   user_agent         varchar2(500),
-   data_criacao       date default sysdate,
-   data_expiracao     date not null,
-   ativa              char(1) default 'S' check ( ativa in ( 'S',
-                                                'N' ) ),
-   data_ultimo_acesso date default sysdate
+CREATE TABLE SESSOES (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_USUARIO NUMBER NOT NULL REFERENCES USUARIOS(ID),
+    TOKEN_SESSAO VARCHAR2(500) NOT NULL UNIQUE,
+    IP_ORIGEM VARCHAR2(45), -- Suporte IPv6
+    USER_AGENT VARCHAR2(500),
+    DATA_CRIACAO DATE DEFAULT SYSDATE,
+    DATA_EXPIRACAO DATE NOT NULL,
+    ATIVA CHAR(1) DEFAULT 'S' CHECK (ATIVA IN ('S', 'N')),
+    DATA_ULTIMO_ACESSO DATE DEFAULT SYSDATE
 );
 
-create table config_mfa (
-   id            number
-      generated always as identity
-   primary key,
-   id_usuario    number not null
-      references usuarios ( id ),
-   segredo_totp  varchar2(100) not null,
-   ativo         char(1) default 'S' check ( ativo in ( 'S',
-                                                'N' ) ),
-   data_cadastro date default sysdate
+CREATE TABLE CONFIG_MFA (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_USUARIO NUMBER NOT NULL REFERENCES USUARIOS(ID),
+    SEGREDO_TOTP VARCHAR2(100) NOT NULL,
+    ATIVO CHAR(1) DEFAULT 'S' CHECK (ATIVO IN ('S', 'N')),
+    DATA_CADASTRO DATE DEFAULT SYSDATE
 );
 
-create table embeddings (
-   id           number
-      generated always as identity
-   primary key,
-   tabela       varchar2(50) not null,
-   id_registro  number not null,
-   vetor        clob, -- Armazena vetor como JSON
-   data_criacao date default sysdate
+CREATE TABLE EMBEDDINGS (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    TABELA VARCHAR2(50) NOT NULL,
+    ID_REGISTRO NUMBER NOT NULL,
+    VETOR CLOB, -- Armazena vetor como JSON
+    DATA_CRIACAO DATE DEFAULT SYSDATE
 );
 
-create table analises_solo (
-   id                  number
-      generated always as identity
-   primary key,
-   id_terreno          number not null
-      references terrenos ( id ),
-   data_coleta         date not null,
-   data_resultado      date,
-   laboratorio         varchar2(100),
-   ph_agua             number(3,1),
-   ph_cacl2            number(3,1),
-   materia_organica    number(4,2), -- %
-   fosforo             number(6,2), -- MG/DM³
-   potassio            number(6,2), -- CMOLC/DM³
-   calcio              number(6,2), -- CMOLC/DM³
-   magnesio            number(6,2), -- CMOLC/DM³
-   aluminio            number(6,2), -- CMOLC/DM³
-   h_al                number(6,2), -- CMOLC/DM³ (H+AL)
-   ctc                 number(6,2), -- CMOLC/DM³
-   saturacao_bases     number(4,1), -- %
-   saturacao_aluminio  number(4,1), -- %
-   enxofre             number(6,2), -- MG/DM³
-   boro                number(6,2), -- MG/DM³
-   cobre               number(6,2), -- MG/DM³
-   ferro               number(6,2), -- MG/DM³
-   manganes            number(6,2), -- MG/DM³
-   zinco               number(6,2), -- MG/DM³
-   observacoes         clob,
-   recomendacoes       clob,
-   arquivo_laudo       varchar2(500), -- PATH DO PDF
-   id_usuario_cadastro number
-      references usuarios ( id ),
-   data_cadastro       date default sysdate
+CREATE TABLE ANALISES_SOLO (
+    ID NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ID_TERRENO NUMBER NOT NULL REFERENCES TERRENOS(ID),
+    DATA_COLETA DATE NOT NULL,
+    DATA_RESULTADO DATE,
+    LABORATORIO VARCHAR2(100),
+    PH_AGUA NUMBER(3,1),
+    PH_CACL2 NUMBER(3,1),
+    MATERIA_ORGANICA NUMBER(4,2), -- %
+    FOSFORO NUMBER(6,2), -- MG/DM³
+    POTASSIO NUMBER(6,2), -- CMOLC/DM³
+    CALCIO NUMBER(6,2), -- CMOLC/DM³
+    MAGNESIO NUMBER(6,2), -- CMOLC/DM³
+    ALUMINIO NUMBER(6,2), -- CMOLC/DM³
+    H_AL NUMBER(6,2), -- CMOLC/DM³ (H+AL)
+    CTC NUMBER(6,2), -- CMOLC/DM³
+    SATURACAO_BASES NUMBER(4,1), -- %
+    SATURACAO_ALUMINIO NUMBER(4,1), -- %
+    ENXOFRE NUMBER(6,2), -- MG/DM³
+    BORO NUMBER(6,2), -- MG/DM³
+    COBRE NUMBER(6,2), -- MG/DM³
+    FERRO NUMBER(6,2), -- MG/DM³
+    MANGANES NUMBER(6,2), -- MG/DM³
+    ZINCO NUMBER(6,2), -- MG/DM³
+    OBSERVACOES CLOB,
+    RECOMENDACOES CLOB,
+    ARQUIVO_LAUDO VARCHAR2(500), -- PATH DO PDF
+    ID_USUARIO_CADASTRO NUMBER REFERENCES USUARIOS(ID),
+    DATA_CADASTRO DATE DEFAULT SYSDATE
 );
 
 -- ========================================
 -- Comments
 -- ========================================
-comment on column produtos_manejo.tipo_produto is
-   'FERTILIZANTE, DEFENSIVO, CORRETIVO, SEMENTE';
-comment on column analises_solo.ph_agua is
-   'pH em água - faixa ideal 6.0-7.0';
-comment on column analises_solo.materia_organica is
-   'Matéria orgânica em % - ideal > 2.5%';
-comment on column analises_solo.saturacao_bases is
-   'Saturação por bases em % - ideal > 60%';
-comment on column manejo_terrenos.periodo_carencia is
-   'Dias que os animais devem ficar fora do terreno';
-comment on column manejo_terrenos.data_liberacao is
-   'Data calculada automaticamente para liberação do terreno';
-comment on column movimentacao_produtos_manejo.tipo_movimentacao is
-   'ENTRADA=Compra, SAIDA=Aplicação, AJUSTE=Correção';
-comment on column movimentacao_produtos_manejo.quantidade is
-   'Quantidade movimentada';
-comment on column movimentacao_produtos_manejo.quantidade_anterior is
-   'Estoque antes da movimentação';
-comment on column movimentacao_produtos_manejo.quantidade_atual is
-   'Estoque após a movimentação';
-comment on column produtos_manejo.estoque_atual is
-   'Quantidade atual em estoque';
-comment on column produtos_manejo.estoque_minimo is
-   'Quantidade mínima para alerta de reposição';
-comment on column produtos_manejo.estoque_maximo is
-   'Limite máximo de armazenamento';
-comment on column produtos_manejo.dose_recomendada is
-   'Dose padrão por hectare';
-comment on column produtos_manejo.periodo_carencia is
-   'Dias para liberação do terreno após aplicação';
-comment on column produtos_manejo.requer_receituario is
-   'S=Sim, N=Não - Para defensivos controlados';
-comment on column saude_animais.id_medicamento is
-   'Referência ao medicamento aplicado';
-comment on column saude_animais.quantidade_aplicada is
-   'Quantidade do medicamento aplicada';
-comment on column saude_animais.unidade_aplicada is
-   'Unidade da quantidade aplicada';
-comment on column animais.proprietario is
-   'Nome do proprietário do animal';
-comment on column animais.contato_proprietario is
-   'Telefone/email do proprietário';
-comment on column animais.cpf_cnpj_proprietario is
-   'CPF ou CNPJ do proprietário';
-
+COMMENT ON COLUMN produtos_manejo.tipo_produto IS 'FERTILIZANTE, DEFENSIVO, CORRETIVO, SEMENTE';
+COMMENT ON COLUMN analises_solo.ph_agua IS 'pH em água - faixa ideal 6.0-7.0';
+COMMENT ON COLUMN analises_solo.materia_organica IS 'Matéria orgânica em % - ideal > 2.5%';
+COMMENT ON COLUMN analises_solo.saturacao_bases IS 'Saturação por bases em % - ideal > 60%';
+COMMENT ON COLUMN manejo_terrenos.periodo_carencia IS 'Dias que os animais devem ficar fora do terreno';
+COMMENT ON COLUMN manejo_terrenos.data_liberacao IS 'Data calculada automaticamente para liberação do terreno';
+COMMENT ON COLUMN MOVIMENTACAO_PRODUTOS_MANEJO.TIPO_MOVIMENTACAO IS 'ENTRADA=Compra, SAIDA=Aplicação, AJUSTE=Correção';
+COMMENT ON COLUMN MOVIMENTACAO_PRODUTOS_MANEJO.QUANTIDADE IS 'Quantidade movimentada';
+COMMENT ON COLUMN MOVIMENTACAO_PRODUTOS_MANEJO.QUANTIDADE_ANTERIOR IS 'Estoque antes da movimentação';
+COMMENT ON COLUMN MOVIMENTACAO_PRODUTOS_MANEJO.QUANTIDADE_ATUAL IS 'Estoque após a movimentação';
+COMMENT ON COLUMN PRODUTOS_MANEJO.ESTOQUE_ATUAL IS 'Quantidade atual em estoque';
+COMMENT ON COLUMN PRODUTOS_MANEJO.ESTOQUE_MINIMO IS 'Quantidade mínima para alerta de reposição';
+COMMENT ON COLUMN PRODUTOS_MANEJO.ESTOQUE_MAXIMO IS 'Limite máximo de armazenamento';
+COMMENT ON COLUMN PRODUTOS_MANEJO.DOSE_RECOMENDADA IS 'Dose padrão por hectare';
+COMMENT ON COLUMN PRODUTOS_MANEJO.PERIODO_CARENCIA IS 'Dias para liberação do terreno após aplicação';
+COMMENT ON COLUMN PRODUTOS_MANEJO.REQUER_RECEITUARIO IS 'S=Sim, N=Não - Para defensivos controlados';
+COMMENT ON COLUMN SAUDE_ANIMAIS.ID_MEDICAMENTO IS 'Referência ao medicamento aplicado';
+COMMENT ON COLUMN SAUDE_ANIMAIS.QUANTIDADE_APLICADA IS 'Quantidade do medicamento aplicada';
+COMMENT ON COLUMN SAUDE_ANIMAIS.UNIDADE_APLICADA IS 'Unidade da quantidade aplicada';
+COMMENT ON COLUMN ANIMAIS.PROPRIETARIO IS 'Nome do proprietário do animal';
+COMMENT ON COLUMN ANIMAIS.CONTATO_PROPRIETARIO IS 'Telefone/email do proprietário';
+COMMENT ON COLUMN ANIMAIS.CPF_CNPJ_PROPRIETARIO IS 'CPF ou CNPJ do proprietário';
+COMMENT ON COLUMN saude_animais.tipo_ferradura IS 'Tipo de ferradura: Comum, Ortopédica, Alumínio, Borracha, Colagem, Descalço';
+COMMENT ON COLUMN saude_animais.membro_tratado IS 'Membro(s) tratado(s): AD=Anterior Direito, AE=Anterior Esquerdo, PD=Posterior Direito, PE=Posterior Esquerdo, TODOS=Todos os membros';
+COMMENT ON COLUMN saude_animais.problema_detectado IS 'Problemas detectados: rachadura, laminite, sensibilidade, etc.';
+COMMENT ON COLUMN saude_animais.tecnica_aplicada IS 'Técnica de ferrageamento aplicada';
+COMMENT ON COLUMN saude_animais.ferrador_responsavel IS 'Nome do ferrador terceirizado responsável';
+COMMENT ON COLUMN saude_animais.status_casco IS 'Estado do casco: BOM, REGULAR, RUIM, PROBLEMA';
+COMMENT ON COLUMN saude_animais.proxima_avaliacao IS 'Data sugerida para próxima avaliação do casco';
 
 -- ========================================
 -- Indexes
 -- ========================================
 
-create index idx_medicamentos_nome on
-   medicamentos (
-      nome
-   );
-create index idx_medicamentos_estoque on
-   medicamentos (
-      estoque_atual,
-      estoque_minimo
-   );
-create index idx_movimentacao_medicamento on
-   movimentacao_medicamentos (
-      id_medicamento,
-      data_registro
-   );
-create index idx_movimentacao_animal on
-   movimentacao_medicamentos (
-      id_animal
-   );
-create index idx_saude_medicamento on
-   saude_animais (
-      id_medicamento
-   );
+CREATE INDEX IDX_MEDICAMENTOS_NOME ON MEDICAMENTOS(NOME);
+CREATE INDEX IDX_MEDICAMENTOS_ESTOQUE ON MEDICAMENTOS(ESTOQUE_ATUAL, ESTOQUE_MINIMO);
+CREATE INDEX IDX_MOVIMENTACAO_MEDICAMENTO ON MOVIMENTACAO_MEDICAMENTOS(ID_MEDICAMENTO, DATA_REGISTRO);
+CREATE INDEX IDX_MOVIMENTACAO_ANIMAL ON MOVIMENTACAO_MEDICAMENTOS(ID_ANIMAL);
+CREATE INDEX IDX_SAUDE_MEDICAMENTO ON SAUDE_ANIMAIS(ID_MEDICAMENTO);
 
-create index idx_mov_produto_data on
-   movimentacao_produtos_manejo (
-      id_produto,
-      data_registro
-   );
-create index idx_mov_tipo on
-   movimentacao_produtos_manejo (
-      tipo_movimentacao,
-      data_registro
-   );
-create index idx_produtos_estoque_min on
-   produtos_manejo (
-      estoque_atual,
-      estoque_minimo
-   );
-create index idx_produtos_validade on
-   produtos_manejo (
-      data_validade
-   );
+CREATE INDEX IDX_MOV_PRODUTO_DATA ON MOVIMENTACAO_PRODUTOS_MANEJO(ID_PRODUTO, DATA_REGISTRO);
+CREATE INDEX IDX_MOV_TIPO ON MOVIMENTACAO_PRODUTOS_MANEJO(TIPO_MOVIMENTACAO, DATA_REGISTRO);
+CREATE INDEX IDX_PRODUTOS_ESTOQUE_MIN ON PRODUTOS_MANEJO(ESTOQUE_ATUAL, ESTOQUE_MINIMO);
+CREATE INDEX IDX_PRODUTOS_VALIDADE ON PRODUTOS_MANEJO(DATA_VALIDADE);
 
-create index idx_analises_terreno_data on
-   analises_solo (
-      id_terreno,
-      data_coleta
-   );
-create index idx_manejo_terreno_data on
-   manejo_terrenos (
-      id_terreno,
-      data_aplicacao
-   );
-create index idx_manejo_liberacao on
-   manejo_terrenos (
-      data_liberacao
-   );
+CREATE INDEX idx_analises_terreno_data ON analises_solo(id_terreno, data_coleta);
+CREATE INDEX idx_manejo_terreno_data ON manejo_terrenos(id_terreno, data_aplicacao);
+CREATE INDEX idx_manejo_liberacao ON manejo_terrenos(data_liberacao);
 
-create index idx_sessoes_usuario_ativa on
-   sessoes (
-      id_usuario,
-      ativa
-   );
-create index idx_movimentacoes_animal_data on
-   movimentacoes_animais (
-      id_animal,
-      data_movimentacao
-   );
-create index idx_historico_animal_data on
-   historico_crescimento (
-      id_animal,
-      data_medicao
-   );
-create index idx_reproducao_egua on
-   reproducao (
-      id_egua
-   );
-create index idx_saude_animal_data on
-   saude_animais (
-      id_animal,
-      data_ocorrencia
-   );
-create index idx_audit_tabela_data on
-   audit_log (
-      tabela,
-      data_operacao
-   );
+CREATE INDEX idx_sessoes_usuario_ativa ON SESSOES(ID_USUARIO, ATIVA);
+CREATE INDEX idx_movimentacoes_animal_data ON MOVIMENTACOES_ANIMAIS(ID_ANIMAL, DATA_MOVIMENTACAO);
+CREATE INDEX idx_historico_animal_data ON HISTORICO_CRESCIMENTO(ID_ANIMAL, DATA_MEDICAO);
+CREATE INDEX idx_reproducao_egua ON REPRODUCAO(ID_EGUA);
+CREATE INDEX idx_saude_animal_data ON SAUDE_ANIMAIS(ID_ANIMAL, DATA_OCORRENCIA);
+CREATE INDEX idx_audit_tabela_data ON AUDIT_LOG(TABELA, DATA_OPERACAO);
 
 -- ========================================
 -- Triggers
 -- ========================================
 
 -- TRIGGER PARA CONTROLE AUTOMÁTICO DE ESTOQUE
-create or replace trigger trg_movimentacao_estoque_manejo before
-   insert on movimentacao_produtos_manejo
-   for each row
-declare
-   v_estoque_atual number(
-      12,
-      3
-   );
-begin
+CREATE OR REPLACE TRIGGER TRG_MOVIMENTACAO_ESTOQUE_MANEJO
+    BEFORE INSERT ON MOVIMENTACAO_PRODUTOS_MANEJO
+    FOR EACH ROW
+DECLARE
+    v_estoque_atual NUMBER(12,3);
+BEGIN
     -- Buscar estoque atual
-   select estoque_atual
-     into v_estoque_atual
-     from produtos_manejo
-    where id = :new.id_produto;
+    SELECT ESTOQUE_ATUAL 
+    INTO v_estoque_atual
+    FROM PRODUTOS_MANEJO 
+    WHERE ID = :NEW.ID_PRODUTO;
     
     -- Armazenar quantidade anterior
-   :new.quantidade_anterior := v_estoque_atual;
+    :NEW.QUANTIDADE_ANTERIOR := v_estoque_atual;
     
     -- Calcular nova quantidade
-   if :new.tipo_movimentacao = 'ENTRADA' then
-      :new.quantidade_atual := v_estoque_atual + :new.quantidade;
-   elsif :new.tipo_movimentacao = 'SAIDA' then
-      :new.quantidade_atual := v_estoque_atual - :new.quantidade;
+    IF :NEW.TIPO_MOVIMENTACAO = 'ENTRADA' THEN
+        :NEW.QUANTIDADE_ATUAL := v_estoque_atual + :NEW.QUANTIDADE;
+    ELSIF :NEW.TIPO_MOVIMENTACAO = 'SAIDA' THEN
+        :NEW.QUANTIDADE_ATUAL := v_estoque_atual - :NEW.QUANTIDADE;
         -- Validar se há estoque suficiente
-      if :new.quantidade_atual < 0 then
-         raise_application_error(
-            -20001,
-            'Estoque insuficiente. Disponível: ' || v_estoque_atual
-         );
-      end if;
-   elsif :new.tipo_movimentacao = 'AJUSTE' then
-      :new.quantidade_atual := :new.quantidade;
-   end if;
+        IF :NEW.QUANTIDADE_ATUAL < 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Estoque insuficiente. Disponível: ' || v_estoque_atual);
+        END IF;
+    ELSIF :NEW.TIPO_MOVIMENTACAO = 'AJUSTE' THEN
+        :NEW.QUANTIDADE_ATUAL := :NEW.QUANTIDADE;
+    END IF;
     
     -- Atualizar estoque na tabela principal
-   update produtos_manejo
-      set estoque_atual = :new.quantidade_atual,
-          data_ultima_compra =
-             case
-                when :new.tipo_movimentacao = 'ENTRADA' then
-                   sysdate
-                else
-                   data_ultima_compra
-             end
-    where id = :new.id_produto;
-end;
+    UPDATE PRODUTOS_MANEJO 
+    SET ESTOQUE_ATUAL = :NEW.QUANTIDADE_ATUAL,
+        DATA_ULTIMA_COMPRA = CASE 
+            WHEN :NEW.TIPO_MOVIMENTACAO = 'ENTRADA' THEN SYSDATE 
+            ELSE DATA_ULTIMA_COMPRA 
+        END
+    WHERE ID = :NEW.ID_PRODUTO;
+END;
 
 
 -- TRIGGER PARA ATUALIZAR ESTOQUE QUANDO HOUVER APLICAÇÃO EM TERRENO
-create or replace trigger trg_manejo_terreno_estoque after
-   insert on manejo_terrenos
-   for each row
-begin
+CREATE OR REPLACE TRIGGER TRG_MANEJO_TERRENO_ESTOQUE
+    AFTER INSERT ON MANEJO_TERRENOS
+    FOR EACH ROW
+BEGIN
     -- Criar movimentação de saída automaticamente
-   insert into movimentacao_produtos_manejo (
-      id_produto,
-      tipo_movimentacao,
-      quantidade,
-      id_manejo_terreno,
-      id_terreno,
-      motivo,
-      id_usuario_registro
-   ) values ( :new.id_produto,
-              'SAIDA',
-              :new.quantidade,
-              :new.id,
-              :new.id_terreno,
-              'Aplicação em terreno - ' || :new.tipo_manejo,
-              :new.id_usuario_registro );
-end;
+    INSERT INTO MOVIMENTACAO_PRODUTOS_MANEJO (
+        ID_PRODUTO,
+        TIPO_MOVIMENTACAO,
+        QUANTIDADE,
+        ID_MANEJO_TERRENO,
+        ID_TERRENO,
+        MOTIVO,
+        ID_USUARIO_REGISTRO
+    ) VALUES (
+        :NEW.ID_PRODUTO,
+        'SAIDA',
+        :NEW.QUANTIDADE,
+        :NEW.ID,
+        :NEW.ID_TERRENO,
+        'Aplicação em terreno - ' || :NEW.TIPO_MANEJO,
+        :NEW.ID_USUARIO_REGISTRO
+    );
+END;
 
 -- Trigger para baixa automática no estoque
-create or replace trigger trg_saude_baixa_estoque after
-   insert on saude_animais
-   for each row
-begin
+CREATE OR REPLACE TRIGGER TRG_SAUDE_BAIXA_ESTOQUE
+    AFTER INSERT ON SAUDE_ANIMAIS
+    FOR EACH ROW
+BEGIN
     -- Se foi especificado um medicamento e quantidade
-   if
-      :new.id_medicamento is not null
-      and :new.quantidade_aplicada is not null
-   then
+    IF :NEW.ID_MEDICAMENTO IS NOT NULL AND :NEW.QUANTIDADE_APLICADA IS NOT NULL THEN
         -- Registrar saída no estoque
-      insert into movimentacao_medicamentos (
-         id_medicamento,
-         tipo_movimentacao,
-         quantidade,
-         id_animal,
-         id_saude_animal,
-         motivo,
-         id_usuario_registro
-      ) values ( :new.id_medicamento,
-                 'SAIDA',
-                 :new.quantidade_aplicada,
-                 :new.id_animal,
-                 :new.id,
-                 'Aplicação em animal - ' || :new.tipo_registro,
-                 :new.id_usuario_registro );
-   end if;
-end;
+        INSERT INTO MOVIMENTACAO_MEDICAMENTOS (
+            ID_MEDICAMENTO,
+            TIPO_MOVIMENTACAO,
+            QUANTIDADE,
+            ID_ANIMAL,
+            ID_SAUDE_ANIMAL,
+            MOTIVO,
+            ID_USUARIO_REGISTRO
+        ) VALUES (
+            :NEW.ID_MEDICAMENTO,
+            'SAIDA',
+            :NEW.QUANTIDADE_APLICADA,
+            :NEW.ID_ANIMAL,
+            :NEW.ID,
+            'Aplicação em animal - ' || :NEW.TIPO_REGISTRO,
+            :NEW.ID_USUARIO_REGISTRO
+        );
+    END IF;
+END;
 
 
 -- Trigger para atualizar estoque automaticamente
-create or replace trigger trg_movimentacao_estoque before
-   insert on movimentacao_medicamentos
-   for each row
-declare
-   v_estoque_atual number(
-      10,
-      2
-   );
-begin
+CREATE OR REPLACE TRIGGER TRG_MOVIMENTACAO_ESTOQUE
+    BEFORE INSERT ON MOVIMENTACAO_MEDICAMENTOS
+    FOR EACH ROW
+DECLARE
+    v_estoque_atual NUMBER(10,2);
+BEGIN
     -- Buscar estoque atual
-   select estoque_atual
-     into v_estoque_atual
-     from medicamentos
-    where id = :new.id_medicamento;
+    SELECT ESTOQUE_ATUAL INTO v_estoque_atual
+    FROM MEDICAMENTOS 
+    WHERE ID = :NEW.ID_MEDICAMENTO;
     
     -- Armazenar quantidade anterior
-   :new.quantidade_anterior := v_estoque_atual;
+    :NEW.QUANTIDADE_ANTERIOR := v_estoque_atual;
     
     -- Calcular nova quantidade
-   if :new.tipo_movimentacao = 'ENTRADA' then
-      :new.quantidade_atual := v_estoque_atual + :new.quantidade;
-   elsif :new.tipo_movimentacao = 'SAIDA' then
-      :new.quantidade_atual := v_estoque_atual - :new.quantidade;
-   elsif :new.tipo_movimentacao = 'AJUSTE' then
-      :new.quantidade_atual := :new.quantidade; -- Quantidade é o valor final
-      :new.quantidade := :new.quantidade - v_estoque_atual; -- Diferença
-   end if;
+    IF :NEW.TIPO_MOVIMENTACAO = 'ENTRADA' THEN
+        :NEW.QUANTIDADE_ATUAL := v_estoque_atual + :NEW.QUANTIDADE;
+    ELSIF :NEW.TIPO_MOVIMENTACAO = 'SAIDA' THEN
+        :NEW.QUANTIDADE_ATUAL := v_estoque_atual - :NEW.QUANTIDADE;
+    ELSIF :NEW.TIPO_MOVIMENTACAO = 'AJUSTE' THEN
+        :NEW.QUANTIDADE_ATUAL := :NEW.QUANTIDADE; -- Quantidade é o valor final
+        :NEW.QUANTIDADE := :NEW.QUANTIDADE - v_estoque_atual; -- Diferença
+    END IF;
     
     -- Atualizar estoque na tabela medicamentos
-   update medicamentos
-      set estoque_atual = :new.quantidade_atual,
-          lote_atual = coalesce(
-             :new.lote,
-             lote_atual
-          ),
-          data_validade = coalesce(
-             :new.data_validade,
-             data_validade
-          )
-    where id = :new.id_medicamento;
-end;
+    UPDATE MEDICAMENTOS 
+    SET ESTOQUE_ATUAL = :NEW.QUANTIDADE_ATUAL,
+        LOTE_ATUAL = COALESCE(:NEW.LOTE, LOTE_ATUAL),
+        DATA_VALIDADE = COALESCE(:NEW.DATA_VALIDADE, DATA_VALIDADE)
+    WHERE ID = :NEW.ID_MEDICAMENTO;
+END;
 
 -- Trigger para calcular data de liberação automaticamente
-create or replace trigger trg_manejo_data_liberacao before
-   insert or update on manejo_terrenos
-   for each row
-begin
-   if
-      :new.periodo_carencia is not null
-      and :new.data_aplicacao is not null
-   then
-      :new.data_liberacao := :new.data_aplicacao + :new.periodo_carencia;
-   end if;
-end;
+CREATE OR REPLACE TRIGGER trg_manejo_data_liberacao
+    BEFORE INSERT OR UPDATE ON manejo_terrenos
+    FOR EACH ROW
+BEGIN
+    IF :NEW.periodo_carencia IS NOT NULL AND :NEW.data_aplicacao IS NOT NULL THEN
+        :NEW.data_liberacao := :NEW.data_aplicacao + :NEW.periodo_carencia;
+    END IF;
+END;
+
+-- Trigger para calcular automaticamente a próxima avaliação
+CREATE OR REPLACE TRIGGER trg_calcular_proxima_casco
+    BEFORE INSERT OR UPDATE ON saude_animais
+    FOR EACH ROW
+WHEN (NEW.tipo_registro IN ('FERRAGEAMENTO', 'CASQUEAMENTO', 'FERRAGEAMENTO_CORRETIVO', 'CASQUEAMENTO_TERAPEUTICO'))
+BEGIN
+    -- Calcular próxima avaliação se não foi informada
+    IF :NEW.proxima_avaliacao IS NULL THEN
+        :NEW.proxima_avaliacao := calcular_proxima_data_casco(
+            :NEW.tipo_registro,
+            :NEW.data_ocorrencia,
+            'GERAL' -- Modalidade padrão, pode ser personalizada no futuro
+        );
+    END IF;
+END;
 
 -- ========================================
 -- Views
 -- ========================================
-
+SELECT * FROM VW_PRODUTOS_ESTOQUE_BAIXO ORDER BY STATUS_ALERTA, ESTOQUE_ATUAL
 -- VIEWS PARA PRODUTOS COM ESTOQUE BAIXO
-create or replace view vw_produtos_estoque_baixo as
-   select p.id,
-          p.nome,
-          p.tipo_produto,
-          p.estoque_atual,
-          p.estoque_minimo,
-          p.unidade_medida,
-          p.fornecedor_principal,
-          p.data_validade,
-          case
-             when p.estoque_atual = 0                 then
-                'SEM_ESTOQUE'
-             when p.estoque_atual <= p.estoque_minimo then
-                'ESTOQUE_BAIXO'
-             when p.data_validade is not null
-                and p.data_validade <= sysdate + 30 then
-                'VENCIMENTO_PROXIMO'
-             else
-                'OK'
-          end as status_alerta,
-          case
-             when p.data_validade is not null then
-                greatest(
-                   0,
-                   trunc(p.data_validade - sysdate)
-                )
-             else
-                null
-          end as dias_vencimento
-     from produtos_manejo p
-    where p.ativo = 'S'
-      and ( p.estoque_atual <= p.estoque_minimo
-       or ( p.data_validade is not null
-      and p.data_validade <= sysdate + 30 ) )
-    order by
-      case
-         when p.estoque_atual = 0                 then
-            1
-         when p.estoque_atual <= p.estoque_minimo then
-            2
-         when p.data_validade is not null
-            and p.data_validade <= sysdate + 30 then
-            3
-         else
-            4
-      end,
-      p.estoque_atual;
+CREATE OR REPLACE VIEW VW_PRODUTOS_ESTOQUE_BAIXO AS
+SELECT 
+    p.ID,
+    p.NOME,
+    p.TIPO_PRODUTO,
+    p.ESTOQUE_ATUAL,
+    p.ESTOQUE_MINIMO,
+    p.UNIDADE_MEDIDA,
+    p.FORNECEDOR_PRINCIPAL,
+    p.DATA_VALIDADE,
+    CASE 
+        WHEN p.ESTOQUE_ATUAL = 0 THEN 'SEM_ESTOQUE'
+        WHEN p.ESTOQUE_ATUAL <= p.ESTOQUE_MINIMO THEN 'ESTOQUE_BAIXO'
+        WHEN p.DATA_VALIDADE IS NOT NULL AND p.DATA_VALIDADE <= SYSDATE + 30 THEN 'VENCIMENTO_PROXIMO'
+        ELSE 'OK'
+    END AS STATUS_ALERTA,
+    CASE 
+        WHEN p.DATA_VALIDADE IS NOT NULL THEN 
+            GREATEST(0, TRUNC(p.DATA_VALIDADE - SYSDATE))
+        ELSE NULL
+    END AS DIAS_VENCIMENTO
+FROM PRODUTOS_MANEJO p
+WHERE p.ATIVO = 'S'
+    AND (p.ESTOQUE_ATUAL <= p.ESTOQUE_MINIMO 
+         OR (p.DATA_VALIDADE IS NOT NULL AND p.DATA_VALIDADE <= SYSDATE + 30))
+ORDER BY 
+    CASE 
+        WHEN p.ESTOQUE_ATUAL = 0 THEN 1
+        WHEN p.ESTOQUE_ATUAL <= p.ESTOQUE_MINIMO THEN 2
+        WHEN p.DATA_VALIDADE IS NOT NULL AND p.DATA_VALIDADE <= SYSDATE + 30 THEN 3
+        ELSE 4
+    END,
+    p.ESTOQUE_ATUAL;
 
 -- VIEW PARA MOVIMENTAÇÃO DE ESTOQUE (RELATÓRIOS)
-create or replace view vw_movimentacao_estoque_resumo as
-   select p.id as produto_id,
-          p.nome as produto_nome,
-          p.tipo_produto,
-          p.estoque_atual,
-          p.estoque_minimo,
-          p.unidade_medida,
-          nvl(
-             entradas.total_entradas,
-             0
-          ) as total_entradas,
-          nvl(
-             saidas.total_saidas,
-             0
-          ) as total_saidas,
-          nvl(
-             entradas.valor_entradas,
-             0
-          ) as valor_entradas,
-          movs.ultima_movimentacao
-     from produtos_manejo p
-     left join (
-      select id_produto,
-             sum(quantidade) as total_entradas,
-             sum(quantidade * nvl(
-                preco_unitario,
-                0
-             )) as valor_entradas
-        from movimentacao_produtos_manejo
-       where tipo_movimentacao = 'ENTRADA'
-       group by id_produto
-   ) entradas
-   on p.id = entradas.id_produto
-     left join (
-      select id_produto,
-             sum(quantidade) as total_saidas
-        from movimentacao_produtos_manejo
-       where tipo_movimentacao = 'SAIDA'
-       group by id_produto
-   ) saidas
-   on p.id = saidas.id_produto
-     left join (
-      select id_produto,
-             max(data_registro) as ultima_movimentacao
-        from movimentacao_produtos_manejo
-       group by id_produto
-   ) movs
-   on p.id = movs.id_produto
-    where p.ativo = 'S'
-    order by p.nome;
+CREATE OR REPLACE VIEW VW_MOVIMENTACAO_ESTOQUE_RESUMO AS
+SELECT 
+    p.ID AS PRODUTO_ID,
+    p.NOME AS PRODUTO_NOME,
+    p.TIPO_PRODUTO,
+    p.ESTOQUE_ATUAL,
+    p.ESTOQUE_MINIMO,
+    p.UNIDADE_MEDIDA,
+    NVL(entradas.TOTAL_ENTRADAS, 0) AS TOTAL_ENTRADAS,
+    NVL(saidas.TOTAL_SAIDAS, 0) AS TOTAL_SAIDAS,
+    NVL(entradas.VALOR_ENTRADAS, 0) AS VALOR_ENTRADAS,
+    movs.ULTIMA_MOVIMENTACAO
+FROM PRODUTOS_MANEJO p
+LEFT JOIN (
+    SELECT 
+        ID_PRODUTO,
+        SUM(QUANTIDADE) AS TOTAL_ENTRADAS,
+        SUM(QUANTIDADE * NVL(PRECO_UNITARIO, 0)) AS VALOR_ENTRADAS
+    FROM MOVIMENTACAO_PRODUTOS_MANEJO 
+    WHERE TIPO_MOVIMENTACAO = 'ENTRADA'
+    GROUP BY ID_PRODUTO
+) entradas ON p.ID = entradas.ID_PRODUTO
+LEFT JOIN (
+    SELECT 
+        ID_PRODUTO,
+        SUM(QUANTIDADE) AS TOTAL_SAIDAS
+    FROM MOVIMENTACAO_PRODUTOS_MANEJO 
+    WHERE TIPO_MOVIMENTACAO = 'SAIDA'
+    GROUP BY ID_PRODUTO
+) saidas ON p.ID = saidas.ID_PRODUTO
+LEFT JOIN (
+    SELECT 
+        ID_PRODUTO,
+        MAX(DATA_REGISTRO) AS ULTIMA_MOVIMENTACAO
+    FROM MOVIMENTACAO_PRODUTOS_MANEJO
+    GROUP BY ID_PRODUTO
+) movs ON p.ID = movs.ID_PRODUTO
+WHERE p.ATIVO = 'S'
+ORDER BY p.NOME;
 
 
 -- View para medicamentos com estoque baixo
-create or replace view vw_medicamentos_estoque_baixo as
-   select m.id,
-          m.nome,
-          m.estoque_atual,
-          m.estoque_minimo,
-          m.unidade_medida,
-          m.data_validade,
-          case
-             when m.data_validade <= sysdate + 30     then
-                'VENCENDO'
-             when m.data_validade <= sysdate          then
-                'VENCIDO'
-             when m.estoque_atual <= m.estoque_minimo then
-                'ESTOQUE_BAIXO'
-             else
-                'OK'
-          end as status_alerta,
-          case
-             when m.data_validade <= sysdate      then
-                trunc(sysdate - m.data_validade)
-             when m.data_validade <= sysdate + 30 then
-                trunc(m.data_validade - sysdate)
-             else
-                null
-          end as dias_vencimento
-     from medicamentos m
-    where m.ativo = 'S'
-      and ( m.estoque_atual <= m.estoque_minimo
-       or m.data_validade <= sysdate + 30 );
+CREATE OR REPLACE VIEW VW_MEDICAMENTOS_ESTOQUE_BAIXO AS
+SELECT 
+    m.ID,
+    m.NOME,
+    m.ESTOQUE_ATUAL,
+    m.ESTOQUE_MINIMO,
+    m.UNIDADE_MEDIDA,
+    m.DATA_VALIDADE,
+    CASE 
+        WHEN m.DATA_VALIDADE <= SYSDATE + 30 THEN 'VENCENDO'
+        WHEN m.DATA_VALIDADE <= SYSDATE THEN 'VENCIDO'
+        WHEN m.ESTOQUE_ATUAL <= m.ESTOQUE_MINIMO THEN 'ESTOQUE_BAIXO'
+        ELSE 'OK'
+    END AS STATUS_ALERTA,
+    CASE 
+        WHEN m.DATA_VALIDADE <= SYSDATE THEN TRUNC(SYSDATE - m.DATA_VALIDADE)
+        WHEN m.DATA_VALIDADE <= SYSDATE + 30 THEN TRUNC(m.DATA_VALIDADE - SYSDATE)
+        ELSE NULL
+    END AS DIAS_VENCIMENTO
+FROM MEDICAMENTOS m
+WHERE m.ATIVO = 'S'
+  AND (m.ESTOQUE_ATUAL <= m.ESTOQUE_MINIMO 
+       OR m.DATA_VALIDADE <= SYSDATE + 30);
+
+-- View para relatórios de ferrageamento
+CREATE OR REPLACE VIEW vw_ferrageamento_resumo AS
+SELECT 
+    a.id as animal_id,
+    a.nome as animal_nome,
+    a.numero_registro,
+    sa.id as registro_id,
+    sa.tipo_registro,
+    sa.data_ocorrencia,
+    sa.tipo_ferradura,
+    sa.membro_tratado,
+    sa.problema_detectado,
+    sa.ferrador_responsavel,
+    sa.status_casco,
+    sa.proxima_avaliacao,
+    sa.custo,
+    sa.observacoes,
+    -- Cálculo de dias até próxima avaliação
+    CASE 
+        WHEN sa.proxima_avaliacao IS NOT NULL THEN
+            sa.proxima_avaliacao - SYSDATE
+        ELSE NULL
+    END as dias_proxima_avaliacao,
+    -- Status de vencimento
+    CASE 
+        WHEN sa.proxima_avaliacao IS NULL THEN 'SEM_AGENDAMENTO'
+        WHEN sa.proxima_avaliacao < SYSDATE THEN 'VENCIDO'
+        WHEN sa.proxima_avaliacao - SYSDATE <= 7 THEN 'VENCE_SEMANA'
+        WHEN sa.proxima_avaliacao - SYSDATE <= 15 THEN 'VENCE_QUINZENA'
+        ELSE 'EM_DIA'
+    END as status_vencimento
+FROM animais a
+JOIN saude_animais sa ON a.id = sa.id_animal
+WHERE sa.tipo_registro IN ('FERRAGEAMENTO', 'CASQUEAMENTO', 'FERRAGEAMENTO_CORRETIVO', 'CASQUEAMENTO_TERAPEUTICO')
+ORDER BY a.nome, sa.data_ocorrencia DESC;
+
+-- ========================================
+-- Functions
+-- ========================================
+
+-- Função para calcular próxima data de ferrageamento/casqueamento
+CREATE OR REPLACE FUNCTION calcular_proxima_data_casco(
+    p_tipo_registro VARCHAR2,
+    p_data_atual DATE,
+    p_modalidade VARCHAR2 DEFAULT 'GERAL'
+) RETURN DATE IS
+    v_dias_intervalo NUMBER;
+BEGIN
+    -- Definir intervalos baseados no tipo e modalidade
+    CASE p_tipo_registro
+        WHEN 'FERRAGEAMENTO' THEN
+            CASE p_modalidade
+                WHEN 'CCE' THEN v_dias_intervalo := 30;      -- Concurso Completo mais frequente
+                WHEN 'APARTACAO' THEN v_dias_intervalo := 60; -- Apartação menos frequente
+                WHEN 'CORRIDA' THEN v_dias_intervalo := 35;   -- Corrida intermediário
+                ELSE v_dias_intervalo := 45;                  -- Padrão geral
+            END CASE;
+        WHEN 'CASQUEAMENTO' THEN
+            v_dias_intervalo := 40; -- Casqueamento padrão
+        WHEN 'FERRAGEAMENTO_CORRETIVO' THEN
+            v_dias_intervalo := 21; -- Correção mais frequente
+        WHEN 'CASQUEAMENTO_TERAPEUTICO' THEN
+            v_dias_intervalo := 21; -- Terapêutico mais frequente
+        ELSE
+            v_dias_intervalo := 45; -- Padrão
+    END CASE;
+    
+    RETURN p_data_atual + v_dias_intervalo;
+END;
+
