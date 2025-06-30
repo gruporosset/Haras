@@ -1,6 +1,7 @@
 // frontend/src/stores/ferrageamento.js
 import { defineStore } from 'pinia'
 import api from '../boot/api'
+import { prepareFormData } from 'src/utils/dateUtils'
 
 export const useFerrageamentoStore = defineStore('ferrageamento', {
   state: () => ({
@@ -159,7 +160,8 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
 
     async createFerrageamento(ferrageamentoData) {
       try {
-        const response = await api.post('/api/ferrageamento', ferrageamentoData)
+        const dados = prepareFormData(ferrageamentoData, ['DATA_OCORRENCIA', 'PROXIMA_AVALIACAO'])
+        const response = await api.post('/api/ferrageamento', dados)
         await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
@@ -169,7 +171,8 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
 
     async updateFerrageamento(id, ferrageamentoData) {
       try {
-        const response = await api.put(`/api/ferrageamento/${id}`, ferrageamentoData)
+        const dados = prepareFormData(ferrageamentoData, ['DATA_OCORRENCIA', 'PROXIMA_AVALIACAO'])
+        const response = await api.put(`/api/ferrageamento/${id}`, dados)
         await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
@@ -233,22 +236,9 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       }
     },
 
-    async fetchEstatisticasFerradores(mesesPeriodo = 12) {
-      try {
-        const response = await api.get('/api/ferrageamento/estatisticas/ferradores', {
-          params: { meses_periodo: mesesPeriodo },
-        })
-        this.estatisticasFerradores = response.data
-        return response.data
-      } catch (error) {
-        console.error('Erro ao buscar estatísticas de ferradores:', error)
-        return []
-      }
-    },
-
     async gerarRelatorio(filtros) {
       try {
-        const response = await api.get('/api/ferrageamento/relatorio', {
+        const response = await api.get('/api/ferrageamento/relatorio/resumo', {
           params: filtros,
         })
         this.relatorio = response.data
@@ -315,7 +305,7 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       const labels = {
         VENCIDO: 'Vencido',
         VENCE_SEMANA: 'Vence esta semana',
-        VENCE_QUINZENA: 'Vence em 15 dias',
+        VENCE_QUINZENA: 'Vence em até 15 dias',
         EM_DIA: 'Em dia',
         SEM_AGENDAMENTO: 'Sem agendamento',
       }
@@ -393,7 +383,6 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
           this.fetchFerrageamentos({ limit: 10 }),
           this.fetchAlertasVencimento(15),
           this.fetchEstatisticasAnimais(6),
-          this.fetchEstatisticasFerradores(6),
         ])
       } catch (error) {
         console.error('Erro ao carregar dashboard:', error)

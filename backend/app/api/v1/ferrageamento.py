@@ -139,15 +139,18 @@ async def list_ferrageamentos(
 
         # Calcular dias até próxima avaliação
         if registro.PROXIMA_AVALIACAO:
-            delta = registro.PROXIMA_AVALIACAO - datetime.now()
-            response_data.dias_proxima_avaliacao = delta.days
+            data_avaliacao = registro.PROXIMA_AVALIACAO.date()
+            data_hoje = datetime.now().date()
+            delta = (data_avaliacao - data_hoje).days
+
+            response_data.dias_proxima_avaliacao = delta
 
             # Determinar status de vencimento
-            if delta.days < 0:
+            if delta < 0:
                 response_data.status_vencimento = "VENCIDO"
-            elif delta.days <= 7:
+            elif delta <= 7:
                 response_data.status_vencimento = "VENCE_SEMANA"
-            elif delta.days <= 15:
+            elif delta <= 15:
                 response_data.status_vencimento = "VENCE_QUINZENA"
             else:
                 response_data.status_vencimento = "EM_DIA"
@@ -334,7 +337,9 @@ async def get_alertas_vencimento(
 
     alertas = []
     for registro, animal_nome in registros:
-        dias_vencimento = (registro.PROXIMA_AVALIACAO - datetime.now()).days
+        data_proxima = registro.PROXIMA_AVALIACAO.date()
+        data_hoje = datetime.now().date()
+        dias_vencimento = (data_proxima - data_hoje).days
 
         if dias_vencimento < 0:
             status_vencimento = "VENCIDO"
@@ -453,64 +458,7 @@ async def get_estatisticas_animais(
     return estatisticas
 
 
-@router.get("/estatisticas/ferradores", response_model=List[FerradorEstatisticas])
-async def get_estatisticas_ferradores(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    meses_periodo: int = Query(12, description="Período em meses para análise")
-):
-    """Estatísticas dos ferradores mais ativos"""
-    data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
-
-    # Buscar dados por ferrador
-    resultados = db.query(
-        SaudeAnimais.FERRADOR_RESPONSAVEL,
-        func.count(SaudeAnimais.ID).label('total_atendimentos'),
-        func.count(func.distinct(SaudeAnimais.ID_ANIMAL)
-                   ).label('animais_atendidos'),
-        func.sum(SaudeAnimais.CUSTO).label('custo_total'),
-        func.max(SaudeAnimais.DATA_OCORRENCIA).label('ultimo_atendimento')
-    ).filter(
-        SaudeAnimais.TIPO_REGISTRO.in_([
-            'FERRAGEAMENTO', 'CASQUEAMENTO',
-            'FERRAGEAMENTO_CORRETIVO', 'CASQUEAMENTO_TERAPEUTICO'
-        ]),
-        SaudeAnimais.DATA_OCORRENCIA >= data_limite,
-        SaudeAnimais.FERRADOR_RESPONSAVEL.isnot(None),
-        SaudeAnimais.FERRADOR_RESPONSAVEL != ''
-    ).group_by(SaudeAnimais.FERRADOR_RESPONSAVEL).all()
-
-    ferradores = []
-    for resultado in resultados:
-        # Buscar especialidades (tipos mais realizados)
-        tipos_query = db.query(
-            SaudeAnimais.TIPO_REGISTRO,
-            func.count(SaudeAnimais.ID).label('quantidade')
-        ).filter(
-            SaudeAnimais.FERRADOR_RESPONSAVEL == resultado.FERRADOR_RESPONSAVEL,
-            SaudeAnimais.DATA_OCORRENCIA >= data_limite
-        ).group_by(SaudeAnimais.TIPO_REGISTRO).order_by(desc('quantidade')).all()
-
-        especialidades = [tipo.TIPO_REGISTRO for tipo in tipos_query]
-
-        ferrador_stats = FerradorEstatisticas(
-            ferrador=resultado.FERRADOR_RESPONSAVEL,
-            total_atendimentos=resultado.total_atendimentos,
-            animais_atendidos=resultado.animais_atendidos,
-            custo_total=float(
-                resultado.custo_total) if resultado.custo_total else None,
-            ultimo_atendimento=resultado.ultimo_atendimento,
-            especialidades=especialidades
-        )
-        ferradores.append(ferrador_stats)
-
-    # Ordenar por total de atendimentos
-    ferradores.sort(key=lambda x: x.total_atendimentos, reverse=True)
-
-    return ferradores
-
-
-@router.get("/relatorio", response_model=RelatorioFerrageamento)
+@router.get("/relatorio/resumo", response_model=RelatorioFerrageamento)
 async def get_relatorio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

@@ -1,32 +1,5 @@
 <template>
   <div>
-    <!-- Estatísticas -->
-    <div class="row q-gutter-md q-mb-md">
-      <q-card flat bordered class="col">
-        <q-card-section class="text-center">
-          <div class="text-h4 text-primary">{{ ferrageamentoStore.estatisticasGerais.totalRegistros }}</div>
-          <div class="text-caption">Total Registros</div>
-        </q-card-section>
-      </q-card>
-      <q-card flat bordered class="col">
-        <q-card-section class="text-center">
-          <div class="text-h4 text-negative">{{ ferrageamentoStore.estatisticasGerais.vencidos }}</div>
-          <div class="text-caption">Vencidos</div>
-        </q-card-section>
-      </q-card>
-      <q-card flat bordered class="col">
-        <q-card-section class="text-center">
-          <div class="text-h4 text-positive">{{ ferrageamentoStore.estatisticasGerais.emDia }}</div>
-          <div class="text-caption">Em Dia</div>
-        </q-card-section>
-      </q-card>
-      <q-card flat bordered class="col">
-        <q-card-section class="text-center">
-          <div class="text-h4 text-accent">R$ {{ ferrageamentoStore.estatisticasGerais.custoTotal.toFixed(2) }}</div>
-          <div class="text-caption">Custo Total</div>
-        </q-card-section>
-      </q-card>
-    </div>
 
     <!-- Abas -->
     <q-tabs v-model="activeTab" class="q-mb-md">
@@ -46,14 +19,7 @@
             label="Novo Registro"
             icon="add"
             @click="openDialog(null)"
-          />
-          <q-btn
-            flat
-            color="primary"
-            label="Filtros"
-            icon="filter_list"
-            @click="filtrosDialog = true"
-          />
+          />         
         </div>
 
         <q-table
@@ -337,34 +303,6 @@
                         :label="ferrageamentoStore.getStatusVencimentoLabel(stat.status_vencimento)"
                         dense
                       />
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-card-section>
-            </q-card>
-          </div>
-
-          <div class="col-md-6 col-12">
-            <q-card>
-              <q-card-section>
-                <div class="text-h6">Ferradores Mais Ativos</div>
-              </q-card-section>
-              <q-card-section>
-                <q-list bordered separator>
-                  <q-item v-for="ferrador in ferrageamentoStore.estatisticasFerradores" :key="ferrador.ferrador">
-                    <q-item-section>
-                      <q-item-label>{{ ferrador.ferrador }}</q-item-label>
-                      <q-item-label caption>
-                        {{ ferrador.total_atendimentos }} atendimentos, {{ ferrador.animais_atendidos }} animais
-                      </q-item-label>
-                      <q-item-label caption v-if="ferrador.custo_total">
-                        Faturamento: R$ {{ ferrador.custo_total.toFixed(2) }}
-                      </q-item-label>
-                    </q-item-section>
-                    <q-item-section side>
-                      <div class="text-caption">
-                        {{ ferrador.especialidades.join(', ') }}
-                      </div>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -749,77 +687,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- Modal de Filtros -->
-    <q-dialog v-model="filtrosDialog" persistent>
-      <q-card style="width: 500px; max-width: 90vw">
-        <q-card-section>
-          <div class="text-h6">Filtros</div>
-        </q-card-section>
-        <q-card-section class="q-pt-none">
-          <div class="q-gutter-md">
-            <q-select
-              v-model="filtros.animal_id"
-              :options="animalOptions"
-              option-value="value"
-              option-label="label"
-              emit-value
-              map-options
-              use-input
-              @filter="filterAnimais"
-              label="Animal"
-              clearable
-            />
-            
-            <q-select
-              v-model="filtros.tipo_registro"
-              :options="ferrageamentoStore.tiposFerrageamento"
-              option-value="value"
-              option-label="label"
-              emit-value
-              map-options
-              label="Tipo"
-              clearable
-            />
-            
-            <q-input
-              v-model="filtros.ferrador"
-              label="Ferrador"
-              clearable
-            />
-            
-            <div class="row q-gutter-md">
-              <div class="col">
-                <CalendarioComponent
-                  v-model="filtros.data_inicio"
-                  label="Data Início"
-                />
-              </div>
-              <div class="col">
-                <CalendarioComponent
-                  v-model="filtros.data_fim"
-                  label="Data Fim"
-                />
-              </div>
-            </div>
-            
-            <q-checkbox
-              v-model="filtros.apenas_vencidos"
-              label="Apenas vencidos"
-            />
-            
-            <q-checkbox
-              v-model="filtros.apenas_com_problemas"
-              label="Apenas com problemas"
-            />
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Limpar" color="grey" @click="limparFiltros" />
-          <q-btn flat label="Cancelar" color="grey" @click="filtrosDialog = false" />
-          <q-btn label="Aplicar" color="primary" @click="aplicarFiltros" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+   
   </div>
 </template>
 
@@ -840,7 +708,7 @@ const activeTab = ref('registros')
 const dialog = ref(false)
 const viewDialog = ref(false)
 const deleteDialog = ref(false)
-const filtrosDialog = ref(false)
+
 const loading = ref(false)
 const loadingAplicacao = ref(false)
 const loadingRelatorio = ref(false)
@@ -862,16 +730,6 @@ const aplicacaoRapida = ref({
   STATUS_CASCO: 'BOM',
   CUSTO: null,
   OBSERVACOES: ''
-})
-
-const filtros = ref({
-  animal_id: null,
-  tipo_registro: null,
-  ferrador: '',
-  data_inicio: '',
-  data_fim: '',
-  apenas_vencidos: false,
-  apenas_com_problemas: false
 })
 
 const filtrosRelatorio = ref({
@@ -911,15 +769,15 @@ function openDialog(record = null) {
   if (record) {
     form.value = {
       ...record,
-      DATA_OCORRENCIA: formatDate(record.DATA_OCORRENCIA),
-      PROXIMA_AVALIACAO: record.PROXIMA_AVALIACAO ? formatDate(record.PROXIMA_AVALIACAO) : ''
+      DATA_OCORRENCIA: record.DATA_OCORRENCIA,
+      PROXIMA_AVALIACAO: record.PROXIMA_AVALIACAO ? record.PROXIMA_AVALIACAO : ''
     }
   } else {
     form.value = {
       ID: null,
       ID_ANIMAL: null,
       TIPO_REGISTRO: 'FERRAGEAMENTO',
-      DATA_OCORRENCIA: formatDate(new Date()),
+      DATA_OCORRENCIA: '',
       DESCRICAO: '',
       TIPO_FERRADURA: null,
       MEMBRO_TRATADO: 'TODOS',
@@ -943,10 +801,10 @@ async function saveRecord() {
       ...form.value,
       ID_ANIMAL: typeof form.value.ID_ANIMAL === 'object' 
         ? form.value.ID_ANIMAL.value 
-        : form.value.ID_ANIMAL,
-      DATA_OCORRENCIA: convertToISO(form.value.DATA_OCORRENCIA),
-      PROXIMA_AVALIACAO: form.value.PROXIMA_AVALIACAO ? convertToISO(form.value.PROXIMA_AVALIACAO) : null
+        : form.value.ID_ANIMAL
     }
+
+    console.log('Dados do formulário:', formData) 
 
     if (editandoRegistro.value) {
       await ferrageamentoStore.updateFerrageamento(formData.ID, formData)
@@ -1025,7 +883,7 @@ function agendarFerrageamento(alerta) {
     ID: null,
     ID_ANIMAL: alerta.animal_id,
     TIPO_REGISTRO: alerta.tipo_registro,
-    DATA_OCORRENCIA: formatDate(new Date()),
+    DATA_OCORRENCIA: '',
     DESCRICAO: '',
     TIPO_FERRADURA: null,
     MEMBRO_TRATADO: 'TODOS',
@@ -1058,25 +916,6 @@ async function gerarRelatorio() {
   } finally {
     loadingRelatorio.value = false
   }
-}
-
-function aplicarFiltros() {
-  ferrageamentoStore.setFilters(filtros.value)
-  ferrageamentoStore.fetchFerrageamentos()
-  filtrosDialog.value = false
-}
-
-function limparFiltros() {
-  filtros.value = {
-    animal_id: null,
-    tipo_registro: null,
-    ferrador: '',
-    data_inicio: '',
-    data_fim: '',
-    apenas_vencidos: false,
-    apenas_com_problemas: false
-  }
-  ferrageamentoStore.clearFilters()
 }
 
 function filterAnimais(val, update) {
@@ -1118,6 +957,5 @@ onMounted(async () => {
   await ferrageamentoStore.fetchFerrageamentos()
   await carregarAlertas()
   await ferrageamentoStore.fetchEstatisticasAnimais(6)
-  await ferrageamentoStore.fetchEstatisticasFerradores(6)
 })
 </script>

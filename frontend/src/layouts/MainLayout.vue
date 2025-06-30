@@ -46,11 +46,31 @@
               <q-item-label>Perfil</q-item-label>
             </q-item-section>
           </q-item>
+
+          <q-expansion-item
+            expand-separator
+            icon="medication"
+            label="Medicamentos"
+            default-closed
+          >
+
+            <q-item clickable v-ripple to="/medicamentos">
+              <q-item-section avatar>
+                <q-icon name="create" />
+              </q-item-section>
+              <q-item-section>Cadastro de Medicamentos</q-item-section>
+              <q-item-section side v-if="medicamentoStore.alertasEstoque.length > 0">
+                <q-badge color="negative" :label="medicamentoStore.alertasEstoque.length" />
+              </q-item-section>
+            </q-item>            
+            
+          </q-expansion-item>
+
           <q-expansion-item
             expand-separator
             icon="pets"
             label="Animais"
-            default-opened
+            default-closed
           >
             <q-item to="/animais" clickable v-ripple>
               <q-item-section avatar>
@@ -97,27 +117,9 @@
 
           <q-expansion-item
             expand-separator
-            icon="medication"
-            label="Medicamentos"
-            default-opened
-          >
-
-            <q-item clickable v-ripple to="/medicamentos">
-              <q-item-section avatar>
-                <q-icon name="create" />
-              </q-item-section>
-              <q-item-section>Cadastro de Medicamentos</q-item-section>
-              <q-item-section side v-if="medicamentoStore.alertasEstoque.length > 0">
-                <q-badge color="negative" :label="medicamentoStore.alertasEstoque.length" />
-              </q-item-section>
-            </q-item>            
-            
-          </q-expansion-item>
-          <q-expansion-item
-            expand-separator
             icon="landscape"
             label="Terrenos"
-            default-opened
+            default-closed
           >
             <q-item to="/terrenos" clickable v-ripple>
               <q-item-section avatar>
