@@ -541,6 +541,30 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <!-- DIALOG ITEM PLANO -->
+    <ItemPlanoDialog
+    v-model="itemDialog"
+    :plano-info="planoSelecionado"
+    :item-edit="itemEditando"
+    @saved="onItemSaved"
+    @cancelled="onItemCancelled"
+    />
+
+    <!-- DIALOG CONFIRMAÇÃO DELETE ITEM -->
+    <q-dialog v-model="deleteItemDialog" persistent>
+    <q-card>
+        <q-card-section>
+        <div class="text-h6">Confirmar Exclusão</div>
+        </q-card-section>
+        <q-card-section>
+        Remover <strong>{{ itemParaExcluir?.produto_nome }}</strong> do plano?
+        </q-card-section>
+        <q-card-actions align="right">
+        <q-btn flat label="Cancelar" color="grey" @click="deleteItemDialog = false" />
+        <q-btn label="Remover" color="negative" @click="deleteItem" :loading="racaoStore.loading" />
+        </q-card-actions>
+    </q-card>
+    </q-dialog>    
   </div>
 </template>
 
@@ -549,9 +573,9 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRacaoStore } from 'stores/racao'
 import { useAnimalStore } from 'stores/animal'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 import { ErrorHandler } from 'src/utils/errorHandler'
-
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+import ItemPlanoDialog from 'components/racao/ItemPlanoDialog.vue'
 
 // Composables
 const $q = useQuasar()
@@ -565,6 +589,10 @@ const itensDialog = ref(false)
 const viewData = ref(null)
 const planoSelecionado = ref(null)
 const sugestaoNutricional = ref(null)
+const itemDialog = ref(false)
+const itemEditando = ref(null)
+const deleteItemDialog = ref(false)
+const itemParaExcluir = ref(null)
 
 // Filtros
 const filtros = ref({
@@ -695,17 +723,17 @@ async function submitForm() {
 
     if (form.value.ID) {
       await racaoStore.updatePlanoAlimentar(form.value.ID, form.value)
-      $q.notify({ type: 'positive', message: 'Plano atualizado com sucesso!' })
+      ErrorHandler.success('Plano atualizado com sucesso!')
     } else {
       await racaoStore.createPlanoAlimentar(form.value)
-      $q.notify({ type: 'positive', message: 'Plano criado com sucesso!' })
+      ErrorHandler.success('Plano criado com sucesso!')
     }
     
     dialog.value = false
     await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
     
   } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro ao salvar plano' })
+    ErrorHandler.handle(error, 'Erro ao salvar plano')  
   }
 }
 
@@ -740,10 +768,10 @@ async function calcularPlano(plano) {
       
       await racaoStore.updatePlanoAlimentar(plano.ID, updateData)
       await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-      $q.notify({ type: 'positive', message: 'Plano recalculado!' })
+      ErrorHandler.success('Plano recalculado!')
     })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Erro ao calcular necessidades' })
+  } catch(error) {
+    ErrorHandler.handle(error, 'Erro ao calcular necessidades')
   }
 }
 
@@ -828,14 +856,36 @@ function filterAnimaisDialog(val, update) {
   })
 }
 
-function openItemDialog(item) {
-  // Implementar abertura do dialog de itens
-  ErrorHandler.handle(`Nao implementado: ${item}`)
+function openItemDialog(item = null) {
+  itemEditando.value = item
+  itemDialog.value = true
 }
 
 function confirmDeleteItem(item) {
-  // Implementar confirmação de exclusão de item
-  ErrorHandler.handle(`Nao implementado: ${item}`)
+  itemParaExcluir.value = item
+  deleteItemDialog.value = true
+}
+
+async function deleteItem() {
+  try {
+    await racaoStore.deleteItemPlano(itemParaExcluir.value.ID)
+    await racaoStore.fetchItensPlano(planoSelecionado.value.ID)
+    await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+    ErrorHandler.success('Item removido!')  
+    deleteItemDialog.value = false
+
+  } catch (error) {
+    ErrorHandler.handle(error, 'Erro ao remover item')  
+  }
+}
+
+async function onItemSaved() {
+  await racaoStore.fetchItensPlano(planoSelecionado.value.ID)
+  await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+}
+
+function onItemCancelled() {
+  itemEditando.value = null
 }
 
 // Funções auxiliares

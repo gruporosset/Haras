@@ -37,7 +37,7 @@ export const useRacaoStore = defineStore('racao', {
       data_fim: '',
       nome: '',
       estoque_baixo: false,
-      ativo: 'S',
+      ativo: '',
     },
 
     // === PAGINAÇÃO ===
@@ -186,6 +186,10 @@ export const useRacaoStore = defineStore('racao', {
         // Converter objetos select para valores
         if (queryParams.tipo_alimento?.value) {
           queryParams.tipo_alimento = queryParams.tipo_alimento.value
+        }
+
+        if (queryParams.ativo?.value) {
+          queryParams.ativo = queryParams.ativo.value
         }
 
         const response = await api.get('/api/racao/produtos', { params: queryParams })
@@ -448,6 +452,7 @@ export const useRacaoStore = defineStore('racao', {
 
     async createItemPlano(planoId, itemData) {
       this.loading = true
+      console.log(JSON.stringify(itemData))
       try {
         const response = await api.post(`/api/racao/planos/${planoId}/itens`, itemData)
         return response.data
@@ -465,6 +470,18 @@ export const useRacaoStore = defineStore('racao', {
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar item'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteItemPlano(itemId) {
+      this.loading = true
+      try {
+        await api.delete(`/api/racao/planos/itens/${itemId}`)
+        return true
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao excluir item'
       } finally {
         this.loading = false
       }

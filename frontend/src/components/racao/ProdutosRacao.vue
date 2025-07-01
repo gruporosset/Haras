@@ -43,6 +43,7 @@
             label="Status"
             @update:model-value="onFilterChange"
             class="col-md-2 col-12"
+            clearable
           />
         </div>
       </q-card-section>

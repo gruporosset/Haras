@@ -76,11 +76,12 @@ async def list_produtos_racao(
         None, description="Filtrar por tipo"),
     estoque_baixo: Optional[bool] = Query(
         False, description="Apenas estoque baixo"),
+    ativo: Optional[str] = Query(None, description="Filtrar por status"),
     page: int = Query(1, ge=1, description="Página"),
     limit: int = Query(20, ge=1, le=100, description="Itens por página")
 ):
     """Listar produtos de ração"""
-    query = db.query(ProdutoRacao).filter(ProdutoRacao.ATIVO == 'S')
+    query = db.query(ProdutoRacao)
 
     # Filtros
     if nome:
@@ -90,6 +91,8 @@ async def list_produtos_racao(
     if estoque_baixo:
         query = query.filter(ProdutoRacao.ESTOQUE_ATUAL <=
                              ProdutoRacao.ESTOQUE_MINIMO)
+    if ativo:
+        query = query.filter(ProdutoRacao.ATIVO == ativo.upper())
 
     # Paginação
     total = query.count()
@@ -390,7 +393,7 @@ async def list_planos_alimentares(
     animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
     categoria: Optional[CategoriaNutricionalEnum] = Query(
         None, description="Filtrar por categoria"),
-    ativo: Optional[bool] = Query(True, description="Apenas planos ativos"),
+    status_plano: Optional[str] = Query(None, description="Filtrar planos"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100)
 ):
@@ -402,8 +405,8 @@ async def list_planos_alimentares(
         query = query.filter(PlanoAlimentar.ID_ANIMAL == animal_id)
     if categoria:
         query = query.filter(PlanoAlimentar.CATEGORIA_NUTRICIONAL == categoria)
-    if ativo:
-        query = query.filter(PlanoAlimentar.STATUS_PLANO == 'ATIVO')
+    if status_plano:
+        query = query.filter(PlanoAlimentar.STATUS_PLANO == status_plano)
 
     # Paginação
     total = query.count()
@@ -595,6 +598,27 @@ async def update_fornecimento(
     db.refresh(fornecimento)
 
     return await _enrich_fornecimento_response(fornecimento, db)
+
+
+@router.delete("/planos/itens/{item_id}")
+async def delete_item_plano(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Inativar produto de ração"""
+    item = db.query(ItemPlanoAlimentar).filter(
+        ItemPlanoAlimentar.ID == item_id,
+        ItemPlanoAlimentar.ATIVO == 'S'
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+
+    item.ATIVO = 'N'
+    db.commit()
+
+    return {"message": "Item inativado com sucesso"}
+
 
 # ======================================
 # AUTOCOMPLETE E BUSCA
@@ -911,12 +935,26 @@ async def _enrich_plano_response(plano: PlanoAlimentar, db: Session) -> PlanoAli
         response.animal_numero_registro = animal.NUMERO_REGISTRO
 
     # Contar produtos do plano
-    total_produtos = db.query(ItemPlanoAlimentar).filter(
+    item_plano = db.query(ItemPlanoAlimentar).filter(
         ItemPlanoAlimentar.ID_PLANO == plano.ID,
         ItemPlanoAlimentar.ATIVO == 'S'
-    ).count()
+    )
+
+    total_produtos = item_plano.count()
+
     response.total_produtos = total_produtos
 
+    # Calcular custo diario
+    custo_diario_estimado = 0
+    if item_plano:
+        for item in item_plano:
+            # Dados do produto
+            produto = db.query(ProdutoRacao).filter(
+                ProdutoRacao.ID == item.ID_PRODUTO).first()
+            if produto:
+                if produto.PRECO_UNITARIO:
+                    custo_diario_estimado += item.QUANTIDADE_DIARIA * produto.PRECO_UNITARIO
+    response.custo_diario_estimado = custo_diario_estimado
     return response
 
 

@@ -189,8 +189,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useQuasar } from 'quasar'
 import { useRacaoStore } from 'stores/racao'
+import { ErrorHandler } from 'src/utils/errorHandler'
 
 // Props
 const props = defineProps({
@@ -212,7 +212,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'saved', 'cancelled'])
 
 // Composables
-const $q = useQuasar()
 const racaoStore = useRacaoStore()
 
 // Estado reativo
@@ -301,7 +300,7 @@ async function loadProdutoOptions() {
     }))
     produtoOptions.value = [...produtoOptionsOriginal.value]
   } catch (error) {
-    console.error('Erro ao carregar produtos:', error)
+    ErrorHandler.handle(error, 'Erro ao carregar produtos')
   }
 }
 
@@ -345,22 +344,30 @@ async function submitForm() {
     if (data.ID_PRODUTO?.value) {
       data.ID_PRODUTO = data.ID_PRODUTO.value
     }
+    
+    // Remover HORARIO_REFEICAO_* se forem strings vazias
+    const horarios = ['HORARIO_REFEICAO_1', 'HORARIO_REFEICAO_2', 'HORARIO_REFEICAO_3', 'HORARIO_REFEICAO_4'];
+    horarios.forEach(horario => {
+      if (data[horario] === '') {
+        delete data[horario];
+      }
+    });    
 
     if (props.itemEdit?.ID) {
       // Atualizar item existente
       await racaoStore.updateItemPlano(props.itemEdit.ID, data)
-      $q.notify({ type: 'positive', message: 'Item atualizado com sucesso!' })
+      ErrorHandler.success('Item atualizado com sucesso!')
     } else {
       // Criar novo item
       await racaoStore.createItemPlano(props.planoInfo.ID, data)
-      $q.notify({ type: 'positive', message: 'Item adicionado com sucesso!' })
+      ErrorHandler.success('Item adicionado com sucesso!')
     }
     
     emit('saved')
     dialog.value = false
     
   } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro ao salvar item' })
+    ErrorHandler.handle(error, 'Erro ao salvar item')
   } finally {
     loading.value = false
   }
@@ -385,7 +392,3 @@ watch(() => numeroRefeicoes.value, () => {
   }
 })
 </script>
-
-<style scoped>
-/* Estilos específicos se necessário */
-</style>
