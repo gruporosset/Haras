@@ -625,7 +625,6 @@ async function onFilterChange() {
 }
 
 function openDialog(record) {
-    console.log(record)
   initializeForm(record)
   dialog.value = true
 }
@@ -635,6 +634,40 @@ function initializeForm(record) {
   
   if (record) {
     form.value = { ...record }
+    const idAnimal = record.ID_ANIMAL
+    const categoriaNutricional = record.CATEGORIA_NUTRICIONAL
+    const intensidadeTrabalho = record.INTENSIDADE_TRABALHO
+    const statusPlano = record.STATUS_PLANO
+    if (idAnimal && typeof idAnimal === 'number') {
+        const animalOption = animalOri.value.find(f => f.value === idAnimal)
+        if (animalOption) {
+            form.value.ID_ANIMAL = animalOption
+        } else {
+            form.value.ID_ANIMAL = {
+                value: idAnimal,
+                label: record.animal_nome || `Animal: ${idAnimal}`
+            }
+        }
+    }
+    if (categoriaNutricional && typeof categoriaNutricional === 'string') {
+    const categoriaOption = racaoStore.categoriasNutricionais.find(c => c.value === categoriaNutricional)
+        if (categoriaOption) {
+            form.value.CATEGORIA_NUTRICIONAL = categoriaOption
+        }
+    }    
+    if (intensidadeTrabalho && typeof intensidadeTrabalho === 'string') {
+        const intensidadeTrabalhoOption = racaoStore.intensidadeTrabalho.find(c => c.value === intensidadeTrabalho)
+        if (intensidadeTrabalhoOption) {
+            form.value.INTENSIDADE_TRABALHO = intensidadeTrabalhoOption
+        }
+    }    
+    if (statusPlano && typeof statusPlano === 'string') {
+        const statusPlanoOption = racaoStore.statusPlano.find(c => c.value === statusPlano)
+        if (statusPlanoOption) {
+            form.value.STATUS_PLANO = statusPlanoOption
+        }
+    }    
+    onCategoriaChanged()
   } else {
     form.value = {
       ID_ANIMAL: null,

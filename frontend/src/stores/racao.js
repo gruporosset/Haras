@@ -411,8 +411,20 @@ export const useRacaoStore = defineStore('racao', {
 
     async updatePlanoAlimentar(id, planoData) {
       this.loading = true
+      // Converter objetos select para valores
+      if (planoData.ID_ANIMAL?.value) {
+        planoData.ID_ANIMAL = planoData.ID_ANIMAL.value
+      }
+      if (planoData.CATEGORIA_NUTRICIONAL?.value) {
+        planoData.CATEGORIA_NUTRICIONAL = planoData.CATEGORIA_NUTRICIONAL.value
+      }
+      if (planoData.INTENSIDADE_TRABALHO?.value) {
+        planoData.INTENSIDADE_TRABALHO = planoData.INTENSIDADE_TRABALHO.value
+      }
+      const dados = prepareFormData(planoData, ['DATA_INICIO', 'DATA_FIM'])
+
       try {
-        const response = await api.put(`/api/racao/planos/${id}`, planoData)
+        const response = await api.put(`/api/racao/planos/${id}`, dados)
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar plano'
