@@ -113,6 +113,13 @@
               </q-item-section>
               <q-item-section>Movimentações</q-item-section>
             </q-item>
+
+            <q-item to="/racao" clickable v-ripple>
+              <q-item-section avatar>
+                <q-icon name="restaurant" />
+              </q-item-section>
+              <q-item-section>Ração e Suplementos</q-item-section>
+            </q-item>
           </q-expansion-item>
 
           <q-expansion-item

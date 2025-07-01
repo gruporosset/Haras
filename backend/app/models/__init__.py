@@ -12,6 +12,10 @@ from .movimentacao import MovimentacaoAnimais
 from .reproducao import Reproducao
 from .manejo import ProdutoManejo, MovimentacaoProdutoManejo, AnalisesSolo, ManejoTerrenos
 from .ferrageamento import FerrageamentoResumo, FerrageamentoMixin
+from .racao import (
+    ProdutoRacao, MovimentacaoProdutoRacao, PlanoAlimentar,
+    ItemPlanoAlimentar, FornecimentoRacaoAnimal
+)
 # Garante que todos os modelos são importados e registrados
 __all__ = ['User',
            'MFAConfig',
@@ -29,5 +33,10 @@ __all__ = ['User',
            'AnalisesSolo',
            'ManejoTerrenos',
            'FerrageamentoResumo',
-           'FerrageamentoMixin'
+           'FerrageamentoMixin',
+           'ProdutoRacao',
+           'MovimentacaoProdutoRacao',
+           'PlanoAlimentar',
+           'ItemPlanoAlimentar',
+           'FornecimentoRacaoAnimal'
            ]

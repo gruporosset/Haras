@@ -37,4 +37,18 @@ from .saude import (SaudeBase, SaudeCreate, SaudeUpdate,
 from .ferrageamento import (FerrageamentoCreate, FerrageamentoUpdate, FerrageamentoResponse,
                             EstatisticasFerrageamento, FerradorEstatisticas, AlertaVencimento,
                             RelatorioFerrageamento, FerrageamentoRapido, TipoFerrageamentoEnum)
+from .racao import (
+    ProdutoRacaoBase, ProdutoRacaoCreate, ProdutoRacaoUpdate, ProdutoRacaoResponse,
+    MovimentacaoRacaoBase, EntradaRacaoCreate, SaidaRacaoCreate, AjusteRacaoCreate,
+    MovimentacaoRacaoResponse,
+    PlanoAlimentarBase, PlanoAlimentarCreate, PlanoAlimentarUpdate, PlanoAlimentarResponse,
+    ItemPlanoAlimentarBase, ItemPlanoAlimentarCreate, ItemPlanoAlimentarUpdate,
+    ItemPlanoAlimentarResponse,
+    FornecimentoRacaoBase, FornecimentoRacaoCreate, FornecimentoRacaoUpdate,
+    FornecimentoRacaoResponse,
+    EstoqueRacaoBaixo, ConsumoAnimalResumo, PrevisaoConsumoRacao,
+    ProdutoRacaoAutocomplete, CalculoNutricional,
+    TipoAlimentoEnum, CategoriaNutricionalEnum, IntensidadeTrabalhoEnum,
+    StatusPlanoEnum, StatusEstoqueRacaoEnum, TipoMovimentacaoRacaoEnum
+)
 from .sessao import SessaoRefreshTokenRequest

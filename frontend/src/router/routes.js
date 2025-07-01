@@ -13,6 +13,7 @@ import ManejoPage from 'pages/ManejoPage.vue'
 import MedicamentosPage from 'pages/MedicamentosPage.vue'
 import SaudePage from 'pages/SaudePage.vue'
 import FerrageamentoPage from 'pages/FerrageamentoPage.vue'
+import RacaoPage from 'pages/RacaoPage.vue'
 
 const routes = [
   {
@@ -107,6 +108,12 @@ const routes = [
     path: '/ferrageamento',
     name: 'Ferrageamento',
     component: FerrageamentoPage,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/racao',
+    name: 'Racao',
+    component: RacaoPage,
     meta: { requiresAuth: true },
   },
 
