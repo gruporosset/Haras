@@ -14,7 +14,6 @@
           <q-tab name="estoque" label="Movimentação Estoque" />
           <q-tab name="planos" label="Planos Alimentares" />
           <q-tab name="fornecimento" label="Fornecimento" />
-          <q-tab name="relatorios" label="Relatórios" />
         </q-tabs>
         
         <q-tab-panels v-model="activeTab" animated>
@@ -46,12 +45,6 @@
             <FornecimentoRacao />
           </q-tab-panel>
 
-          <!-- ========================================= -->
-          <!-- ABA RELATÓRIOS -->
-          <!-- ========================================= -->
-          <!-- <q-tab-panel name="relatorios">
-            <RelatoriosRacao />
-          </q-tab-panel> -->
         </q-tab-panels>
       </q-card-section>
     </q-card>
@@ -167,14 +160,13 @@ import ProdutosRacao from 'components/racao/ProdutosRacao.vue'
 import MovimentacaoEstoqueRacao from 'components/racao/MovimentacaoEstoqueRacao.vue'
 import PlanosAlimentares from 'components/racao/PlanosAlimentares.vue'
 import FornecimentoRacao from 'components/racao/FornecimentoRacao.vue'
-// import RelatoriosRacao from 'components/racao/RelatoriosRacao.vue'
 
 // Composables
 const $q = useQuasar()
 const racaoStore = useRacaoStore()
 
 // Estado reativo
-const activeTab = ref('fornecimento') 
+const activeTab = ref('produtos') 
 const quickViewDialog = ref(false)
 const quickViewTitle = ref('')
 const quickViewContent = ref('')
@@ -202,13 +194,6 @@ async function refreshAllData() {
         break
       case 'fornecimento':
         await racaoStore.fetchFornecimentos()
-        break
-      case 'relatorios':
-        await Promise.all([
-          racaoStore.getConsumoAnimal(),
-          racaoStore.getPrevisaoConsumo(),
-          racaoStore.getEstoqueBaixo()
-        ])
         break
     }
 

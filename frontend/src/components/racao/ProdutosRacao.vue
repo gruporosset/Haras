@@ -67,14 +67,6 @@
           </template>
           {{ alertasEstoque.length }} produto(s) com estoque baixo ou vencimento
           próximo
-          <template v-slot:action>
-            <q-btn
-              flat
-              color="white"
-              label="Ver Relatório"
-              @click="$emit('show-relatorios')"
-            />
-          </template>
         </q-banner>
       </div>
     </div>
