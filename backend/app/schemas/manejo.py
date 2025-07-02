@@ -62,7 +62,7 @@ class ProdutoManejoBase(BaseModel):
     # Aplicação Técnica
     DOSE_RECOMENDADA: Optional[float] = Field(None, ge=0)
     PERIODO_CARENCIA: Optional[int] = Field(None, ge=0)
-    REQUER_RECEITUARIO: str = Field(default='N', pattern='^[SN]$')
+    REQUER_RECEITUARIO: str = Field(default="N", pattern="^[SN]$")
 
     # Armazenamento
     LOCAL_ARMAZENAMENTO: Optional[str] = Field(None, max_length=100)
@@ -70,18 +70,20 @@ class ProdutoManejoBase(BaseModel):
 
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_estoques(self):
-        if (self.ESTOQUE_MAXIMO is not None and
-                self.ESTOQUE_MAXIMO <= self.ESTOQUE_MINIMO):
-            raise ValueError('Estoque máximo deve ser maior que o mínimo')
+        if (
+            self.ESTOQUE_MAXIMO is not None
+            and self.ESTOQUE_MAXIMO <= self.ESTOQUE_MINIMO
+        ):
+            raise ValueError("Estoque máximo deve ser maior que o mínimo")
         return self
 
-    @field_validator('DATA_VALIDADE')
+    @field_validator("DATA_VALIDADE")
     @classmethod
     def validar_data_validade(cls, v):
         if v and v < datetime.now():
-            raise ValueError('Data de validade não pode ser no passado')
+            raise ValueError("Data de validade não pode ser no passado")
         return v
 
 
@@ -106,7 +108,7 @@ class ProdutoManejoUpdate(BaseModel):
     DATA_VALIDADE: Optional[datetime] = None
     DOSE_RECOMENDADA: Optional[float] = Field(None, ge=0)
     PERIODO_CARENCIA: Optional[int] = Field(None, ge=0)
-    REQUER_RECEITUARIO: Optional[str] = Field(None, pattern='^[SN]$')
+    REQUER_RECEITUARIO: Optional[str] = Field(None, pattern="^[SN]$")
     LOCAL_ARMAZENAMENTO: Optional[str] = Field(None, max_length=100)
     CONDICOES_ARMAZENAMENTO: Optional[str] = Field(None, max_length=200)
     OBSERVACOES: Optional[str] = None
@@ -144,17 +146,21 @@ class MovimentacaoEstoqueBase(BaseModel):
     MOTIVO: Optional[str] = Field(None, max_length=200)
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_datas(self):
-        if (self.DATA_FABRICACAO and self.DATA_VALIDADE and
-                self.DATA_FABRICACAO >= self.DATA_VALIDADE):
-            raise ValueError('Data de fabricação deve ser anterior à validade')
+        if (
+            self.DATA_FABRICACAO
+            and self.DATA_VALIDADE
+            and self.DATA_FABRICACAO >= self.DATA_VALIDADE
+        ):
+            raise ValueError("Data de fabricação deve ser anterior à validade")
         return self
 
 
 class EntradaEstoqueCreate(MovimentacaoEstoqueBase):
     TIPO_MOVIMENTACAO: TipoMovimentacaoManejoEnum = Field(
-        default=TipoMovimentacaoManejoEnum.ENTRADA)
+        default=TipoMovimentacaoManejoEnum.ENTRADA
+    )
     NOTA_FISCAL: str = Field(..., max_length=100)
     FORNECEDOR: str = Field(..., max_length=100)
     PRECO_UNITARIO: float = Field(..., ge=0)
@@ -213,7 +219,7 @@ class ManejoTerrenosBase(BaseModel):
     PERIODO_CARENCIA: Optional[int] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def calcular_custo_total(self):
         if not self.CUSTO_TOTAL:
             custo_produto = self.CUSTO_PRODUTO or 0

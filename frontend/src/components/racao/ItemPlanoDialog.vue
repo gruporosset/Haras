@@ -1,17 +1,24 @@
 <template>
-  <q-dialog v-model="dialog" persistent>
+  <q-dialog
+    v-model="dialog"
+    persistent
+  >
     <q-card style="min-width: 600px">
       <q-card-section>
         <div class="text-h6">
           {{ form.ID ? 'Editar Item do Plano' : 'Adicionar Produto ao Plano' }}
         </div>
         <div class="text-subtitle2 text-grey-6">
-          {{ planoInfo?.animal_nome }} - {{ racaoStore.getCategoriaLabel(planoInfo?.CATEGORIA_NUTRICIONAL) }}
+          {{ planoInfo?.animal_nome }} -
+          {{ racaoStore.getCategoriaLabel(planoInfo?.CATEGORIA_NUTRICIONAL) }}
         </div>
       </q-card-section>
 
       <q-card-section>
-        <q-form @submit="submitForm" class="q-gutter-md">
+        <q-form
+          @submit="submitForm"
+          class="q-gutter-md"
+        >
           <!-- Produto -->
           <q-select
             v-model="form.ID_PRODUTO"
@@ -27,8 +34,11 @@
                 <q-item-section>
                   <q-item-label>{{ scope.opt.label }}</q-item-label>
                   <q-item-label caption>
-                    {{ racaoStore.getTipoAlimentoLabel(scope.opt.tipo_alimento) }} - 
-                    Estoque: {{ racaoStore.formatarPeso(scope.opt.estoque_atual) }}
+                    {{
+                      racaoStore.getTipoAlimentoLabel(scope.opt.tipo_alimento)
+                    }}
+                    - Estoque:
+                    {{ racaoStore.formatarPeso(scope.opt.estoque_atual) }}
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -36,20 +46,44 @@
           </q-select>
 
           <!-- Estoque Disponível -->
-          <q-card v-if="produtoSelecionado" flat bordered class="bg-blue-1">
+          <q-card
+            v-if="produtoSelecionado"
+            flat
+            bordered
+            class="bg-blue-1"
+          >
             <q-card-section class="q-pa-sm">
               <div class="row q-gutter-md">
                 <div class="col">
                   <div class="text-caption">Estoque Disponível</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarPeso(produtoSelecionado.estoque_atual) }}</div>
+                  <div class="text-weight-medium">
+                    {{
+                      racaoStore.formatarPeso(produtoSelecionado.estoque_atual)
+                    }}
+                  </div>
                 </div>
                 <div class="col">
                   <div class="text-caption">Tipo</div>
-                  <div class="text-weight-medium">{{ racaoStore.getTipoAlimentoLabel(produtoSelecionado.tipo_alimento) }}</div>
+                  <div class="text-weight-medium">
+                    {{
+                      racaoStore.getTipoAlimentoLabel(
+                        produtoSelecionado.tipo_alimento
+                      )
+                    }}
+                  </div>
                 </div>
-                <div class="col" v-if="produtoSelecionado.preco_unitario">
+                <div
+                  class="col"
+                  v-if="produtoSelecionado.preco_unitario"
+                >
                   <div class="text-caption">Preço Unitário</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarMoeda(produtoSelecionado.preco_unitario) }}</div>
+                  <div class="text-weight-medium">
+                    {{
+                      racaoStore.formatarMoeda(
+                        produtoSelecionado.preco_unitario
+                      )
+                    }}
+                  </div>
                 </div>
               </div>
             </q-card-section>
@@ -104,7 +138,9 @@
           </div>
 
           <!-- Horários das Refeições -->
-          <div class="text-subtitle2 q-mt-md q-mb-sm">Horários das Refeições (opcional)</div>
+          <div class="text-subtitle2 q-mt-md q-mb-sm">
+            Horários das Refeições (opcional)
+          </div>
           <div class="row q-gutter-md">
             <q-input
               v-model="form.HORARIO_REFEICAO_1"
@@ -148,25 +184,38 @@
           />
 
           <!-- Resumo do Item -->
-          <q-card v-if="form.QUANTIDADE_DIARIA && custoEstimado > 0" flat bordered class="bg-grey-1">
+          <q-card
+            v-if="form.QUANTIDADE_DIARIA && custoEstimado > 0"
+            flat
+            bordered
+            class="bg-grey-1"
+          >
             <q-card-section class="q-pa-sm">
               <div class="text-subtitle2 q-mb-xs">Resumo do Item</div>
               <div class="row q-gutter-md">
                 <div class="col">
                   <div class="text-caption">Quantidade Diária</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarPeso(form.QUANTIDADE_DIARIA) }}</div>
+                  <div class="text-weight-medium">
+                    {{ racaoStore.formatarPeso(form.QUANTIDADE_DIARIA) }}
+                  </div>
                 </div>
                 <div class="col">
                   <div class="text-caption">Por Refeição</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarPeso(form.QUANTIDADE_POR_REFEICAO) }}</div>
+                  <div class="text-weight-medium">
+                    {{ racaoStore.formatarPeso(form.QUANTIDADE_POR_REFEICAO) }}
+                  </div>
                 </div>
                 <div class="col">
                   <div class="text-caption">Custo Diário</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarMoeda(custoEstimado) }}</div>
+                  <div class="text-weight-medium">
+                    {{ racaoStore.formatarMoeda(custoEstimado) }}
+                  </div>
                 </div>
                 <div class="col">
                   <div class="text-caption">Custo Mensal</div>
-                  <div class="text-weight-medium">{{ racaoStore.formatarMoeda(custoEstimado * 30) }}</div>
+                  <div class="text-weight-medium">
+                    {{ racaoStore.formatarMoeda(custoEstimado * 30) }}
+                  </div>
                 </div>
               </div>
             </q-card-section>
@@ -175,7 +224,12 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat label="Cancelar" color="grey" @click="cancelar" />
+        <q-btn
+          flat
+          label="Cancelar"
+          color="grey"
+          @click="cancelar"
+        />
         <q-btn
           label="Salvar"
           color="primary"
@@ -196,16 +250,16 @@ import { ErrorHandler } from 'src/utils/errorHandler'
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    default: false
+    default: false,
   },
   planoInfo: {
     type: Object,
-    default: null
+    default: null,
   },
   itemEdit: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 // Emits
@@ -230,13 +284,13 @@ const form = ref({
   HORARIO_REFEICAO_2: '',
   HORARIO_REFEICAO_3: '',
   HORARIO_REFEICAO_4: '',
-  OBSERVACOES: ''
+  OBSERVACOES: '',
 })
 
 // Computed
 const dialog = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: value => emit('update:modelValue', value),
 })
 
 const numeroRefeicoes = computed(() => {
@@ -245,7 +299,9 @@ const numeroRefeicoes = computed(() => {
 
 const produtoSelecionado = computed(() => {
   if (!form.value.ID_PRODUTO?.value) return null
-  return produtoOptionsOriginal.value.find(p => p.value === form.value.ID_PRODUTO.value)
+  return produtoOptionsOriginal.value.find(
+    p => p.value === form.value.ID_PRODUTO.value
+  )
 })
 
 const unidadeSelecionada = computed(() => {
@@ -253,7 +309,11 @@ const unidadeSelecionada = computed(() => {
 })
 
 const custoEstimado = computed(() => {
-  if (!form.value.QUANTIDADE_DIARIA || !produtoSelecionado.value?.preco_unitario) return 0
+  if (
+    !form.value.QUANTIDADE_DIARIA ||
+    !produtoSelecionado.value?.preco_unitario
+  )
+    return 0
   return form.value.QUANTIDADE_DIARIA * produtoSelecionado.value.preco_unitario
 })
 
@@ -262,10 +322,15 @@ async function initializeForm() {
   if (props.itemEdit) {
     // Editando item existente
     form.value = { ...props.itemEdit }
-    
+
     // Converter ID_PRODUTO para objeto se necessário
-    if (props.itemEdit.ID_PRODUTO && typeof props.itemEdit.ID_PRODUTO === 'number') {
-      const produtoOption = produtoOptionsOriginal.value.find(p => p.value === props.itemEdit.ID_PRODUTO)
+    if (
+      props.itemEdit.ID_PRODUTO &&
+      typeof props.itemEdit.ID_PRODUTO === 'number'
+    ) {
+      const produtoOption = produtoOptionsOriginal.value.find(
+        p => p.value === props.itemEdit.ID_PRODUTO
+      )
       if (produtoOption) {
         form.value.ID_PRODUTO = produtoOption
       }
@@ -282,7 +347,7 @@ async function initializeForm() {
       HORARIO_REFEICAO_2: '',
       HORARIO_REFEICAO_3: '',
       HORARIO_REFEICAO_4: '',
-      OBSERVACOES: ''
+      OBSERVACOES: '',
     }
   }
 }
@@ -296,7 +361,7 @@ async function loadProdutoOptions() {
       estoque_atual: p.estoque_atual,
       unidade_medida: p.unidade_medida,
       tipo_alimento: p.tipo_alimento,
-      preco_unitario: p.preco_unitario || 0
+      preco_unitario: p.preco_unitario || 0,
     }))
     produtoOptions.value = [...produtoOptionsOriginal.value]
   } catch (error) {
@@ -310,8 +375,8 @@ function filterProdutos(val, update) {
       produtoOptions.value = [...produtoOptionsOriginal.value]
     } else {
       const needle = val.toLowerCase()
-      produtoOptions.value = produtoOptionsOriginal.value.filter(
-        p => p.label.toLowerCase().includes(needle)
+      produtoOptions.value = produtoOptionsOriginal.value.filter(p =>
+        p.label.toLowerCase().includes(needle)
       )
     }
   })
@@ -325,33 +390,40 @@ function onProdutoSelected(produto) {
 
 function calcularPorRefeicao() {
   if (form.value.QUANTIDADE_DIARIA && numeroRefeicoes.value) {
-    form.value.QUANTIDADE_POR_REFEICAO = form.value.QUANTIDADE_DIARIA / numeroRefeicoes.value
+    form.value.QUANTIDADE_POR_REFEICAO =
+      form.value.QUANTIDADE_DIARIA / numeroRefeicoes.value
   }
 }
 
 function calcularDiaria() {
   if (form.value.QUANTIDADE_POR_REFEICAO && numeroRefeicoes.value) {
-    form.value.QUANTIDADE_DIARIA = form.value.QUANTIDADE_POR_REFEICAO * numeroRefeicoes.value
+    form.value.QUANTIDADE_DIARIA =
+      form.value.QUANTIDADE_POR_REFEICAO * numeroRefeicoes.value
   }
 }
 
 async function submitForm() {
   try {
     loading.value = true
-    
+
     // Preparar dados
     const data = { ...form.value }
     if (data.ID_PRODUTO?.value) {
       data.ID_PRODUTO = data.ID_PRODUTO.value
     }
-    
+
     // Remover HORARIO_REFEICAO_* se forem strings vazias
-    const horarios = ['HORARIO_REFEICAO_1', 'HORARIO_REFEICAO_2', 'HORARIO_REFEICAO_3', 'HORARIO_REFEICAO_4'];
+    const horarios = [
+      'HORARIO_REFEICAO_1',
+      'HORARIO_REFEICAO_2',
+      'HORARIO_REFEICAO_3',
+      'HORARIO_REFEICAO_4',
+    ]
     horarios.forEach(horario => {
       if (data[horario] === '') {
-        delete data[horario];
+        delete data[horario]
       }
-    });    
+    })
 
     if (props.itemEdit?.ID) {
       // Atualizar item existente
@@ -362,10 +434,9 @@ async function submitForm() {
       await racaoStore.createItemPlano(props.planoInfo.ID, data)
       ErrorHandler.success('Item adicionado com sucesso!')
     }
-    
+
     emit('saved')
     dialog.value = false
-    
   } catch (error) {
     ErrorHandler.handle(error, 'Erro ao salvar item')
   } finally {
@@ -379,16 +450,22 @@ function cancelar() {
 }
 
 // Watchers
-watch(() => props.modelValue, async (newVal) => {
-  if (newVal) {
-    await loadProdutoOptions()
-    await initializeForm()
+watch(
+  () => props.modelValue,
+  async newVal => {
+    if (newVal) {
+      await loadProdutoOptions()
+      await initializeForm()
+    }
   }
-})
+)
 
-watch(() => numeroRefeicoes.value, () => {
-  if (form.value.QUANTIDADE_DIARIA) {
-    calcularPorRefeicao()
+watch(
+  () => numeroRefeicoes.value,
+  () => {
+    if (form.value.QUANTIDADE_DIARIA) {
+      calcularPorRefeicao()
+    }
   }
-})
+)
 </script>

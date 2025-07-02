@@ -1,32 +1,48 @@
 import os
 import shutil
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
-from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import desc, text
-from sqlalchemy import and_, or_
+
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.manejo import ProdutoManejo, AnalisesSolo, ManejoTerrenos, MovimentacaoProdutoManejo
+from app.models.manejo import (
+    AnalisesSolo,
+    ManejoTerrenos,
+    MovimentacaoProdutoManejo,
+    ProdutoManejo,
+)
 from app.models.terreno import Terreno
 from app.models.user import User
-from app.schemas.manejo import (
-    # Produtos
-    ProdutoManejoCreate, ProdutoManejoUpdate, ProdutoManejoResponse,
-    ProdutoAutocomplete, TipoProdutoEnum,
-    # Movimentação
-    EntradaEstoqueCreate, SaidaEstoqueCreate, AjusteEstoqueCreate,
-    MovimentacaoEstoqueResponse, TipoMovimentacaoManejoEnum,
-    # Manejo
-    ManejoTerrenosCreate, ManejoTerrenosUpdate, ManejoTerrenosResponse, TipoManejoEnum,
-    # Análises
-    AnalisesSoloCreate, AnalisesSoloUpdate, AnalisesSoloResponse,
-    # Relatórios
-    EstoqueBaixo, MovimentacaoResumo, ConsumoTerrenoResumo, PrevisaoConsumo, StatusEstoqueEnum
+from app.schemas.manejo import (  # Produtos; Movimentação; Manejo; Análises; Relatórios
+    AjusteEstoqueCreate,
+    AnalisesSoloCreate,
+    AnalisesSoloResponse,
+    AnalisesSoloUpdate,
+    ConsumoTerrenoResumo,
+    EntradaEstoqueCreate,
+    EstoqueBaixo,
+    ManejoTerrenosCreate,
+    ManejoTerrenosResponse,
+    ManejoTerrenosUpdate,
+    MovimentacaoEstoqueResponse,
+    MovimentacaoResumo,
+    PrevisaoConsumo,
+    ProdutoAutocomplete,
+    ProdutoManejoCreate,
+    ProdutoManejoResponse,
+    ProdutoManejoUpdate,
+    SaidaEstoqueCreate,
+    StatusEstoqueEnum,
+    TipoManejoEnum,
+    TipoMovimentacaoManejoEnum,
+    TipoProdutoEnum,
 )
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import desc, text
 
 router = APIRouter(prefix="/api/manejo", tags=["Manejo de Terrenos"])
 
@@ -39,29 +55,31 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # ======================================
 
 
-@router.post("/produtos", response_model=ProdutoManejoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/produtos",
+    response_model=ProdutoManejoResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_produto(
     produto: ProdutoManejoCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Criar novo produto para manejo"""
     # Verificar duplicatas
-    existing = db.query(ProdutoManejo).filter(
-        ProdutoManejo.NOME == produto.NOME,
-        ProdutoManejo.ATIVO == 'S'
-    ).first()
+    existing = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.NOME == produto.NOME, ProdutoManejo.ATIVO == "S")
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Produto com este nome já existe"
+            detail="Produto com este nome já existe",
         )
 
-    db_produto = ProdutoManejo(
-        **produto.dict(),
-        ID_USUARIO_CADASTRO=current_user.ID
-    )
+    db_produto = ProdutoManejo(**produto.dict(), ID_USUARIO_CADASTRO=current_user.ID)
     db.add(db_produto)
     db.commit()
     db.refresh(db_produto)
@@ -69,8 +87,9 @@ async def create_produto(
     # Calcular status do estoque
     response = ProdutoManejoResponse.from_orm(db_produto)
     response.status_estoque = _calcular_status_estoque(db_produto)
-    response.valor_total_estoque = (
-        db_produto.ESTOQUE_ATUAL or 0) * (db_produto.PRECO_UNITARIO or 0)
+    response.valor_total_estoque = (db_produto.ESTOQUE_ATUAL or 0) * (
+        db_produto.PRECO_UNITARIO or 0
+    )
 
     return response
 
@@ -84,7 +103,7 @@ async def list_produtos(
     estoque_baixo: Optional[bool] = Query(False),
     ativo: Optional[str] = Query("S"),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     """Listar produtos com filtros e paginação"""
     query = db.query(ProdutoManejo)
@@ -102,16 +121,15 @@ async def list_produtos(
                 ProdutoManejo.ESTOQUE_ATUAL <= ProdutoManejo.ESTOQUE_MINIMO,
                 and_(
                     ProdutoManejo.DATA_VALIDADE.isnot(None),
-                    ProdutoManejo.DATA_VALIDADE <= datetime.now() + timedelta(days=30)
-                )
+                    ProdutoManejo.DATA_VALIDADE <= datetime.now() + timedelta(days=30),
+                ),
             )
         )
 
     # Paginação
     total = query.count()
     offset = (page - 1) * limit
-    produtos = query.order_by(ProdutoManejo.NOME).offset(
-        offset).limit(limit).all()
+    produtos = query.order_by(ProdutoManejo.NOME).offset(offset).limit(limit).all()
 
     # Adicionar campos calculados
     produtos_response = []
@@ -119,8 +137,9 @@ async def list_produtos(
         response = ProdutoManejoResponse.from_orm(produto)
         response.status_estoque = _calcular_status_estoque(produto)
         response.dias_vencimento = _calcular_dias_vencimento(produto)
-        response.valor_total_estoque = (
-            produto.ESTOQUE_ATUAL or 0) * (produto.PRECO_UNITARIO or 0)
+        response.valor_total_estoque = (produto.ESTOQUE_ATUAL or 0) * (
+            produto.PRECO_UNITARIO or 0
+        )
         produtos_response.append(response)
 
     return {
@@ -128,7 +147,7 @@ async def list_produtos(
         "total": total,
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit
+        "total_pages": (total + limit - 1) // limit,
     }
 
 
@@ -138,10 +157,10 @@ async def autocomplete_produtos(
     current_user: User = Depends(get_current_user),
     q: Optional[str] = Query(None, min_length=2),
     tipo_produto: Optional[TipoProdutoEnum] = Query(None),
-    apenas_com_estoque: Optional[bool] = Query(False)
+    apenas_com_estoque: Optional[bool] = Query(False),
 ):
     """Autocomplete para produtos com informações de estoque"""
-    query = db.query(ProdutoManejo).filter(ProdutoManejo.ATIVO == 'S')
+    query = db.query(ProdutoManejo).filter(ProdutoManejo.ATIVO == "S")
 
     if q:
         query = query.filter(ProdutoManejo.NOME.ilike(f"%{q}%"))
@@ -162,7 +181,7 @@ async def autocomplete_produtos(
             unidade_medida=p.UNIDADE_MEDIDA,
             tipo_produto=p.TIPO_PRODUTO,
             status_estoque=_calcular_status_estoque(p),
-            dose_recomendada=p.DOSE_RECOMENDADA
+            dose_recomendada=p.DOSE_RECOMENDADA,
         )
         for p in produtos
     ]
@@ -172,19 +191,19 @@ async def autocomplete_produtos(
 async def get_produto(
     produto_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Obter produto por ID"""
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == produto_id).first()
+    produto = db.query(ProdutoManejo).filter(ProdutoManejo.ID == produto_id).first()
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
     response = ProdutoManejoResponse.from_orm(produto)
     response.status_estoque = _calcular_status_estoque(produto)
     response.dias_vencimento = _calcular_dias_vencimento(produto)
-    response.valor_total_estoque = (
-        produto.ESTOQUE_ATUAL or 0) * (produto.PRECO_UNITARIO or 0)
+    response.valor_total_estoque = (produto.ESTOQUE_ATUAL or 0) * (
+        produto.PRECO_UNITARIO or 0
+    )
 
     return response
 
@@ -194,21 +213,24 @@ async def update_produto(
     produto_id: int,
     produto_update: ProdutoManejoUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Atualizar produto"""
-    db_produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == produto_id).first()
+    db_produto = db.query(ProdutoManejo).filter(ProdutoManejo.ID == produto_id).first()
     if not db_produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
     # Verificar duplicata no nome
     if produto_update.NOME and produto_update.NOME != db_produto.NOME:
-        existing = db.query(ProdutoManejo).filter(
-            ProdutoManejo.NOME == produto_update.NOME,
-            ProdutoManejo.ID != produto_id,
-            ProdutoManejo.ATIVO == 'S'
-        ).first()
+        existing = (
+            db.query(ProdutoManejo)
+            .filter(
+                ProdutoManejo.NOME == produto_update.NOME,
+                ProdutoManejo.ID != produto_id,
+                ProdutoManejo.ATIVO == "S",
+            )
+            .first()
+        )
         if existing:
             raise HTTPException(status_code=400, detail="Nome já existe")
 
@@ -221,8 +243,9 @@ async def update_produto(
 
     response = ProdutoManejoResponse.model_validate(db_produto)
     response.status_estoque = _calcular_status_estoque(db_produto)
-    response.valor_total_estoque = (
-        db_produto.ESTOQUE_ATUAL or 0) * (db_produto.PRECO_UNITARIO or 0)
+    response.valor_total_estoque = (db_produto.ESTOQUE_ATUAL or 0) * (
+        db_produto.PRECO_UNITARIO or 0
+    )
 
     return response
 
@@ -231,15 +254,14 @@ async def update_produto(
 async def delete_produto(
     produto_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Excluir produto (soft delete)"""
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == produto_id).first()
+    produto = db.query(ProdutoManejo).filter(ProdutoManejo.ID == produto_id).first()
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
-    produto.ATIVO = 'N'
+    produto.ATIVO = "N"
     db.commit()
 
     return {"message": "Produto excluído com sucesso"}
@@ -249,25 +271,26 @@ async def delete_produto(
 # MOVIMENTAÇÃO DE ESTOQUE
 # ======================================
 
+
 @router.post("/estoque/entrada", response_model=MovimentacaoEstoqueResponse)
 async def entrada_estoque(
     entrada: EntradaEstoqueCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Registrar entrada de estoque (compra)"""
     # Verificar se produto existe
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == entrada.ID_PRODUTO,
-        ProdutoManejo.ATIVO == 'S'
-    ).first()
+    produto = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.ID == entrada.ID_PRODUTO, ProdutoManejo.ATIVO == "S")
+        .first()
+    )
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
     # Criar movimentação (trigger atualizará o estoque automaticamente)
     db_movimentacao = MovimentacaoProdutoManejo(
-        **entrada.dict(),
-        ID_USUARIO_REGISTRO=current_user.ID
+        **entrada.dict(), ID_USUARIO_REGISTRO=current_user.ID
     )
 
     db.add(db_movimentacao)
@@ -285,21 +308,22 @@ async def entrada_estoque(
 async def saida_estoque(
     saida: SaidaEstoqueCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Registrar saída de estoque"""
     # Verificar estoque disponível
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == saida.ID_PRODUTO,
-        ProdutoManejo.ATIVO == 'S'
-    ).first()
+    produto = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.ID == saida.ID_PRODUTO, ProdutoManejo.ATIVO == "S")
+        .first()
+    )
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
     if (produto.ESTOQUE_ATUAL or 0) < saida.QUANTIDADE:
         raise HTTPException(
             status_code=400,
-            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}"
+            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}",
         )
 
     # Criar movimentação
@@ -310,7 +334,7 @@ async def saida_estoque(
         ID_TERRENO=saida.ID_TERRENO,
         MOTIVO=saida.MOTIVO,
         OBSERVACOES=saida.OBSERVACOES,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     db.add(db_movimentacao)
@@ -327,13 +351,14 @@ async def saida_estoque(
 async def ajuste_estoque(
     ajuste: AjusteEstoqueCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Ajustar estoque (correção)"""
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == ajuste.ID_PRODUTO,
-        ProdutoManejo.ATIVO == 'S'
-    ).first()
+    produto = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.ID == ajuste.ID_PRODUTO, ProdutoManejo.ATIVO == "S")
+        .first()
+    )
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
@@ -344,7 +369,7 @@ async def ajuste_estoque(
         QUANTIDADE=ajuste.QUANTIDADE_NOVA,
         MOTIVO=ajuste.MOTIVO,
         OBSERVACOES=ajuste.OBSERVACOES,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     db.add(db_movimentacao)
@@ -366,7 +391,7 @@ async def list_movimentacoes(
     data_inicio: Optional[str] = Query(None),
     data_fim: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     """Listar movimentações de estoque"""
     query = db.query(MovimentacaoProdutoManejo)
@@ -377,38 +402,38 @@ async def list_movimentacoes(
 
     if data_inicio:
         try:
-            data_inicio_dt = datetime.fromisoformat(
-                data_inicio.replace('Z', '+00:00'))
+            data_inicio_dt = datetime.fromisoformat(data_inicio.replace("Z", "+00:00"))
         except ValueError:
-            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
 
     if data_fim:
         try:
-            data_fim_dt = datetime.fromisoformat(
-                data_fim.replace('Z', '+00:00'))
+            data_fim_dt = datetime.fromisoformat(data_fim.replace("Z", "+00:00"))
         except ValueError:
-            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
 
     # Filtros
     if produto_id:
-        query = query.filter(
-            MovimentacaoProdutoManejo.ID_PRODUTO == produto_id)
+        query = query.filter(MovimentacaoProdutoManejo.ID_PRODUTO == produto_id)
     if tipo_movimentacao:
         query = query.filter(
-            MovimentacaoProdutoManejo.TIPO_MOVIMENTACAO == tipo_movimentacao)
+            MovimentacaoProdutoManejo.TIPO_MOVIMENTACAO == tipo_movimentacao
+        )
     if data_inicio_dt:
-        query = query.filter(
-            MovimentacaoProdutoManejo.DATA_REGISTRO >= data_inicio_dt)
+        query = query.filter(MovimentacaoProdutoManejo.DATA_REGISTRO >= data_inicio_dt)
     if data_fim_dt:
-        query = query.filter(
-            MovimentacaoProdutoManejo.DATA_REGISTRO <= data_fim_dt)
+        query = query.filter(MovimentacaoProdutoManejo.DATA_REGISTRO <= data_fim_dt)
 
     # Paginação
     total = query.count()
     offset = (page - 1) * limit
-    movimentacoes = query.order_by(
-        desc(MovimentacaoProdutoManejo.DATA_REGISTRO)).offset(offset).limit(limit).all()
+    movimentacoes = (
+        query.order_by(desc(MovimentacaoProdutoManejo.DATA_REGISTRO))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Adicionar dados relacionados
     movimentacoes_response = []
@@ -416,8 +441,9 @@ async def list_movimentacoes(
         response = MovimentacaoEstoqueResponse.from_orm(mov)
 
         # Buscar produto diretamente
-        produto = db.query(ProdutoManejo).filter(
-            ProdutoManejo.ID == mov.ID_PRODUTO).first()
+        produto = (
+            db.query(ProdutoManejo).filter(ProdutoManejo.ID == mov.ID_PRODUTO).first()
+        )
         if produto:
             response.produto_nome = produto.NOME
             response.produto_unidade = produto.UNIDADE_MEDIDA
@@ -427,8 +453,7 @@ async def list_movimentacoes(
 
         # Buscar terreno se existir
         if mov.ID_TERRENO:
-            terreno = db.query(Terreno).filter(
-                Terreno.ID == mov.ID_TERRENO).first()
+            terreno = db.query(Terreno).filter(Terreno.ID == mov.ID_TERRENO).first()
             response.terreno_nome = terreno.NOME if terreno else None
 
         movimentacoes_response.append(response)
@@ -438,7 +463,7 @@ async def list_movimentacoes(
         "total": total,
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit
+        "total_pages": (total + limit - 1) // limit,
     }
 
 
@@ -446,10 +471,10 @@ async def list_movimentacoes(
 # RELATÓRIOS DE ESTOQUE
 # ======================================
 
+
 @router.get("/estoque/alertas", response_model=List[EstoqueBaixo])
 async def alertas_estoque(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Produtos com estoque baixo ou próximo ao vencimento"""
     # Usando a VIEW criada no Oracle
@@ -471,17 +496,19 @@ async def alertas_estoque(
 
     alertas = []
     for row in result:
-        alertas.append(EstoqueBaixo(
-            produto_id=row[0],
-            nome=row[1],
-            tipo_produto=row[2],
-            estoque_atual=row[3] or 0,
-            estoque_minimo=row[4] or 0,
-            unidade_medida=row[5],
-            status_alerta=row[8],
-            dias_vencimento=row[9],
-            fornecedor_principal=row[6]
-        ))
+        alertas.append(
+            EstoqueBaixo(
+                produto_id=row[0],
+                nome=row[1],
+                tipo_produto=row[2],
+                estoque_atual=row[3] or 0,
+                estoque_minimo=row[4] or 0,
+                unidade_medida=row[5],
+                status_alerta=row[8],
+                dias_vencimento=row[9],
+                fornecedor_principal=row[6],
+            )
+        )
 
     return alertas
 
@@ -490,7 +517,7 @@ async def alertas_estoque(
 async def resumo_estoque(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    tipo_produto: Optional[TipoProdutoEnum] = Query(None)
+    tipo_produto: Optional[TipoProdutoEnum] = Query(None),
 ):
     """Resumo de movimentação de estoque"""
     # Usando a VIEW criada no Oracle
@@ -509,7 +536,7 @@ async def resumo_estoque(
 
     if tipo_produto:
         query += " WHERE TIPO_PRODUTO = :tipo_produto"
-        params['tipo_produto'] = tipo_produto.value
+        params["tipo_produto"] = tipo_produto.value
 
     query += " ORDER BY PRODUTO_NOME"
 
@@ -517,18 +544,20 @@ async def resumo_estoque(
 
     resumos = []
     for row in result:
-        resumos.append(MovimentacaoResumo(
-            produto_id=row.produto_id,
-            produto_nome=row.produto_nome,
-            tipo_produto=row.tipo_produto,
-            estoque_atual=row.estoque_atual or 0,
-            estoque_minimo=row.estoque_minimo or 0,
-            unidade_medida=row.unidade_medida,
-            total_entradas=row.total_entradas or 0,
-            total_saidas=row.total_saidas or 0,
-            valor_entradas=row.valor_entradas or 0,
-            ultima_movimentacao=row.ultima_movimentacao
-        ))
+        resumos.append(
+            MovimentacaoResumo(
+                produto_id=row.produto_id,
+                produto_nome=row.produto_nome,
+                tipo_produto=row.tipo_produto,
+                estoque_atual=row.estoque_atual or 0,
+                estoque_minimo=row.estoque_minimo or 0,
+                unidade_medida=row.unidade_medida,
+                total_entradas=row.total_entradas or 0,
+                total_saidas=row.total_saidas or 0,
+                valor_entradas=row.valor_entradas or 0,
+                ultima_movimentacao=row.ultima_movimentacao,
+            )
+        )
 
     return resumos
 
@@ -537,23 +566,24 @@ async def resumo_estoque(
 # ANÁLISES DE SOLO
 # ======================================
 
-@router.post("/analises-solo", response_model=AnalisesSoloResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/analises-solo",
+    response_model=AnalisesSoloResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_analise_solo(
     analise: AnalisesSoloCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Criar análise de solo"""
     # Verificar se terreno existe
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == analise.ID_TERRENO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == analise.ID_TERRENO).first()
     if not terreno:
         raise HTTPException(status_code=404, detail="Terreno não encontrado")
 
-    db_analise = AnalisesSolo(
-        **analise.dict(),
-        ID_USUARIO_CADASTRO=current_user.ID
-    )
+    db_analise = AnalisesSolo(**analise.dict(), ID_USUARIO_CADASTRO=current_user.ID)
     db.add(db_analise)
     db.commit()
     db.refresh(db_analise)
@@ -573,7 +603,7 @@ async def list_analises_solo(
     data_fim: Optional[str] = Query(None),
     laboratorio: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     """Listar análises de solo"""
     query = db.query(AnalisesSolo).join(Terreno)
@@ -584,17 +614,15 @@ async def list_analises_solo(
 
     if data_inicio:
         try:
-            data_inicio_dt = datetime.fromisoformat(
-                data_inicio.replace('Z', '+00:00'))
+            data_inicio_dt = datetime.fromisoformat(data_inicio.replace("Z", "+00:00"))
         except ValueError:
-            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
 
     if data_fim:
         try:
-            data_fim_dt = datetime.fromisoformat(
-                data_fim.replace('Z', '+00:00'))
+            data_fim_dt = datetime.fromisoformat(data_fim.replace("Z", "+00:00"))
         except ValueError:
-            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
 
     # Filtros
@@ -605,21 +633,20 @@ async def list_analises_solo(
     if data_fim_dt:
         query = query.filter(AnalisesSolo.DATA_COLETA <= data_fim_dt)
     if laboratorio:
-        query = query.filter(
-            AnalisesSolo.LABORATORIO.ilike(f"%{laboratorio}%"))
+        query = query.filter(AnalisesSolo.LABORATORIO.ilike(f"%{laboratorio}%"))
 
     # Paginação
     total = query.count()
     offset = (page - 1) * limit
-    analises = query.order_by(desc(AnalisesSolo.DATA_COLETA)).offset(
-        offset).limit(limit).all()
+    analises = (
+        query.order_by(desc(AnalisesSolo.DATA_COLETA)).offset(offset).limit(limit).all()
+    )
 
     # Adicionar dados relacionados
     analises_response = []
     for analise in analises:
         response = AnalisesSoloResponse.from_orm(analise)
-        terreno = db.query(Terreno).filter(
-            Terreno.ID == analise.ID_TERRENO).first()
+        terreno = db.query(Terreno).filter(Terreno.ID == analise.ID_TERRENO).first()
         response.terreno_nome = terreno.NOME if terreno else None
         analises_response.append(response)
 
@@ -628,7 +655,7 @@ async def list_analises_solo(
         "total": total,
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit
+        "total_pages": (total + limit - 1) // limit,
     }
 
 
@@ -636,17 +663,15 @@ async def list_analises_solo(
 async def get_analise_solo(
     analise_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Obter análise de solo por ID"""
-    analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
     response = AnalisesSoloResponse.from_orm(analise)
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == analise.ID_TERRENO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == analise.ID_TERRENO).first()
     response.terreno_nome = terreno.NOME if terreno else None
 
     return response
@@ -657,11 +682,10 @@ async def update_analise_solo(
     analise_id: int,
     analise_update: AnalisesSoloUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Atualizar análise de solo"""
-    db_analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    db_analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not db_analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
@@ -673,8 +697,7 @@ async def update_analise_solo(
     db.refresh(db_analise)
 
     response = AnalisesSoloResponse.from_orm(db_analise)
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == db_analise.ID_TERRENO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == db_analise.ID_TERRENO).first()
     response.terreno_nome = terreno.NOME if terreno else None
 
     return response
@@ -685,19 +708,19 @@ async def upload_laudo_analise(
     analise_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Upload de laudo de análise de solo"""
     # Verificar se análise existe
-    analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
     # Validar tipo de arquivo
-    if not file.filename.lower().endswith(('.pdf', '.jpg', '.jpeg', '.png')):
+    if not file.filename.lower().endswith((".pdf", ".jpg", ".jpeg", ".png")):
         raise HTTPException(
-            status_code=400, detail="Tipo de arquivo não permitido. Use PDF ou imagens.")
+            status_code=400, detail="Tipo de arquivo não permitido. Use PDF ou imagens."
+        )
 
     # Gerar nome único do arquivo
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -716,41 +739,41 @@ async def upload_laudo_analise(
         return {"message": "Laudo enviado com sucesso", "arquivo": filename}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
 
 
 @router.get("/analises-solo/{analise_id}/download-laudo")
 async def download_laudo_analise(
     analise_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Download do laudo de análise de solo"""
     # Verificar se análise existe
-    analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
     # Verificar se tem arquivo de laudo
     if not analise.ARQUIVO_LAUDO:
         raise HTTPException(
-            status_code=404, detail="Nenhum laudo disponível para esta análise")
+            status_code=404, detail="Nenhum laudo disponível para esta análise"
+        )
 
     # Verificar se arquivo existe no sistema
     if not os.path.exists(analise.ARQUIVO_LAUDO):
         raise HTTPException(
-            status_code=404, detail="Arquivo de laudo não encontrado no servidor")
+            status_code=404, detail="Arquivo de laudo não encontrado no servidor"
+        )
 
     # Obter informações do terreno para nome do arquivo
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == analise.ID_TERRENO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == analise.ID_TERRENO).first()
     terreno_nome = terreno.NOME if terreno else f"Terreno_{analise.ID_TERRENO}"
 
     # Formatar data para nome do arquivo
-    data_formatada = analise.DATA_COLETA.strftime(
-        "%d-%m-%Y") if analise.DATA_COLETA else "sem-data"
+    data_formatada = (
+        analise.DATA_COLETA.strftime("%d-%m-%Y") if analise.DATA_COLETA else "sem-data"
+    )
 
     # Obter extensão do arquivo original
     extensao = os.path.splitext(analise.ARQUIVO_LAUDO)[1]
@@ -760,28 +783,27 @@ async def download_laudo_analise(
 
     # Limpar caracteres especiais do nome
     import re
-    nome_download = re.sub(r'[<>:"/\\|?*]', '_', nome_download)
+
+    nome_download = re.sub(r'[<>:"/\\|?*]', "_", nome_download)
 
     try:
         return FileResponse(
             path=analise.ARQUIVO_LAUDO,
             filename=nome_download,
-            media_type='application/octet-stream'
+            media_type="application/octet-stream",
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Erro ao fazer download: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao fazer download: {str(e)}")
 
 
 @router.get("/analises-solo/{analise_id}/laudo-info")
 async def get_laudo_info(
     analise_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Obter informações do laudo (tamanho, tipo, etc.)"""
-    analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
@@ -789,10 +811,7 @@ async def get_laudo_info(
         raise HTTPException(status_code=404, detail="Nenhum laudo disponível")
 
     if not os.path.exists(analise.ARQUIVO_LAUDO):
-        return {
-            "tem_arquivo": False,
-            "erro": "Arquivo não encontrado no servidor"
-        }
+        return {"tem_arquivo": False, "erro": "Arquivo não encontrado no servidor"}
 
     try:
         stat_info = os.stat(analise.ARQUIVO_LAUDO)
@@ -805,24 +824,20 @@ async def get_laudo_info(
             "tamanho_bytes": stat_info.st_size,
             "tamanho_mb": round(stat_info.st_size / 1024 / 1024, 2),
             "extensao": extensao,
-            "data_modificacao": stat_info.st_mtime
+            "data_modificacao": stat_info.st_mtime,
         }
     except Exception as e:
-        return {
-            "tem_arquivo": False,
-            "erro": f"Erro ao obter informações: {str(e)}"
-        }
+        return {"tem_arquivo": False, "erro": f"Erro ao obter informações: {str(e)}"}
 
 
 @router.delete("/analises-solo/{analise_id}")
 async def delete_analise_solo(
     analise_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Excluir análise de solo"""
-    analise = db.query(AnalisesSolo).filter(
-        AnalisesSolo.ID == analise_id).first()
+    analise = db.query(AnalisesSolo).filter(AnalisesSolo.ID == analise_id).first()
     if not analise:
         raise HTTPException(status_code=404, detail="Análise não encontrada")
 
@@ -843,23 +858,28 @@ async def delete_analise_solo(
 # MANEJO DE TERRENOS
 # ======================================
 
-@router.post("/aplicacoes", response_model=ManejoTerrenosResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/aplicacoes",
+    response_model=ManejoTerrenosResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_aplicacao(
     aplicacao: ManejoTerrenosCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Registrar aplicação em terreno"""
     # Verificar se terreno e produto existem
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == aplicacao.ID_TERRENO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == aplicacao.ID_TERRENO).first()
     if not terreno:
         raise HTTPException(status_code=404, detail="Terreno não encontrado")
 
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == aplicacao.ID_PRODUTO,
-        ProdutoManejo.ATIVO == 'S'
-    ).first()
+    produto = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.ID == aplicacao.ID_PRODUTO, ProdutoManejo.ATIVO == "S")
+        .first()
+    )
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
 
@@ -867,23 +887,25 @@ async def create_aplicacao(
     if (produto.ESTOQUE_ATUAL or 0) < aplicacao.QUANTIDADE:
         raise HTTPException(
             status_code=400,
-            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}"
+            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}",
         )
 
     # Calcular data de liberação se houver carência
     data_liberacao = None
     if aplicacao.PERIODO_CARENCIA:
-        data_liberacao = aplicacao.DATA_APLICACAO + \
-            timedelta(days=aplicacao.PERIODO_CARENCIA)
+        data_liberacao = aplicacao.DATA_APLICACAO + timedelta(
+            days=aplicacao.PERIODO_CARENCIA
+        )
     elif produto.PERIODO_CARENCIA:
-        data_liberacao = aplicacao.DATA_APLICACAO + \
-            timedelta(days=produto.PERIODO_CARENCIA)
+        data_liberacao = aplicacao.DATA_APLICACAO + timedelta(
+            days=produto.PERIODO_CARENCIA
+        )
 
     # Criar aplicação
     db_aplicacao = ManejoTerrenos(
         **aplicacao.model_dump(),
         DATA_LIBERACAO=data_liberacao,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     db.add(db_aplicacao)
@@ -910,7 +932,7 @@ async def list_aplicacoes(
     data_inicio: Optional[str] = Query(None),
     data_fim: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     """Listar aplicações em terrenos"""
     query = db.query(ManejoTerrenos).join(Terreno).join(ProdutoManejo)
@@ -921,17 +943,15 @@ async def list_aplicacoes(
 
     if data_inicio:
         try:
-            data_inicio_dt = datetime.fromisoformat(
-                data_inicio.replace('Z', '+00:00'))
+            data_inicio_dt = datetime.fromisoformat(data_inicio.replace("Z", "+00:00"))
         except ValueError:
-            data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
 
     if data_fim:
         try:
-            data_fim_dt = datetime.fromisoformat(
-                data_fim.replace('Z', '+00:00'))
+            data_fim_dt = datetime.fromisoformat(data_fim.replace("Z", "+00:00"))
         except ValueError:
-            data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
 
     # Filtros
@@ -949,18 +969,24 @@ async def list_aplicacoes(
     # Paginação
     total = query.count()
     offset = (page - 1) * limit
-    aplicacoes = query.order_by(desc(ManejoTerrenos.DATA_APLICACAO)).offset(
-        offset).limit(limit).all()
+    aplicacoes = (
+        query.order_by(desc(ManejoTerrenos.DATA_APLICACAO))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Adicionar dados relacionados
     aplicacoes_response = []
     for aplicacao in aplicacoes:
         response = ManejoTerrenosResponse.from_orm(aplicacao)
         # Buscar dados relacionados (join pode não carregar automaticamente)
-        terreno = db.query(Terreno).filter(
-            Terreno.ID == aplicacao.ID_TERRENO).first()
-        produto = db.query(ProdutoManejo).filter(
-            ProdutoManejo.ID == aplicacao.ID_PRODUTO).first()
+        terreno = db.query(Terreno).filter(Terreno.ID == aplicacao.ID_TERRENO).first()
+        produto = (
+            db.query(ProdutoManejo)
+            .filter(ProdutoManejo.ID == aplicacao.ID_PRODUTO)
+            .first()
+        )
         response.terreno_nome = terreno.NOME if terreno else None
         response.produto_nome = produto.NOME if produto else None
         response.produto_tipo = produto.TIPO_PRODUTO.value if produto else None
@@ -971,7 +997,7 @@ async def list_aplicacoes(
         "total": total,
         "page": page,
         "limit": limit,
-        "total_pages": (total + limit - 1) // limit
+        "total_pages": (total + limit - 1) // limit,
     }
 
 
@@ -979,19 +1005,20 @@ async def list_aplicacoes(
 async def get_aplicacao(
     aplicacao_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Obter aplicação por ID"""
-    aplicacao = db.query(ManejoTerrenos).filter(
-        ManejoTerrenos.ID == aplicacao_id).first()
+    aplicacao = (
+        db.query(ManejoTerrenos).filter(ManejoTerrenos.ID == aplicacao_id).first()
+    )
     if not aplicacao:
         raise HTTPException(status_code=404, detail="Aplicação não encontrada")
 
     response = ManejoTerrenosResponse.from_orm(aplicacao)
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == aplicacao.ID_TERRENO).first()
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == aplicacao.ID_PRODUTO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == aplicacao.ID_TERRENO).first()
+    produto = (
+        db.query(ProdutoManejo).filter(ProdutoManejo.ID == aplicacao.ID_PRODUTO).first()
+    )
     response.terreno_nome = terreno.NOME if terreno else None
     response.produto_nome = produto.NOME if produto else None
     response.produto_tipo = produto.TIPO_PRODUTO.value if produto else None
@@ -1004,25 +1031,32 @@ async def update_aplicacao(
     aplicacao_id: int,
     aplicacao_update: ManejoTerrenosUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Atualizar aplicação em terreno"""
-    db_aplicacao = db.query(ManejoTerrenos).filter(
-        ManejoTerrenos.ID == aplicacao_id).first()
+    db_aplicacao = (
+        db.query(ManejoTerrenos).filter(ManejoTerrenos.ID == aplicacao_id).first()
+    )
     if not db_aplicacao:
         raise HTTPException(status_code=404, detail="Aplicação não encontrada")
 
     # Se mudou a quantidade, verificar estoque
-    if aplicacao_update.QUANTIDADE and aplicacao_update.QUANTIDADE != db_aplicacao.QUANTIDADE:
-        produto = db.query(ProdutoManejo).filter(
-            ProdutoManejo.ID == db_aplicacao.ID_PRODUTO).first()
+    if (
+        aplicacao_update.QUANTIDADE
+        and aplicacao_update.QUANTIDADE != db_aplicacao.QUANTIDADE
+    ):
+        produto = (
+            db.query(ProdutoManejo)
+            .filter(ProdutoManejo.ID == db_aplicacao.ID_PRODUTO)
+            .first()
+        )
         diferenca = aplicacao_update.QUANTIDADE - db_aplicacao.QUANTIDADE
 
         if diferenca > 0:  # Aumentou a quantidade
             if (produto.ESTOQUE_ATUAL or 0) < diferenca:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Estoque insuficiente para o aumento. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}"
+                    detail=f"Estoque insuficiente para o aumento. Disponível: {produto.ESTOQUE_ATUAL or 0} {produto.UNIDADE_MEDIDA}",
                 )
             # Criar movimentação de saída adicional
             db_movimentacao = MovimentacaoProdutoManejo(
@@ -1032,7 +1066,7 @@ async def update_aplicacao(
                 ID_MANEJO_TERRENO=aplicacao_id,
                 ID_TERRENO=db_aplicacao.ID_TERRENO,
                 MOTIVO=f"Ajuste de aplicação - aumento de {diferenca} {produto.UNIDADE_MEDIDA}",
-                ID_USUARIO_REGISTRO=current_user.ID
+                ID_USUARIO_REGISTRO=current_user.ID,
             )
             db.add(db_movimentacao)
 
@@ -1045,18 +1079,24 @@ async def update_aplicacao(
                 ID_MANEJO_TERRENO=aplicacao_id,
                 ID_TERRENO=db_aplicacao.ID_TERRENO,
                 MOTIVO=f"Ajuste de aplicação - redução de {abs(diferenca)} {produto.UNIDADE_MEDIDA}",
-                ID_USUARIO_REGISTRO=current_user.ID
+                ID_USUARIO_REGISTRO=current_user.ID,
             )
             db.add(db_movimentacao)
 
     # Recalcular data de liberação se mudou carência ou data
-    if aplicacao_update.PERIODO_CARENCIA is not None or aplicacao_update.DATA_APLICACAO is not None:
+    if (
+        aplicacao_update.PERIODO_CARENCIA is not None
+        or aplicacao_update.DATA_APLICACAO is not None
+    ):
         data_aplicacao = aplicacao_update.DATA_APLICACAO or db_aplicacao.DATA_APLICACAO
-        periodo_carencia = aplicacao_update.PERIODO_CARENCIA or db_aplicacao.PERIODO_CARENCIA
+        periodo_carencia = (
+            aplicacao_update.PERIODO_CARENCIA or db_aplicacao.PERIODO_CARENCIA
+        )
 
         if periodo_carencia:
-            aplicacao_update.DATA_LIBERACAO = data_aplicacao + \
-                timedelta(days=periodo_carencia)
+            aplicacao_update.DATA_LIBERACAO = data_aplicacao + timedelta(
+                days=periodo_carencia
+            )
 
     # Atualizar campos
     for field, value in aplicacao_update.dict(exclude_unset=True).items():
@@ -1066,10 +1106,12 @@ async def update_aplicacao(
     db.refresh(db_aplicacao)
 
     response = ManejoTerrenosResponse.from_orm(db_aplicacao)
-    terreno = db.query(Terreno).filter(
-        Terreno.ID == db_aplicacao.ID_TERRENO).first()
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == db_aplicacao.ID_PRODUTO).first()
+    terreno = db.query(Terreno).filter(Terreno.ID == db_aplicacao.ID_TERRENO).first()
+    produto = (
+        db.query(ProdutoManejo)
+        .filter(ProdutoManejo.ID == db_aplicacao.ID_PRODUTO)
+        .first()
+    )
     response.terreno_nome = terreno.NOME if terreno else None
     response.produto_nome = produto.NOME if produto else None
     response.produto_tipo = produto.TIPO_PRODUTO.value if produto else None
@@ -1081,24 +1123,26 @@ async def update_aplicacao(
 async def delete_aplicacao(
     aplicacao_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Excluir aplicação (estorna estoque)"""
-    aplicacao = db.query(ManejoTerrenos).filter(
-        ManejoTerrenos.ID == aplicacao_id).first()
+    aplicacao = (
+        db.query(ManejoTerrenos).filter(ManejoTerrenos.ID == aplicacao_id).first()
+    )
     if not aplicacao:
         raise HTTPException(status_code=404, detail="Aplicação não encontrada")
 
     # Estornar estoque
-    produto = db.query(ProdutoManejo).filter(
-        ProdutoManejo.ID == aplicacao.ID_PRODUTO).first()
+    produto = (
+        db.query(ProdutoManejo).filter(ProdutoManejo.ID == aplicacao.ID_PRODUTO).first()
+    )
     db_movimentacao = MovimentacaoProdutoManejo(
         ID_PRODUTO=aplicacao.ID_PRODUTO,
         TIPO_MOVIMENTACAO=TipoMovimentacaoManejoEnum.ENTRADA,
         QUANTIDADE=aplicacao.QUANTIDADE,
         ID_TERRENO=aplicacao.ID_TERRENO,
         MOTIVO=f"Estorno por exclusão de aplicação - {aplicacao.TIPO_MANEJO}",
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
     db.add(db_movimentacao)
 
@@ -1113,15 +1157,17 @@ async def delete_aplicacao(
 # RELATÓRIOS AVANÇADOS
 # ======================================
 
+
 @router.get("/relatorios/consumo-terreno", response_model=List[ConsumoTerrenoResumo])
 async def relatorio_consumo_terreno(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     terreno_ids: Optional[str] = Query(
-        None, description="Lista de IDs de terrenos para filtrar"),
+        None, description="Lista de IDs de terrenos para filtrar"
+    ),
     tipo_produto: Optional[TipoProdutoEnum] = Query(None),
     data_inicio: Optional[datetime] = Query(None),
-    data_fim: Optional[datetime] = Query(None)
+    data_fim: Optional[datetime] = Query(None),
 ):
     """Relatório de consumo de produtos por terreno"""
     query = """
@@ -1146,33 +1192,38 @@ async def relatorio_consumo_terreno(
     if terreno_ids:
         try:
             # Converte a string "61,62" em uma lista de inteiros [61, 62]
-            terreno_id_list = [int(id.strip())
-                               for id in terreno_ids.split(',') if id.strip()]
+            terreno_id_list = [
+                int(id.strip()) for id in terreno_ids.split(",") if id.strip()
+            ]
             if not terreno_id_list:
                 raise HTTPException(
-                    status_code=422, detail="Nenhum ID de terreno válido fornecido")
+                    status_code=422, detail="Nenhum ID de terreno válido fornecido"
+                )
             # Cria placeholders para a query SQL
-            placeholders = ','.join(
-                [f':terreno_id_{i}' for i in range(len(terreno_id_list))])
+            placeholders = ",".join(
+                [f":terreno_id_{i}" for i in range(len(terreno_id_list))]
+            )
             query += f" AND t.ID IN ({placeholders})"
             # Adiciona os IDs como parâmetros
             for i, terreno_id in enumerate(terreno_id_list):
-                params[f'terreno_id_{i}'] = terreno_id
+                params[f"terreno_id_{i}"] = terreno_id
         except ValueError:
             raise HTTPException(
-                status_code=422, detail="Formato inválido para terreno_ids. Use IDs inteiros separados por vírgula (ex.: 61,62)")
+                status_code=422,
+                detail="Formato inválido para terreno_ids. Use IDs inteiros separados por vírgula (ex.: 61,62)",
+            )
 
     if tipo_produto:
         query += " AND p.TIPO_PRODUTO = :tipo_produto"
-        params['tipo_produto'] = tipo_produto.value
+        params["tipo_produto"] = tipo_produto.value
 
     if data_inicio:
         query += " AND mt.DATA_APLICACAO >= :data_inicio"
-        params['data_inicio'] = data_inicio
+        params["data_inicio"] = data_inicio
 
     if data_fim:
         query += " AND mt.DATA_APLICACAO <= :data_fim"
-        params['data_fim'] = data_fim
+        params["data_fim"] = data_fim
 
     query += """
     GROUP BY t.ID, t.NOME, p.NOME, mt.TIPO_MANEJO, p.UNIDADE_MEDIDA
@@ -1183,17 +1234,19 @@ async def relatorio_consumo_terreno(
 
     consumos = []
     for row in result:
-        consumos.append(ConsumoTerrenoResumo(
-            terreno_id=row.terreno_id,
-            terreno_nome=row.terreno_nome,
-            produto_nome=row.produto_nome,
-            tipo_manejo=row.tipo_manejo,
-            total_aplicado=row.total_aplicado or 0,
-            unidade_medida=row.unidade_medida,
-            numero_aplicacoes=row.numero_aplicacoes or 0,
-            ultima_aplicacao=row.ultima_aplicacao,
-            custo_total=row.custo_total
-        ))
+        consumos.append(
+            ConsumoTerrenoResumo(
+                terreno_id=row.terreno_id,
+                terreno_nome=row.terreno_nome,
+                produto_nome=row.produto_nome,
+                tipo_manejo=row.tipo_manejo,
+                total_aplicado=row.total_aplicado or 0,
+                unidade_medida=row.unidade_medida,
+                numero_aplicacoes=row.numero_aplicacoes or 0,
+                ultima_aplicacao=row.ultima_aplicacao,
+                custo_total=row.custo_total,
+            )
+        )
 
     return consumos
 
@@ -1202,7 +1255,7 @@ async def relatorio_consumo_terreno(
 async def relatorio_previsao_consumo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    tipo_produto: Optional[TipoProdutoEnum] = Query(None)
+    tipo_produto: Optional[TipoProdutoEnum] = Query(None),
 ):
     """Previsão de consumo baseada no histórico"""
     # Calcular consumo médio mensal dos últimos 6 meses
@@ -1231,7 +1284,7 @@ async def relatorio_previsao_consumo(
     params = {}
     if tipo_produto:
         query += " AND p.TIPO_PRODUTO = :tipo_produto"
-        params['tipo_produto'] = tipo_produto.value
+        params["tipo_produto"] = tipo_produto.value
 
     query += """
     GROUP BY p.ID, p.NOME, p.ESTOQUE_ATUAL, p.UNIDADE_MEDIDA
@@ -1258,15 +1311,17 @@ async def relatorio_previsao_consumo(
             else:
                 recomendacao = "OK"
 
-            previsoes.append(PrevisaoConsumo(
-                produto_id=row.id,
-                produto_nome=row.nome,
-                consumo_mensal_medio=consumo_mensal,
-                estoque_atual=estoque_atual,
-                dias_restantes=dias_restantes,
-                data_prevista_fim=data_prevista_fim,
-                recomendacao=recomendacao
-            ))
+            previsoes.append(
+                PrevisaoConsumo(
+                    produto_id=row.id,
+                    produto_nome=row.nome,
+                    consumo_mensal_medio=consumo_mensal,
+                    estoque_atual=estoque_atual,
+                    dias_restantes=dias_restantes,
+                    data_prevista_fim=data_prevista_fim,
+                    recomendacao=recomendacao,
+                )
+            )
 
     return previsoes
 
@@ -1275,7 +1330,7 @@ async def relatorio_previsao_consumo(
 async def relatorio_terrenos_liberacao(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    dias_futuro: int = Query(30, ge=1, le=365)
+    dias_futuro: int = Query(30, ge=1, le=365),
 ):
     """Terrenos que serão liberados nos próximos dias"""
     query = """
@@ -1296,19 +1351,29 @@ async def relatorio_terrenos_liberacao(
     ORDER BY mt.DATA_LIBERACAO, t.NOME
     """
 
-    result = db.execute(text(query), {'dias_futuro': dias_futuro}).fetchall()
+    result = db.execute(text(query), {"dias_futuro": dias_futuro}).fetchall()
 
     liberacoes = []
     for row in result:
-        liberacoes.append({
-            "terreno_id": row.terreno_id,
-            "terreno_nome": row.terreno_nome,
-            "produto_nome": row.produto_nome,
-            "tipo_manejo": row.tipo_manejo,
-            "data_aplicacao": row.data_aplicacao.strftime("%d/%m/%Y") if row.data_aplicacao else None,
-            "data_liberacao": row.data_liberacao.strftime("%d/%m/%Y") if row.data_liberacao else None,
-            "dias_para_liberacao": row.dias_para_liberacao or 0
-        })
+        liberacoes.append(
+            {
+                "terreno_id": row.terreno_id,
+                "terreno_nome": row.terreno_nome,
+                "produto_nome": row.produto_nome,
+                "tipo_manejo": row.tipo_manejo,
+                "data_aplicacao": (
+                    row.data_aplicacao.strftime("%d/%m/%Y")
+                    if row.data_aplicacao
+                    else None
+                ),
+                "data_liberacao": (
+                    row.data_liberacao.strftime("%d/%m/%Y")
+                    if row.data_liberacao
+                    else None
+                ),
+                "dias_para_liberacao": row.dias_para_liberacao or 0,
+            }
+        )
 
     return {"liberacoes": liberacoes}
 
@@ -1317,13 +1382,16 @@ async def relatorio_terrenos_liberacao(
 # FUNÇÕES AUXILIARES
 # ======================================
 
+
 def _calcular_status_estoque(produto: ProdutoManejo) -> StatusEstoqueEnum:
     """Calcular status do estoque do produto"""
     if produto.ESTOQUE_ATUAL == 0:
         return StatusEstoqueEnum.SEM_ESTOQUE
     elif produto.ESTOQUE_ATUAL <= produto.ESTOQUE_MINIMO:
         return StatusEstoqueEnum.ESTOQUE_BAIXO
-    elif produto.DATA_VALIDADE and produto.DATA_VALIDADE <= datetime.now() + timedelta(days=30):
+    elif produto.DATA_VALIDADE and produto.DATA_VALIDADE <= datetime.now() + timedelta(
+        days=30
+    ):
         return StatusEstoqueEnum.VENCIMENTO_PROXIMO
     else:
         return StatusEstoqueEnum.OK

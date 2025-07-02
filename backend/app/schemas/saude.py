@@ -1,8 +1,9 @@
 # backend/app/schemas/saude.py
-from typing import Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field, field_validator, field_serializer
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class TipoRegistroEnum(str, Enum):
@@ -36,30 +37,31 @@ class SaudeBase(BaseModel):
 class SaudeCreate(SaudeBase):
     # ID_USUARIO_REGISTRO: int
 
-    @field_validator('DATA_OCORRENCIA')
+    @field_validator("DATA_OCORRENCIA")
     @classmethod
     def validate_data_ocorrencia(cls, v):
         if v > datetime.now():
-            raise ValueError('Data de ocorrência não pode ser no futuro')
+            raise ValueError("Data de ocorrência não pode ser no futuro")
         return v
 
-    @field_validator('PROXIMA_APLICACAO')
+    @field_validator("PROXIMA_APLICACAO")
     @classmethod
     def validate_proxima_aplicacao(cls, v, info):
-        if v and hasattr(info, 'data') and 'DATA_OCORRENCIA' in info.data:
-            if v <= info.data['DATA_OCORRENCIA']:
-                raise ValueError(
-                    'Próxima aplicação deve ser após a data de ocorrência')
+        if v and hasattr(info, "data") and "DATA_OCORRENCIA" in info.data:
+            if v <= info.data["DATA_OCORRENCIA"]:
+                raise ValueError("Próxima aplicação deve ser após a data de ocorrência")
         return v
 
-    @field_validator('QUANTIDADE_APLICADA')
+    @field_validator("QUANTIDADE_APLICADA")
     @classmethod
     def validate_quantidade_medicamento(cls, v, info):
         # Se informou medicamento do estoque, deve informar quantidade
-        if hasattr(info, 'data') and 'ID_MEDICAMENTO' in info.data:
-            if info.data['ID_MEDICAMENTO'] and not v:
+        if hasattr(info, "data") and "ID_MEDICAMENTO" in info.data:
+            if info.data["ID_MEDICAMENTO"] and not v:
                 raise ValueError(
-                    'Quantidade deve ser informada quando medicamento do estoque é selecionado')
+                    "Quantidade deve ser informada quando medicamento do estoque "
+                    "é selecionado"
+                )
         return v
 
 
@@ -90,12 +92,13 @@ class SaudeResponse(SaudeBase):
     dias_proxima_aplicacao: Optional[int] = None
     status_aplicacao: Optional[str] = None  # PENDENTE, APLICADO, ATRASADO
 
-    @field_serializer('DATA_OCORRENCIA', 'PROXIMA_APLICACAO', 'DATA_REGISTRO')
+    @field_serializer("DATA_OCORRENCIA", "PROXIMA_APLICACAO", "DATA_REGISTRO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
+
 
 # Schemas para aplicação rápida
 
@@ -109,6 +112,7 @@ class AplicacaoRapida(BaseModel):
     DOSE_APLICADA: Optional[str] = Field(None, max_length=100)
     VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
     OBSERVACOES: Optional[str] = None
+
 
 # Schemas para relatórios e estatísticas
 
@@ -167,6 +171,7 @@ class ConsumoPorTipo(BaseModel):
     custo_total: Optional[float] = None
     periodo_analise: str
     animais_atendidos: int
+
 
 # Schema para autocomplete de medicamentos
 

@@ -1,12 +1,16 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime
-from sqlalchemy.sql import func
 import enum
-from .base import Base  # Import da base comum
+
+from sqlalchemy import Column, DateTime, Enum, Integer, String
+from sqlalchemy.sql import func
+
+from .base import Base
+
 
 class Perfil(str, enum.Enum):
     ADMIN = "ADMIN"
     USER = "USER"
     READONLY = "READONLY"
+
 
 class User(Base):
     __tablename__ = "USUARIOS"
@@ -24,6 +28,6 @@ class User(Base):
     TENTATIVAS_LOGIN = Column(Integer, default=0)
     BLOQUEADO_ATE = Column(DateTime)
     PERFIL = Column(Enum(Perfil), default=Perfil.USER)
-    PRIMEIRO_ACESSO = Column(String, default='N')
-    ATIVO = Column(String, default='S')
-    MFA_ATIVO = Column(String, default='N')
+    PRIMEIRO_ACESSO = Column(String, default="N")
+    ATIVO = Column(String, default="S")
+    MFA_ATIVO = Column(String, default="N")

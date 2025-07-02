@@ -1,8 +1,11 @@
 <template>
   <div class="produtos-racao-container">
-
     <!-- FILTROS -->
-    <q-card flat bordered class="q-mb-md">
+    <q-card
+      flat
+      bordered
+      class="q-mb-md"
+    >
       <q-card-section>
         <div class="row q-gutter-md justify-between">
           <q-input
@@ -38,7 +41,7 @@
             :options="[
               { value: 'S', label: 'Ativos' },
               { value: 'N', label: 'Inativos' },
-              { value: null, label: 'Todos' }
+              { value: null, label: 'Todos' },
             ]"
             label="Status"
             @update:model-value="onFilterChange"
@@ -50,15 +53,27 @@
     </q-card>
 
     <!-- ALERTAS DE ESTOQUE -->
-    <div v-if="alertasEstoque.length > 0" class="row q-mb-md">
+    <div
+      v-if="alertasEstoque.length > 0"
+      class="row q-mb-md"
+    >
       <div class="col-12">
-        <q-banner class="bg-warning text-white" inline-actions>
+        <q-banner
+          class="bg-warning text-white"
+          inline-actions
+        >
           <template v-slot:avatar>
             <q-icon name="warning" />
           </template>
-          {{ alertasEstoque.length }} produto(s) com estoque baixo ou vencimento próximo
+          {{ alertasEstoque.length }} produto(s) com estoque baixo ou vencimento
+          próximo
           <template v-slot:action>
-            <q-btn flat color="white" label="Ver Relatório" @click="$emit('show-relatorios')" />
+            <q-btn
+              flat
+              color="white"
+              label="Ver Relatório"
+              @click="$emit('show-relatorios')"
+            />
           </template>
         </q-banner>
       </div>
@@ -116,13 +131,22 @@
 
       <template v-slot:body-cell-composicao="props">
         <q-td :props="props">
-          <div v-if="props.row.PROTEINA_BRUTA" class="text-caption">
+          <div
+            v-if="props.row.PROTEINA_BRUTA"
+            class="text-caption"
+          >
             PB: {{ props.row.PROTEINA_BRUTA }}%
           </div>
-          <div v-if="props.row.ENERGIA_DIGESTIVEL" class="text-caption">
+          <div
+            v-if="props.row.ENERGIA_DIGESTIVEL"
+            class="text-caption"
+          >
             ED: {{ props.row.ENERGIA_DIGESTIVEL }} Mcal/kg
           </div>
-          <div v-if="props.row.FIBRA_BRUTA" class="text-caption">
+          <div
+            v-if="props.row.FIBRA_BRUTA"
+            class="text-caption"
+          >
             FB: {{ props.row.FIBRA_BRUTA }}%
           </div>
         </q-td>
@@ -207,7 +231,10 @@
     </q-table>
 
     <!-- DIALOG FORMULÁRIO -->
-    <q-dialog v-model="dialog" persistent>
+    <q-dialog
+      v-model="dialog"
+      persistent
+    >
       <q-card style="min-width: 800px; max-height: 80vh">
         <q-card-section>
           <div class="text-h6">
@@ -216,7 +243,10 @@
         </q-card-section>
 
         <q-card-section style="max-height: 60vh; overflow-y: auto">
-          <q-form @submit="submitForm" class="q-gutter-md">
+          <q-form
+            @submit="submitForm"
+            class="q-gutter-md"
+          >
             <!-- Informações Básicas -->
             <div class="text-subtitle1 q-mb-sm">Informações Básicas</div>
             <div class="row q-gutter-md">
@@ -396,7 +426,6 @@
                 :rules="[val => !!val || 'Data é obrigatória']"
                 class="col-md-3 col-12"
               />
-
             </div>
 
             <q-separator class="q-my-md" />
@@ -428,7 +457,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="dialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="dialog = false"
+          />
           <q-btn
             label="Salvar"
             color="primary"
@@ -444,31 +478,48 @@
       <q-card style="min-width: 600px">
         <q-card-section>
           <div class="text-h6">{{ viewData?.NOME }}</div>
-          <div class="text-subtitle2 text-grey-6">{{ racaoStore.getTipoAlimentoLabel(viewData?.TIPO_ALIMENTO) }}</div>
+          <div class="text-subtitle2 text-grey-6">
+            {{ racaoStore.getTipoAlimentoLabel(viewData?.TIPO_ALIMENTO) }}
+          </div>
         </q-card-section>
 
         <q-card-section>
           <div class="row q-gutter-md">
             <!-- Estoque -->
             <div class="col-md-5 col-12">
-              <q-card flat bordered>
+              <q-card
+                flat
+                bordered
+              >
                 <q-card-section>
                   <div class="text-subtitle1 q-mb-sm">Estoque</div>
                   <q-list>
                     <q-item>
                       <q-item-section>
                         <q-item-label caption>Atual</q-item-label>
-                        <q-item-label>{{ racaoStore.formatarPeso(viewData?.ESTOQUE_ATUAL) }}</q-item-label>
+                        <q-item-label>
+                          {{ racaoStore.formatarPeso(viewData?.ESTOQUE_ATUAL) }}
+                        </q-item-label>
                       </q-item-section>
                       <q-item-section>
                         <q-item-label caption>Mínimo</q-item-label>
-                        <q-item-label>{{ racaoStore.formatarPeso(viewData?.ESTOQUE_MINIMO) }}</q-item-label>
+                        <q-item-label>
+                          {{
+                            racaoStore.formatarPeso(viewData?.ESTOQUE_MINIMO)
+                          }}
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item v-if="viewData?.PRECO_UNITARIO">
                       <q-item-section>
                         <q-item-label caption>Valor Total</q-item-label>
-                        <q-item-label>{{ racaoStore.formatarMoeda(viewData?.valor_total_estoque) }}</q-item-label>
+                        <q-item-label>
+                          {{
+                            racaoStore.formatarMoeda(
+                              viewData?.valor_total_estoque
+                            )
+                          }}
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-list>
@@ -478,20 +529,29 @@
 
             <!-- Composição Nutricional -->
             <div class="col-md-6 col-12">
-              <q-card flat bordered>
+              <q-card
+                flat
+                bordered
+              >
                 <q-card-section>
-                  <div class="text-subtitle1 q-mb-sm">Composição Nutricional</div>
+                  <div class="text-subtitle1 q-mb-sm">
+                    Composição Nutricional
+                  </div>
                   <q-list>
                     <q-item v-if="viewData?.PROTEINA_BRUTA">
                       <q-item-section>
                         <q-item-label caption>Proteína Bruta</q-item-label>
-                        <q-item-label>{{ viewData.PROTEINA_BRUTA }}%</q-item-label>
+                        <q-item-label>
+                          {{ viewData.PROTEINA_BRUTA }}%
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item v-if="viewData?.ENERGIA_DIGESTIVEL">
                       <q-item-section>
                         <q-item-label caption>Energia Digestível</q-item-label>
-                        <q-item-label>{{ viewData.ENERGIA_DIGESTIVEL }} Mcal/kg</q-item-label>
+                        <q-item-label>
+                          {{ viewData.ENERGIA_DIGESTIVEL }} Mcal/kg
+                        </q-item-label>
                       </q-item-section>
                     </q-item>
                     <q-item v-if="viewData?.FIBRA_BRUTA">
@@ -512,11 +572,20 @@
             </div>
           </div>
 
-          <div v-if="viewData?.OBSERVACOES" class="q-mt-md">
+          <div
+            v-if="viewData?.OBSERVACOES"
+            class="q-mt-md"
+          >
             <div class="text-subtitle1 q-mb-sm">Observações</div>
-            <q-card flat bordered>
+            <q-card
+              flat
+              bordered
+            >
               <q-card-section>
-                <div class="text-body2" style="white-space: pre-line;">
+                <div
+                  class="text-body2"
+                  style="white-space: pre-line"
+                >
                   {{ viewData.OBSERVACOES }}
                 </div>
               </q-card-section>
@@ -525,42 +594,61 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Fechar" color="grey" @click="viewDialog = false" />
+          <q-btn
+            flat
+            label="Fechar"
+            color="grey"
+            @click="viewDialog = false"
+          />
           <q-btn
             label="Editar"
             color="primary"
-            @click="openDialog(viewData); viewDialog = false"
+            @click="openDialog(viewData), (viewDialog = false)"
           />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
     <!-- DIALOG MOVIMENTAÇÃO -->
-    <q-dialog v-model="movimentacaoDialog" persistent>
+    <q-dialog
+      v-model="movimentacaoDialog"
+      persistent
+    >
       <q-card style="min-width: 500px">
         <q-card-section>
-          <div class="text-h6">{{ getTituloMovimentacao(tipoMovimentacao) }}</div>
+          <div class="text-h6">
+            {{ getTituloMovimentacao(tipoMovimentacao) }}
+          </div>
           <div class="text-subtitle2">{{ form.NOME }}</div>
         </q-card-section>
 
         <q-card-section>
-          <q-form @submit="submitMovimentacao" class="q-gutter-md">
+          <q-form
+            @submit="submitMovimentacao"
+            class="q-gutter-md"
+          >
             <!-- Tipo de Movimentação -->
             <q-btn-toggle
               v-model="tipoMovimentacao"
               :options="[
                 { label: 'Entrada', value: 'ENTRADA' },
                 { label: 'Saída', value: 'SAIDA' },
-                { label: 'Ajuste', value: 'AJUSTE' }
+                { label: 'Ajuste', value: 'AJUSTE' },
               ]"
               @update:model-value="initializeMovimentacaoForm"
             />
 
             <!-- Estoque Atual -->
-            <q-card flat bordered class="bg-blue-1">
+            <q-card
+              flat
+              bordered
+              class="bg-blue-1"
+            >
               <q-card-section class="q-pa-sm">
                 <div class="text-caption">Estoque Atual</div>
-                <div class="text-h6">{{ racaoStore.formatarPeso(form.ESTOQUE_ATUAL) }}</div>
+                <div class="text-h6">
+                  {{ racaoStore.formatarPeso(form.ESTOQUE_ATUAL) }}
+                </div>
               </q-card-section>
             </q-card>
 
@@ -599,7 +687,9 @@
                   step="0.01"
                   min="0"
                   prefix="R$"
-                  :rules="[val => val >= 0 || 'Preço deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Preço deve ser maior ou igual a 0',
+                  ]"
                   class="col-3"
                 />
                 <q-input
@@ -611,19 +701,19 @@
               </div>
 
               <div class="row q-gutter-md">
-                 <calendario-component
-                   v-model="form.DATA_FABRICACAO"
-                   label="Data de Fabricação *"
-                   :rules="[val => !!val || 'Data é obrigatória']"
-                   class="col-6"
-                 />
-   
-                 <calendario-component
-                   v-model="form.DATA_VALIDADE"
-                   label="Data de Validade *"
-                   :rules="[val => !!val || 'Data é obrigatória']"
-                   class="col-6"
-                 />
+                <calendario-component
+                  v-model="form.DATA_FABRICACAO"
+                  label="Data de Fabricação *"
+                  :rules="[val => !!val || 'Data é obrigatória']"
+                  class="col-6"
+                />
+
+                <calendario-component
+                  v-model="form.DATA_VALIDADE"
+                  label="Data de Validade *"
+                  :rules="[val => !!val || 'Data é obrigatória']"
+                  class="col-6"
+                />
               </div>
             </div>
 
@@ -638,7 +728,9 @@
                   :max="form.ESTOQUE_ATUAL"
                   :rules="[
                     val => val > 0 || 'Quantidade deve ser maior que 0',
-                    val => val <= form.ESTOQUE_ATUAL || 'Quantidade maior que estoque disponível'
+                    val =>
+                      val <= form.ESTOQUE_ATUAL ||
+                      'Quantidade maior que estoque disponível',
                   ]"
                   :suffix="form.UNIDADE_MEDIDA"
                   class="col-6"
@@ -660,7 +752,9 @@
                   type="number"
                   step="0.001"
                   min="0"
-                  :rules="[val => val >= 0 || 'Quantidade deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Quantidade deve ser maior ou igual a 0',
+                  ]"
                   :suffix="form.UNIDADE_MEDIDA"
                   class="col-6"
                 />
@@ -673,10 +767,17 @@
               </div>
 
               <!-- Mostrar diferença -->
-              <q-card flat bordered class="q-mt-sm" :class="getDiferencaClass()">
+              <q-card
+                flat
+                bordered
+                class="q-mt-sm"
+                :class="getDiferencaClass()"
+              >
                 <q-card-section class="q-pa-sm">
                   <div class="text-caption">Diferença</div>
-                  <div class="text-weight-medium">{{ getDiferencaTexto() }}</div>
+                  <div class="text-weight-medium">
+                    {{ getDiferencaTexto() }}
+                  </div>
                 </q-card-section>
               </q-card>
             </div>
@@ -692,7 +793,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="movimentacaoDialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="movimentacaoDialog = false"
+          />
           <q-btn
             :label="getLabelBotaoMovimentacao()"
             :color="getCorBotaoMovimentacao()"
@@ -704,16 +810,26 @@
     </q-dialog>
 
     <!-- DIALOG CONFIRMAÇÃO EXCLUSÃO -->
-    <q-dialog v-model="deleteDialog" persistent>
+    <q-dialog
+      v-model="deleteDialog"
+      persistent
+    >
       <q-card>
         <q-card-section>
           <div class="text-h6">Confirmar Exclusão</div>
         </q-card-section>
         <q-card-section>
-          Tem certeza que deseja excluir o produto <strong>{{ recordToDelete?.NOME }}</strong>?
+          Tem certeza que deseja excluir o produto
+          <strong>{{ recordToDelete?.NOME }}</strong>
+          ?
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="deleteDialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="deleteDialog = false"
+          />
           <q-btn
             label="Excluir"
             color="negative"
@@ -752,7 +868,7 @@ const filtros = ref({
   nome: '',
   tipo_alimento: null,
   estoque_baixo: false,
-  ativo: ''
+  ativo: '',
 })
 
 // Formulários
@@ -765,13 +881,49 @@ const alertasEstoque = ref([])
 // Colunas da tabela
 const columns = [
   { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
-  { name: 'TIPO_ALIMENTO', label: 'Tipo', field: 'TIPO_ALIMENTO', sortable: true, align: 'center' },
-  { name: 'estoque', label: 'Estoque', field: 'ESTOQUE_ATUAL', sortable: true, align: 'left' },
-  { name: 'composicao', label: 'Composição', field: 'composicao', sortable: false, align: 'left' },
-  { name: 'status_estoque', label: 'Status', field: 'status_estoque', sortable: false, align: 'center' },
-  { name: 'valor_estoque', label: 'Valor', field: 'valor_total_estoque', sortable: true, align: 'right' },
-  { name: 'ATIVO', label: 'Ativo', field: 'ATIVO', sortable: true, align: 'center' },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
+  {
+    name: 'TIPO_ALIMENTO',
+    label: 'Tipo',
+    field: 'TIPO_ALIMENTO',
+    sortable: true,
+    align: 'center',
+  },
+  {
+    name: 'estoque',
+    label: 'Estoque',
+    field: 'ESTOQUE_ATUAL',
+    sortable: true,
+    align: 'left',
+  },
+  {
+    name: 'composicao',
+    label: 'Composição',
+    field: 'composicao',
+    sortable: false,
+    align: 'left',
+  },
+  {
+    name: 'status_estoque',
+    label: 'Status',
+    field: 'status_estoque',
+    sortable: false,
+    align: 'center',
+  },
+  {
+    name: 'valor_estoque',
+    label: 'Valor',
+    field: 'valor_total_estoque',
+    sortable: true,
+    align: 'right',
+  },
+  {
+    name: 'ATIVO',
+    label: 'Ativo',
+    field: 'ATIVO',
+    sortable: true,
+    align: 'center',
+  },
+  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
 ]
 
 // Métodos
@@ -824,7 +976,7 @@ function initializeForm(record) {
       REGISTRO_MINISTERIO: '',
       LOCAL_ARMAZENAMENTO: '',
       CONDICOES_ARMAZENAMENTO: '',
-      OBSERVACOES: ''
+      OBSERVACOES: '',
     }
   }
 }
@@ -838,10 +990,9 @@ async function submitForm() {
       await racaoStore.createProduto(form.value)
       ErrorHandler.success('Produto criado com sucesso!')
     }
-    
+
     dialog.value = false
     await racaoStore.fetchProdutos({ filtros: filtros.value })
-    
   } catch (error) {
     ErrorHandler.handle(error, 'Erro ao salvar produto')
   }
@@ -891,7 +1042,7 @@ function initializeMovimentacaoForm() {
     DATA_FABRICACAO: '',
     DATA_VALIDADE: '',
     MOTIVO: '',
-    OBSERVACOES: ''
+    OBSERVACOES: '',
   }
 }
 
@@ -902,21 +1053,20 @@ async function submitMovimentacao() {
         await racaoStore.entradaEstoque(movimentacaoForm.value)
         ErrorHandler.success('Entrada registrada com sucesso!')
         break
-        
+
       case 'SAIDA':
         await racaoStore.saidaEstoque(movimentacaoForm.value)
         ErrorHandler.success('Saída registrada com sucesso!')
         break
-        
+
       case 'AJUSTE':
         await racaoStore.ajusteEstoque(movimentacaoForm.value)
         ErrorHandler.success('Ajuste de estoque realizado com sucesso!')
         break
     }
-    
+
     movimentacaoDialog.value = false
     await racaoStore.fetchProdutos({ filtros: filtros.value })
-    
   } catch (error) {
     ErrorHandler.handle(error, 'Erro ao registrar movimentação')
   }
@@ -935,11 +1085,11 @@ async function loadAlertas() {
 // Funções auxiliares
 function getCorTipo(tipo) {
   const cores = {
-    'CONCENTRADO': 'primary',
-    'VOLUMOSO': 'green',
-    'SUPLEMENTO': 'orange',
-    'PREMIX': 'purple',
-    'SAL_MINERAL': 'brown'
+    CONCENTRADO: 'primary',
+    VOLUMOSO: 'green',
+    SUPLEMENTO: 'orange',
+    PREMIX: 'purple',
+    SAL_MINERAL: 'brown',
   }
   return cores[tipo] || 'grey'
 }
@@ -947,8 +1097,8 @@ function getCorTipo(tipo) {
 function getPercentualEstoque(produto) {
   const atual = produto.ESTOQUE_ATUAL || 0
   const minimo = produto.ESTOQUE_MINIMO || 0
-  const maximo = produto.ESTOQUE_MAXIMO || (minimo * 3)
-  
+  const maximo = produto.ESTOQUE_MAXIMO || minimo * 3
+
   if (maximo <= minimo) return 0
   return Math.min(atual / maximo, 1)
 }
@@ -956,7 +1106,7 @@ function getPercentualEstoque(produto) {
 function getCorEstoque(produto) {
   const atual = produto.ESTOQUE_ATUAL || 0
   const minimo = produto.ESTOQUE_MINIMO || 0
-  
+
   if (atual <= 0) return 'red'
   if (atual <= minimo) return 'orange'
   return 'green'
@@ -964,44 +1114,46 @@ function getCorEstoque(produto) {
 
 function getStatusEstoqueLabel(status) {
   const labels = {
-    'SEM_ESTOQUE': 'Sem Estoque',
-    'ESTOQUE_BAIXO': 'Estoque Baixo',
-    'VENCIMENTO_PROXIMO': 'Vencimento Próximo',
-    'VENCIDO': 'Vencido',
-    'OK': 'OK'
+    SEM_ESTOQUE: 'Sem Estoque',
+    ESTOQUE_BAIXO: 'Estoque Baixo',
+    VENCIMENTO_PROXIMO: 'Vencimento Próximo',
+    VENCIDO: 'Vencido',
+    OK: 'OK',
   }
   return labels[status] || status
 }
 
 function getTituloMovimentacao(tipo) {
   const titulos = {
-    'ENTRADA': 'Entrada de Estoque',
-    'SAIDA': 'Saída de Estoque',
-    'AJUSTE': 'Ajustar Estoque'
+    ENTRADA: 'Entrada de Estoque',
+    SAIDA: 'Saída de Estoque',
+    AJUSTE: 'Ajustar Estoque',
   }
   return titulos[tipo] || 'Movimentação'
 }
 
 function getLabelBotaoMovimentacao() {
   const labels = {
-    'ENTRADA': 'Registrar Entrada',
-    'SAIDA': 'Registrar Saída',
-    'AJUSTE': 'Confirmar Ajuste'
+    ENTRADA: 'Registrar Entrada',
+    SAIDA: 'Registrar Saída',
+    AJUSTE: 'Confirmar Ajuste',
   }
   return labels[tipoMovimentacao.value] || 'Confirmar'
 }
 
 function getCorBotaoMovimentacao() {
   const cores = {
-    'ENTRADA': 'positive',
-    'SAIDA': 'negative',
-    'AJUSTE': 'warning'
+    ENTRADA: 'positive',
+    SAIDA: 'negative',
+    AJUSTE: 'warning',
   }
   return cores[tipoMovimentacao.value] || 'primary'
 }
 
 function getDiferencaClass() {
-  const diferenca = (movimentacaoForm.value.QUANTIDADE_NOVA || 0) - (form.value.ESTOQUE_ATUAL || 0)
+  const diferenca =
+    (movimentacaoForm.value.QUANTIDADE_NOVA || 0) -
+    (form.value.ESTOQUE_ATUAL || 0)
   if (diferenca > 0) return 'text-positive'
   if (diferenca < 0) return 'text-negative'
   return 'text-grey-6'
@@ -1011,9 +1163,10 @@ function getDiferencaTexto() {
   const estoque = form.value.ESTOQUE_ATUAL || 0
   const nova = movimentacaoForm.value.QUANTIDADE_NOVA || 0
   const diferenca = nova - estoque
-  
+
   if (diferenca === 0) return 'Sem alteração'
-  if (diferenca > 0) return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
+  if (diferenca > 0)
+    return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
   return `${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
 }
 

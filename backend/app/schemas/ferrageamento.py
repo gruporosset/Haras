@@ -46,47 +46,54 @@ class StatusVencimentoEnum(str, Enum):
 # Schemas para Request
 class FerrageamentoCreate(BaseModel):
     ID_ANIMAL: int = Field(..., description="ID do animal")
-    TIPO_REGISTRO: TipoFerrageamentoEnum = Field(
-        ..., description="Tipo de registro")
-    DATA_OCORRENCIA: datetime = Field(...,
-                                      description="Data do ferrageamento/casqueamento")
+    TIPO_REGISTRO: TipoFerrageamentoEnum = Field(..., description="Tipo de registro")
+    DATA_OCORRENCIA: datetime = Field(
+        ..., description="Data do ferrageamento/casqueamento"
+    )
     DESCRICAO: Optional[str] = Field(
-        None, max_length=1000, description="Descrição do procedimento")
+        None, max_length=1000, description="Descrição do procedimento"
+    )
 
     # Campos específicos de ferrageamento
     TIPO_FERRADURA: Optional[TipoFerraduraEnum] = Field(
-        None, description="Tipo de ferradura")
+        None, description="Tipo de ferradura"
+    )
     MEMBRO_TRATADO: MembroTratadoEnum = Field(
-        default=MembroTratadoEnum.TODOS, description="Membro(s) tratado(s)")
+        default=MembroTratadoEnum.TODOS, description="Membro(s) tratado(s)"
+    )
     PROBLEMA_DETECTADO: Optional[str] = Field(
-        None, max_length=500, description="Problemas detectados")
+        None, max_length=500, description="Problemas detectados"
+    )
     TECNICA_APLICADA: Optional[str] = Field(
-        None, max_length=200, description="Técnica aplicada")
+        None, max_length=200, description="Técnica aplicada"
+    )
     FERRADOR_RESPONSAVEL: Optional[str] = Field(
-        None, max_length=200, description="Nome do ferrador")
-    STATUS_CASCO: Optional[StatusCascoEnum] = Field(
-        None, description="Estado do casco")
+        None, max_length=200, description="Nome do ferrador"
+    )
+    STATUS_CASCO: Optional[StatusCascoEnum] = Field(None, description="Estado do casco")
     PROXIMA_AVALIACAO: Optional[datetime] = Field(
-        None, description="Data da próxima avaliação")
+        None, description="Data da próxima avaliação"
+    )
 
     # Campos gerais
     CUSTO: Optional[float] = Field(None, ge=0, description="Custo do serviço")
     OBSERVACOES: Optional[str] = Field(None, description="Observações gerais")
 
-    @field_validator('DATA_OCORRENCIA')
+    @field_validator("DATA_OCORRENCIA")
     @classmethod
     def validar_data_ocorrencia(cls, v):
         if v > datetime.now():
-            raise ValueError('Data de ocorrência não pode ser futura')
+            raise ValueError("Data de ocorrência não pode ser futura")
         return v
 
-    @field_validator('PROXIMA_AVALIACAO')
+    @field_validator("PROXIMA_AVALIACAO")
     @classmethod
     def validar_proxima_avaliacao(cls, v, info):
-        if v and hasattr(info, 'data') and 'DATA_OCORRENCIA' in info.data:
-            if v <= info.data['DATA_OCORRENCIA']:
+        if v and hasattr(info, "data") and "DATA_OCORRENCIA" in info.data:
+            if v <= info.data["DATA_OCORRENCIA"]:
                 raise ValueError(
-                    'Próxima avaliação deve ser posterior à data de ocorrência')
+                    "Próxima avaliação deve ser posterior à data de ocorrência"
+                )
         return v
 
 
@@ -132,7 +139,7 @@ class FerrageamentoResponse(BaseModel):
     dias_proxima_avaliacao: Optional[int] = None
     status_vencimento: Optional[str] = None
 
-    @field_serializer('DATA_OCORRENCIA', 'PROXIMA_AVALIACAO', 'DATA_REGISTRO')
+    @field_serializer("DATA_OCORRENCIA", "PROXIMA_AVALIACAO", "DATA_REGISTRO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y %H:%M:%S") if dt else None
 
@@ -228,6 +235,6 @@ class FerrageamentoRapido(BaseModel):
                 "FERRADOR_RESPONSAVEL": "João Silva",
                 "STATUS_CASCO": "BOM",
                 "CUSTO": 120.0,
-                "OBSERVACOES": "Ferrageamento padrão, cascos em bom estado"
+                "OBSERVACOES": "Ferrageamento padrão, cascos em bom estado",
             }
         }

@@ -1,8 +1,9 @@
 # backend/app/schemas/medicamento.py
-from typing import Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field, field_validator, field_serializer
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class FormaFarmaceuticaEnum(str, Enum):
@@ -22,6 +23,7 @@ class StatusEstoqueEnum(str, Enum):
     ESTOQUE_BAIXO = "ESTOQUE_BAIXO"
     VENCENDO = "VENCENDO"
     VENCIDO = "VENCIDO"
+
 
 # === MEDICAMENTO ===
 
@@ -49,7 +51,7 @@ class MedicamentoBase(BaseModel):
     FORNECEDOR: Optional[str] = Field(None, max_length=100)
 
     # Prescrição
-    REQUER_RECEITA: str = Field(default='N', pattern=r'^[SN]$')
+    REQUER_RECEITA: str = Field(default="N", pattern=r"^[SN]$")
     PERIODO_CARENCIA: Optional[int] = Field(None, ge=0, le=365)
 
     OBSERVACOES: Optional[str] = None
@@ -58,12 +60,11 @@ class MedicamentoBase(BaseModel):
 class MedicamentoCreate(MedicamentoBase):
     ID_USUARIO_CADASTRO: int
 
-    @field_validator('DATA_VALIDADE', 'DATA_FABRICACAO')
+    @field_validator("DATA_VALIDADE", "DATA_FABRICACAO")
     @classmethod
     def validate_datas(cls, v):
         if v and v < datetime.now():
-            raise ValueError(
-                'Data não pode ser no passado para novos registros')
+            raise ValueError("Data não pode ser no passado para novos registros")
         return v
 
 
@@ -77,10 +78,10 @@ class MedicamentoUpdate(BaseModel):
     ESTOQUE_MINIMO: Optional[float] = Field(None, ge=0)
     PRECO_UNITARIO: Optional[float] = Field(None, ge=0)
     FORNECEDOR: Optional[str] = Field(None, max_length=100)
-    REQUER_RECEITA: Optional[str] = Field(None, pattern=r'^[SN]$')
+    REQUER_RECEITA: Optional[str] = Field(None, pattern=r"^[SN]$")
     PERIODO_CARENCIA: Optional[int] = Field(None, ge=0, le=365)
     OBSERVACOES: Optional[str] = None
-    ATIVO: Optional[str] = Field(None, pattern=r'^[SN]$')
+    ATIVO: Optional[str] = Field(None, pattern=r"^[SN]$")
 
 
 class MedicamentoResponse(MedicamentoBase):
@@ -94,12 +95,13 @@ class MedicamentoResponse(MedicamentoBase):
     dias_vencimento: Optional[int] = None
     valor_estoque: Optional[float] = None
 
-    @field_serializer('DATA_VALIDADE', 'DATA_FABRICACAO', 'DATA_CADASTRO')
+    @field_serializer("DATA_VALIDADE", "DATA_FABRICACAO", "DATA_CADASTRO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
+
 
 # === MOVIMENTAÇÃO ===
 
@@ -127,11 +129,11 @@ class MovimentacaoMedicamentoBase(BaseModel):
 class MovimentacaoMedicamentoCreate(MovimentacaoMedicamentoBase):
     ID_USUARIO_REGISTRO: int
 
-    @field_validator('QUANTIDADE')
+    @field_validator("QUANTIDADE")
     @classmethod
     def validate_quantidade(cls, v, values):
         if v <= 0:
-            raise ValueError('Quantidade deve ser maior que zero')
+            raise ValueError("Quantidade deve ser maior que zero")
         return v
 
 
@@ -151,12 +153,13 @@ class MovimentacaoMedicamentoResponse(MovimentacaoMedicamentoBase):
     medicamento_nome: Optional[str] = None
     animal_nome: Optional[str] = None
 
-    @field_serializer('DATA_VALIDADE', 'DATA_REGISTRO')
+    @field_serializer("DATA_VALIDADE", "DATA_REGISTRO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
+
 
 # === ENTRADA ESTOQUE ===
 
@@ -172,6 +175,7 @@ class EntradaEstoque(BaseModel):
     PRECO_UNITARIO: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = None
 
+
 # === APLICAÇÃO MEDICAMENTO ===
 
 
@@ -181,6 +185,7 @@ class AplicacaoMedicamento(BaseModel):
     QUANTIDADE_APLICADA: float = Field(..., gt=0)
     VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=100)
     OBSERVACOES: Optional[str] = None
+
 
 # === RELATÓRIOS ===
 

@@ -1,45 +1,55 @@
-# backend/app/api/v1/medicamento.py
-from typing import List, Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import func, desc
+from typing import List, Optional
+
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.medicamento import Medicamento, MovimentacaoMedicamento
 from app.models.animal import Animal
+from app.models.medicamento import Medicamento, MovimentacaoMedicamento
 from app.models.saude import SaudeAnimais
 from app.models.user import User
 from app.schemas.medicamento import (
-    MedicamentoCreate, MedicamentoUpdate, MedicamentoResponse,
+    AplicacaoMedicamento,
+    ConsumoPorAnimal,
+    EntradaEstoque,
+    EstoqueMedicamentoBaixo,
+    FormaFarmaceuticaEnum,
+    MedicamentoCreate,
+    MedicamentoResponse,
+    MedicamentoUpdate,
+    MovimentacaoEstoque,
     MovimentacaoMedicamentoResponse,
-    EntradaEstoque, AplicacaoMedicamento,
-    EstoqueMedicamentoBaixo, MovimentacaoEstoque, ConsumoPorAnimal,
     PrevisaoMedicamentoConsumo,
-    FormaFarmaceuticaEnum, TipoMovimentacaoEnum, StatusEstoqueEnum
+    StatusEstoqueEnum,
+    TipoMovimentacaoEnum,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import desc, func
 
 router = APIRouter(prefix="/api/medicamentos", tags=["Medicamentos"])
 
 # === MEDICAMENTOS ===
 
 
-@router.post("/", response_model=MedicamentoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=MedicamentoResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_medicamento(
     medicamento: MedicamentoCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     # Verificar duplicatas
-    existing = db.query(Medicamento).filter(
-        Medicamento.NOME == medicamento.NOME,
-        Medicamento.ATIVO == 'S'
-    ).first()
+    existing = (
+        db.query(Medicamento)
+        .filter(Medicamento.NOME == medicamento.NOME, Medicamento.ATIVO == "S")
+        .first()
+    )
 
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Medicamento com este nome já existe"
+            detail="Medicamento com este nome já existe",
         )
 
     db_medicamento = Medicamento(**medicamento.dict())
@@ -56,34 +66,29 @@ async def list_medicamentos(
     current_user: User = Depends(get_current_user),
     nome: Optional[str] = Query(None, description="Filtrar por nome"),
     forma_farmaceutica: Optional[FormaFarmaceuticaEnum] = Query(None),
-    estoque_baixo: Optional[bool] = Query(
-        False, description="Apenas estoque baixo"),
-    vencimento: Optional[int] = Query(
-        None, description="Dias para vencimento"),
+    estoque_baixo: Optional[bool] = Query(False, description="Apenas estoque baixo"),
+    vencimento: Optional[int] = Query(None, description="Dias para vencimento"),
     ativo: Optional[str] = Query("S", description="Filtrar por status"),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     query = db.query(Medicamento)
 
     if nome:
         query = query.filter(Medicamento.NOME.ilike(f"%{nome}%"))
     if forma_farmaceutica:
-        query = query.filter(
-            Medicamento.FORMA_FARMACEUTICA == forma_farmaceutica)
+        query = query.filter(Medicamento.FORMA_FARMACEUTICA == forma_farmaceutica)
     if ativo:
         query = query.filter(Medicamento.ATIVO == ativo)
     if estoque_baixo:
-        query = query.filter(Medicamento.ESTOQUE_ATUAL <=
-                             Medicamento.ESTOQUE_MINIMO)
+        query = query.filter(Medicamento.ESTOQUE_ATUAL <= Medicamento.ESTOQUE_MINIMO)
     if vencimento:
         data_limite = datetime.now() + timedelta(days=vencimento)
         query = query.filter(Medicamento.DATA_VALIDADE <= data_limite)
 
     total = query.count()
     offset = (page - 1) * limit
-    medicamentos = query.order_by(
-        Medicamento.NOME).offset(offset).limit(limit).all()
+    medicamentos = query.order_by(Medicamento.NOME).offset(offset).limit(limit).all()
 
     # Enriquecer com dados calculados
     enriched_medicamentos = []
@@ -95,7 +100,7 @@ async def list_medicamentos(
         "medicamentos": enriched_medicamentos,
         "total": total,
         "page": page,
-        "limit": limit
+        "limit": limit,
     }
 
 
@@ -103,12 +108,13 @@ async def list_medicamentos(
 async def get_medicamento(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     medicamento = db.query(Medicamento).filter(Medicamento.ID == id).first()
     if not medicamento:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Medicamento não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado"
+        )
 
     return await _enrich_medicamento_response(medicamento, db)
 
@@ -118,12 +124,13 @@ async def update_medicamento(
     id: int,
     medicamento: MedicamentoUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     db_medicamento = db.query(Medicamento).filter(Medicamento.ID == id).first()
     if not db_medicamento:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Medicamento não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado"
+        )
 
     for key, value in medicamento.dict(exclude_unset=True).items():
         setattr(db_medicamento, key, value)
@@ -137,26 +144,30 @@ async def update_medicamento(
 async def delete_medicamento(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     db_medicamento = db.query(Medicamento).filter(Medicamento.ID == id).first()
     if not db_medicamento:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Medicamento não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado"
+        )
 
     # Verificar se há movimentações
-    movimentacoes = db.query(MovimentacaoMedicamento).filter(
-        MovimentacaoMedicamento.ID_MEDICAMENTO == id
-    ).first()
+    movimentacoes = (
+        db.query(MovimentacaoMedicamento)
+        .filter(MovimentacaoMedicamento.ID_MEDICAMENTO == id)
+        .first()
+    )
 
     if movimentacoes:
         # Soft delete
-        db_medicamento.ATIVO = 'N'
+        db_medicamento.ATIVO = "N"
     else:
         # Hard delete
         db.delete(db_medicamento)
 
     db.commit()
+
 
 # === MOVIMENTAÇÕES ===
 
@@ -165,14 +176,16 @@ async def delete_medicamento(
 async def entrada_estoque(
     entrada: EntradaEstoque,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     # Verificar se medicamento existe
-    medicamento = db.query(Medicamento).filter(
-        Medicamento.ID == entrada.ID_MEDICAMENTO).first()
+    medicamento = (
+        db.query(Medicamento).filter(Medicamento.ID == entrada.ID_MEDICAMENTO).first()
+    )
     if not medicamento:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Medicamento não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado"
+        )
 
     # Criar movimentação de entrada
     movimentacao = MovimentacaoMedicamento(
@@ -186,7 +199,7 @@ async def entrada_estoque(
         DATA_VALIDADE=entrada.DATA_VALIDADE,
         MOTIVO="Entrada de estoque",
         OBSERVACOES=entrada.OBSERVACOES,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     db.add(movimentacao)
@@ -196,7 +209,7 @@ async def entrada_estoque(
     return {
         "message": "Entrada registrada com sucesso",
         "movimentacao_id": movimentacao.ID,
-        "estoque_atual": movimentacao.QUANTIDADE_ATUAL
+        "estoque_atual": movimentacao.QUANTIDADE_ATUAL,
     }
 
 
@@ -204,29 +217,35 @@ async def entrada_estoque(
 async def aplicar_medicamento(
     aplicacao: AplicacaoMedicamento,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     # Verificar medicamento e animal
-    medicamento = db.query(Medicamento).filter(
-        Medicamento.ID == aplicacao.ID_MEDICAMENTO).first()
+    medicamento = (
+        db.query(Medicamento).filter(Medicamento.ID == aplicacao.ID_MEDICAMENTO).first()
+    )
     if not medicamento:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Medicamento não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado"
+        )
 
     animal = db.query(Animal).filter(Animal.ID == aplicacao.ID_ANIMAL).first()
     if not animal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado"
+        )
 
     # Verificar estoque
     if medicamento.ESTOQUE_ATUAL < aplicacao.QUANTIDADE_APLICADA:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+            detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}",
         )
 
-    custo = medicamento.PRECO_UNITARIO * \
-        aplicacao.QUANTIDADE_APLICADA if medicamento.PRECO_UNITARIO else 0
+    custo = (
+        medicamento.PRECO_UNITARIO * aplicacao.QUANTIDADE_APLICADA
+        if medicamento.PRECO_UNITARIO
+        else 0
+    )
 
     # Criar registro de saúde
     saude = SaudeAnimais(
@@ -243,7 +262,7 @@ async def aplicar_medicamento(
         ID_MEDICAMENTO=aplicacao.ID_MEDICAMENTO,
         QUANTIDADE_APLICADA=aplicacao.QUANTIDADE_APLICADA,
         UNIDADE_APLICADA=medicamento.UNIDADE_MEDIDA,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     db.add(saude)
@@ -267,7 +286,7 @@ async def aplicar_medicamento(
 
     return {
         "message": "Medicamento aplicado com sucesso",
-        "saude_id": saude.ID
+        "saude_id": saude.ID,
         # "movimentacao_id": movimentacao.ID,
         # "estoque_restante": movimentacao.QUANTIDADE_ATUAL
     }
@@ -283,28 +302,33 @@ async def list_movimentacoes(
     data_inicio: Optional[str] = Query(None),
     data_fim: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     query = db.query(MovimentacaoMedicamento).join(Medicamento)
 
     if medicamento_id:
-        query = query.filter(
-            MovimentacaoMedicamento.ID_MEDICAMENTO == medicamento_id)
+        query = query.filter(MovimentacaoMedicamento.ID_MEDICAMENTO == medicamento_id)
     if animal_id:
         query = query.filter(MovimentacaoMedicamento.ID_ANIMAL == animal_id)
     if tipo:
         query = query.filter(MovimentacaoMedicamento.TIPO_MOVIMENTACAO == tipo)
     if data_inicio:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio))
+            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio)
+        )
     if data_fim:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim))
+            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim)
+        )
 
     total = query.count()
     offset = (page - 1) * limit
-    movimentacoes = query.order_by(
-        desc(MovimentacaoMedicamento.DATA_REGISTRO)).offset(offset).limit(limit).all()
+    movimentacoes = (
+        query.order_by(desc(MovimentacaoMedicamento.DATA_REGISTRO))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Enriquecer com dados relacionados
     enriched_movimentacoes = []
@@ -316,8 +340,9 @@ async def list_movimentacoes(
         "movimentacoes": enriched_movimentacoes,
         "total": total,
         "page": page,
-        "limit": limit
+        "limit": limit,
     }
+
 
 # === RELATÓRIOS ===
 
@@ -327,16 +352,20 @@ async def get_estoque_baixo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     dias_vencimento: int = Query(
-        30, description="Dias para considerar próximo ao vencimento")
+        30, description="Dias para considerar próximo ao vencimento"
+    ),
 ):
     data_limite = datetime.now() + timedelta(days=dias_vencimento)
 
-    medicamentos = db.query(Medicamento).filter(
-        Medicamento.ATIVO == 'S'
-    ).filter(
-        (Medicamento.ESTOQUE_ATUAL <= Medicamento.ESTOQUE_MINIMO) |
-        (Medicamento.DATA_VALIDADE <= data_limite)
-    ).all()
+    medicamentos = (
+        db.query(Medicamento)
+        .filter(Medicamento.ATIVO == "S")
+        .filter(
+            (Medicamento.ESTOQUE_ATUAL <= Medicamento.ESTOQUE_MINIMO)
+            | (Medicamento.DATA_VALIDADE <= data_limite)
+        )
+        .all()
+    )
 
     resultado = []
     for med in medicamentos:
@@ -354,109 +383,130 @@ async def get_estoque_baixo(
             status = StatusEstoqueEnum.OK
             dias = None
 
-        resultado.append(EstoqueMedicamentoBaixo(
-            medicamento_id=med.ID,
-            nome=med.NOME,
-            estoque_atual=med.ESTOQUE_ATUAL,
-            estoque_minimo=med.ESTOQUE_MINIMO,
-            unidade_medida=med.UNIDADE_MEDIDA,
-            status_alerta=status,
-            dias_vencimento=dias
-        ))
+        resultado.append(
+            EstoqueMedicamentoBaixo(
+                medicamento_id=med.ID,
+                nome=med.NOME,
+                estoque_atual=med.ESTOQUE_ATUAL,
+                estoque_minimo=med.ESTOQUE_MINIMO,
+                unidade_medida=med.UNIDADE_MEDIDA,
+                status_alerta=status,
+                dias_vencimento=dias,
+            )
+        )
 
     return resultado
 
 
-@router.get("/relatorio/consumo-animal/{animal_id}", response_model=List[ConsumoPorAnimal])
+@router.get(
+    "/relatorio/consumo-animal/{animal_id}", response_model=List[ConsumoPorAnimal]
+)
 async def get_consumo_por_animal(
     animal_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     data_inicio: Optional[str] = Query(None),
-    data_fim: Optional[str] = Query(None)
+    data_fim: Optional[str] = Query(None),
 ):
     # Verificar se animal existe
     animal = db.query(Animal).filter(Animal.ID == animal_id).first()
     if not animal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado"
+        )
 
-    query = db.query(
-        MovimentacaoMedicamento.ID_MEDICAMENTO,
-        Medicamento.NOME.label('medicamento_nome'),
-        Medicamento.UNIDADE_MEDIDA,
-        func.sum(MovimentacaoMedicamento.QUANTIDADE).label('total_aplicado'),
-        func.count(MovimentacaoMedicamento.ID).label('numero_aplicacoes'),
-        func.max(MovimentacaoMedicamento.DATA_REGISTRO).label(
-            'ultima_aplicacao'),
-        func.sum(MovimentacaoMedicamento.PRECO_UNITARIO *
-                 MovimentacaoMedicamento.QUANTIDADE).label('custo_total')
-    ).join(Medicamento).filter(
-        MovimentacaoMedicamento.ID_ANIMAL == animal_id,
-        MovimentacaoMedicamento.TIPO_MOVIMENTACAO == TipoMovimentacaoEnum.SAIDA
+    query = (
+        db.query(
+            MovimentacaoMedicamento.ID_MEDICAMENTO,
+            Medicamento.NOME.label("medicamento_nome"),
+            Medicamento.UNIDADE_MEDIDA,
+            func.sum(MovimentacaoMedicamento.QUANTIDADE).label("total_aplicado"),
+            func.count(MovimentacaoMedicamento.ID).label("numero_aplicacoes"),
+            func.max(MovimentacaoMedicamento.DATA_REGISTRO).label("ultima_aplicacao"),
+            func.sum(
+                MovimentacaoMedicamento.PRECO_UNITARIO
+                * MovimentacaoMedicamento.QUANTIDADE
+            ).label("custo_total"),
+        )
+        .join(Medicamento)
+        .filter(
+            MovimentacaoMedicamento.ID_ANIMAL == animal_id,
+            MovimentacaoMedicamento.TIPO_MOVIMENTACAO == TipoMovimentacaoEnum.SAIDA,
+        )
     )
 
     if data_inicio:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio))
+            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio)
+        )
     if data_fim:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim))
+            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim)
+        )
 
     resultados = query.group_by(
         MovimentacaoMedicamento.ID_MEDICAMENTO,
         Medicamento.NOME,
-        Medicamento.UNIDADE_MEDIDA
+        Medicamento.UNIDADE_MEDIDA,
     ).all()
 
     consumos = []
     for resultado in resultados:
-        consumos.append(ConsumoPorAnimal(
-            animal_id=animal_id,
-            animal_nome=animal.NOME,
-            medicamento_nome=resultado.medicamento_nome,
-            total_aplicado=float(resultado.total_aplicado),
-            unidade_medida=resultado.UNIDADE_MEDIDA,
-            numero_aplicacoes=resultado.numero_aplicacoes,
-            ultima_aplicacao=resultado.ultima_aplicacao,
-            custo_total=float(
-                resultado.custo_total) if resultado.custo_total else None
-        ))
+        consumos.append(
+            ConsumoPorAnimal(
+                animal_id=animal_id,
+                animal_nome=animal.NOME,
+                medicamento_nome=resultado.medicamento_nome,
+                total_aplicado=float(resultado.total_aplicado),
+                unidade_medida=resultado.UNIDADE_MEDIDA,
+                numero_aplicacoes=resultado.numero_aplicacoes,
+                ultima_aplicacao=resultado.ultima_aplicacao,
+                custo_total=(
+                    float(resultado.custo_total) if resultado.custo_total else None
+                ),
+            )
+        )
 
     return consumos
 
 
-@router.get("/relatorio/previsao-consumo", response_model=List[PrevisaoMedicamentoConsumo])
+@router.get(
+    "/relatorio/previsao-consumo", response_model=List[PrevisaoMedicamentoConsumo]
+)
 async def get_previsao_consumo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    dias_analise: int = Query(
-        90, description="Dias para calcular média de consumo")
+    dias_analise: int = Query(90, description="Dias para calcular média de consumo"),
 ):
     data_inicio = datetime.now() - timedelta(days=dias_analise)
 
     # Calcular consumo médio mensal
-    consumos = db.query(
-        MovimentacaoMedicamento.ID_MEDICAMENTO,
-        Medicamento.NOME.label('medicamento_nome'),
-        Medicamento.ESTOQUE_ATUAL,
-        func.sum(MovimentacaoMedicamento.QUANTIDADE).label('total_consumo')
-    ).join(Medicamento).filter(
-        MovimentacaoMedicamento.TIPO_MOVIMENTACAO == TipoMovimentacaoEnum.SAIDA,
-        MovimentacaoMedicamento.DATA_REGISTRO >= data_inicio,
-        Medicamento.ATIVO == 'S'
-    ).group_by(
-        MovimentacaoMedicamento.ID_MEDICAMENTO,
-        Medicamento.NOME,
-        Medicamento.ESTOQUE_ATUAL
-    ).all()
+    consumos = (
+        db.query(
+            MovimentacaoMedicamento.ID_MEDICAMENTO,
+            Medicamento.NOME.label("medicamento_nome"),
+            Medicamento.ESTOQUE_ATUAL,
+            func.sum(MovimentacaoMedicamento.QUANTIDADE).label("total_consumo"),
+        )
+        .join(Medicamento)
+        .filter(
+            MovimentacaoMedicamento.TIPO_MOVIMENTACAO == TipoMovimentacaoEnum.SAIDA,
+            MovimentacaoMedicamento.DATA_REGISTRO >= data_inicio,
+            Medicamento.ATIVO == "S",
+        )
+        .group_by(
+            MovimentacaoMedicamento.ID_MEDICAMENTO,
+            Medicamento.NOME,
+            Medicamento.ESTOQUE_ATUAL,
+        )
+        .all()
+    )
 
     previsoes = []
     for consumo in consumos:
         # Calcular consumo mensal médio
         meses = dias_analise / 30
-        consumo_mensal = float(consumo.total_consumo) / \
-            meses if meses > 0 else 0
+        consumo_mensal = float(consumo.total_consumo) / meses if meses > 0 else 0
 
         # Calcular dias restantes
         if consumo_mensal > 0:
@@ -475,15 +525,17 @@ async def get_previsao_consumo(
             data_prevista = datetime.now() + timedelta(days=999)
             recomendacao = "SEM_CONSUMO"
 
-        previsoes.append(PrevisaoMedicamentoConsumo(
-            medicamento_id=consumo.ID_MEDICAMENTO,
-            medicamento_nome=consumo.medicamento_nome,
-            consumo_mensal_medio=round(consumo_mensal, 2),
-            estoque_atual=consumo.ESTOQUE_ATUAL,
-            dias_restantes=dias_restantes,
-            data_prevista_fim=data_prevista,
-            recomendacao=recomendacao
-        ))
+        previsoes.append(
+            PrevisaoMedicamentoConsumo(
+                medicamento_id=consumo.ID_MEDICAMENTO,
+                medicamento_nome=consumo.medicamento_nome,
+                consumo_mensal_medio=round(consumo_mensal, 2),
+                estoque_atual=consumo.ESTOQUE_ATUAL,
+                dias_restantes=dias_restantes,
+                data_prevista_fim=data_prevista,
+                recomendacao=recomendacao,
+            )
+        )
 
     # Ordenar por urgência
     previsoes.sort(key=lambda x: x.dias_restantes)
@@ -495,59 +547,71 @@ async def get_movimentacao_periodo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     data_inicio: Optional[str] = Query(None),
-    data_fim: Optional[str] = Query(None)
+    data_fim: Optional[str] = Query(None),
 ):
     query = db.query(
         MovimentacaoMedicamento.ID_MEDICAMENTO,
-        Medicamento.NOME.label('medicamento_nome'),
+        Medicamento.NOME.label("medicamento_nome"),
         func.sum(
             func.case(
-                (MovimentacaoMedicamento.TIPO_MOVIMENTACAO ==
-                 TipoMovimentacaoEnum.ENTRADA, MovimentacaoMedicamento.QUANTIDADE),
-                else_=0
+                (
+                    MovimentacaoMedicamento.TIPO_MOVIMENTACAO
+                    == TipoMovimentacaoEnum.ENTRADA,
+                    MovimentacaoMedicamento.QUANTIDADE,
+                ),
+                else_=0,
             )
-        ).label('total_entradas'),
+        ).label("total_entradas"),
         func.sum(
             func.case(
-                (MovimentacaoMedicamento.TIPO_MOVIMENTACAO ==
-                 TipoMovimentacaoEnum.SAIDA, MovimentacaoMedicamento.QUANTIDADE),
-                else_=0
+                (
+                    MovimentacaoMedicamento.TIPO_MOVIMENTACAO
+                    == TipoMovimentacaoEnum.SAIDA,
+                    MovimentacaoMedicamento.QUANTIDADE,
+                ),
+                else_=0,
             )
-        ).label('total_saidas'),
-        Medicamento.ESTOQUE_ATUAL.label('saldo_atual'),
-        func.sum(MovimentacaoMedicamento.PRECO_UNITARIO *
-                 MovimentacaoMedicamento.QUANTIDADE).label('valor_total'),
-        func.max(MovimentacaoMedicamento.DATA_REGISTRO).label(
-            'ultima_movimentacao')
+        ).label("total_saidas"),
+        Medicamento.ESTOQUE_ATUAL.label("saldo_atual"),
+        func.sum(
+            MovimentacaoMedicamento.PRECO_UNITARIO * MovimentacaoMedicamento.QUANTIDADE
+        ).label("valor_total"),
+        func.max(MovimentacaoMedicamento.DATA_REGISTRO).label("ultima_movimentacao"),
     ).join(Medicamento)
 
     if data_inicio:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio))
+            MovimentacaoMedicamento.DATA_REGISTRO >= datetime.fromisoformat(data_inicio)
+        )
     if data_fim:
         query = query.filter(
-            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim))
+            MovimentacaoMedicamento.DATA_REGISTRO <= datetime.fromisoformat(data_fim)
+        )
 
     resultados = query.group_by(
         MovimentacaoMedicamento.ID_MEDICAMENTO,
         Medicamento.NOME,
-        Medicamento.ESTOQUE_ATUAL
+        Medicamento.ESTOQUE_ATUAL,
     ).all()
 
     movimentacoes = []
     for resultado in resultados:
-        movimentacoes.append(MovimentacaoEstoque(
-            medicamento_id=resultado.ID_MEDICAMENTO,
-            medicamento_nome=resultado.medicamento_nome,
-            total_entradas=float(resultado.total_entradas),
-            total_saidas=float(resultado.total_saidas),
-            saldo_atual=resultado.saldo_atual,
-            valor_total=float(
-                resultado.valor_total) if resultado.valor_total else 0,
-            ultima_movimentacao=resultado.ultima_movimentacao
-        ))
+        movimentacoes.append(
+            MovimentacaoEstoque(
+                medicamento_id=resultado.ID_MEDICAMENTO,
+                medicamento_nome=resultado.medicamento_nome,
+                total_entradas=float(resultado.total_entradas),
+                total_saidas=float(resultado.total_saidas),
+                saldo_atual=resultado.saldo_atual,
+                valor_total=(
+                    float(resultado.valor_total) if resultado.valor_total else 0
+                ),
+                ultima_movimentacao=resultado.ultima_movimentacao,
+            )
+        )
 
     return movimentacoes
+
 
 # === OPÇÕES PARA SELECTS ===
 
@@ -557,7 +621,7 @@ async def get_formas_farmaceuticas(current_user: User = Depends(get_current_user
     return [
         {"value": "INJETAVEL", "label": "Injetável"},
         {"value": "ORAL", "label": "Oral"},
-        {"value": "TOPICO", "label": "Tópico"}
+        {"value": "TOPICO", "label": "Tópico"},
     ]
 
 
@@ -569,7 +633,7 @@ async def get_unidades_medida(current_user: User = Depends(get_current_user)):
         {"value": "COMPRIMIDO", "label": "Comprimidos"},
         {"value": "DOSE", "label": "Doses"},
         {"value": "AMPOLA", "label": "Ampolas"},
-        {"value": "FRASCO", "label": "Frascos"}
+        {"value": "FRASCO", "label": "Frascos"},
     ]
 
 
@@ -578,14 +642,20 @@ async def autocomplete_medicamentos(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     termo: str = Query(..., description="Termo para busca"),
-    limit: int = Query(10, ge=1, le=50)
+    limit: int = Query(10, ge=1, le=50),
 ):
     """Autocomplete para medicamentos com estoque > 0"""
-    medicamentos = db.query(Medicamento).filter(
-        Medicamento.NOME.ilike(f"%{termo}%"),
-        Medicamento.ATIVO == 'S',
-        Medicamento.ESTOQUE_ATUAL > 0
-    ).order_by(Medicamento.NOME).limit(limit).all()
+    medicamentos = (
+        db.query(Medicamento)
+        .filter(
+            Medicamento.NOME.ilike(f"%{termo}%"),
+            Medicamento.ATIVO == "S",
+            Medicamento.ESTOQUE_ATUAL > 0,
+        )
+        .order_by(Medicamento.NOME)
+        .limit(limit)
+        .all()
+    )
 
     return [
         {
@@ -594,15 +664,18 @@ async def autocomplete_medicamentos(
             "estoque": med.ESTOQUE_ATUAL,
             "unidade": med.UNIDADE_MEDIDA,
             "forma": med.FORMA_FARMACEUTICA,
-            "carencia": med.PERIODO_CARENCIA
+            "carencia": med.PERIODO_CARENCIA,
         }
         for med in medicamentos
     ]
 
+
 # === FUNÇÕES AUXILIARES ===
 
 
-async def _enrich_medicamento_response(medicamento: Medicamento, db: Session) -> MedicamentoResponse:
+async def _enrich_medicamento_response(
+    medicamento: Medicamento, db: Session
+) -> MedicamentoResponse:
     """Enriquece resposta do medicamento com dados calculados"""
     response_data = MedicamentoResponse.from_orm(medicamento)
 
@@ -612,7 +685,9 @@ async def _enrich_medicamento_response(medicamento: Medicamento, db: Session) ->
     if medicamento.DATA_VALIDADE and medicamento.DATA_VALIDADE <= hoje:
         response_data.status_estoque = StatusEstoqueEnum.VENCIDO
         response_data.dias_vencimento = (hoje - medicamento.DATA_VALIDADE).days
-    elif medicamento.DATA_VALIDADE and medicamento.DATA_VALIDADE <= hoje + timedelta(days=30):
+    elif medicamento.DATA_VALIDADE and medicamento.DATA_VALIDADE <= hoje + timedelta(
+        days=30
+    ):
         response_data.status_estoque = StatusEstoqueEnum.VENCENDO
         response_data.dias_vencimento = (medicamento.DATA_VALIDADE - hoje).days
     elif medicamento.ESTOQUE_ATUAL <= medicamento.ESTOQUE_MINIMO:
@@ -622,19 +697,25 @@ async def _enrich_medicamento_response(medicamento: Medicamento, db: Session) ->
 
     # Calcular valor do estoque
     if medicamento.PRECO_UNITARIO:
-        response_data.valor_estoque = medicamento.ESTOQUE_ATUAL * medicamento.PRECO_UNITARIO
+        response_data.valor_estoque = (
+            medicamento.ESTOQUE_ATUAL * medicamento.PRECO_UNITARIO
+        )
 
     return response_data
 
 
-async def _enrich_movimentacao_response(movimentacao: MovimentacaoMedicamento, db: Session) -> MovimentacaoMedicamentoResponse:
+async def _enrich_movimentacao_response(
+    movimentacao: MovimentacaoMedicamento, db: Session
+) -> MovimentacaoMedicamentoResponse:
     """Enriquece resposta da movimentação com dados relacionados"""
-    medicamento = db.query(Medicamento).filter(
-        Medicamento.ID == movimentacao.ID_MEDICAMENTO).first()
+    medicamento = (
+        db.query(Medicamento)
+        .filter(Medicamento.ID == movimentacao.ID_MEDICAMENTO)
+        .first()
+    )
     animal = None
     if movimentacao.ID_ANIMAL:
-        animal = db.query(Animal).filter(
-            Animal.ID == movimentacao.ID_ANIMAL).first()
+        animal = db.query(Animal).filter(Animal.ID == movimentacao.ID_ANIMAL).first()
 
     response_data = MovimentacaoMedicamentoResponse.from_orm(movimentacao)
     response_data.medicamento_nome = medicamento.NOME if medicamento else None

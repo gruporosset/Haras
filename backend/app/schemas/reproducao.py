@@ -41,41 +41,41 @@ class ReproducaoBase(BaseModel):
 class ReproducaoCreate(ReproducaoBase):
     ID_USUARIO_REGISTRO: int
 
-    @field_validator('DATA_COBERTURA')
+    @field_validator("DATA_COBERTURA")
     @classmethod
     def validate_data_cobertura(cls, v):
         if v > datetime.now():
-            raise ValueError('Data de cobertura não pode ser no futuro')
+            raise ValueError("Data de cobertura não pode ser no futuro")
         return v
 
-    @field_validator('DATA_DIAGNOSTICO')
+    @field_validator("DATA_DIAGNOSTICO")
     @classmethod
     def validate_data_diagnostico(cls, v, info):
-        if v and info.data.get('DATA_COBERTURA'):
-            if v < info.data['DATA_COBERTURA']:
-                raise ValueError(
-                    'Data de diagnóstico deve ser após a cobertura')
+        if v and info.data.get("DATA_COBERTURA"):
+            if v < info.data["DATA_COBERTURA"]:
+                raise ValueError("Data de diagnóstico deve ser após a cobertura")
         return v
 
-    @field_validator('DATA_PARTO_PREVISTA')
+    @field_validator("DATA_PARTO_PREVISTA")
     @classmethod
     def validate_data_parto_prevista(cls, v, info):
-        if v and info.data.get('DATA_COBERTURA'):
+        if v and info.data.get("DATA_COBERTURA"):
             # Gestação equina: aproximadamente 340 dias (11 meses)
-            data_minima = info.data['DATA_COBERTURA'] + timedelta(days=300)
-            data_maxima = info.data['DATA_COBERTURA'] + timedelta(days=380)
+            data_minima = info.data["DATA_COBERTURA"] + timedelta(days=300)
+            data_maxima = info.data["DATA_COBERTURA"] + timedelta(days=380)
 
             if v < data_minima or v > data_maxima:
                 raise ValueError(
-                    'Data prevista deve estar entre 300-380 dias após a cobertura')
+                    "Data prevista deve estar entre 300-380 dias após a cobertura"
+                )
         return v
 
-    @field_validator('DATA_PARTO_REAL')
+    @field_validator("DATA_PARTO_REAL")
     @classmethod
     def validate_data_parto_real(cls, v, info):
-        if v and info.data.get('DATA_COBERTURA'):
-            if v < info.data['DATA_COBERTURA']:
-                raise ValueError('Data de parto deve ser após a cobertura')
+        if v and info.data.get("DATA_COBERTURA"):
+            if v < info.data["DATA_COBERTURA"]:
+                raise ValueError("Data de parto deve ser após a cobertura")
         return v
 
 
@@ -102,12 +102,19 @@ class ReproducaoResponse(ReproducaoBase):
     parceiro_nome: Optional[str] = None
     dias_gestacao: Optional[int] = None
 
-    @field_serializer('DATA_COBERTURA', 'DATA_DIAGNOSTICO', 'DATA_PARTO_PREVISTA', 'DATA_PARTO_REAL', 'DATA_REGISTRO')
+    @field_serializer(
+        "DATA_COBERTURA",
+        "DATA_DIAGNOSTICO",
+        "DATA_PARTO_PREVISTA",
+        "DATA_PARTO_REAL",
+        "DATA_REGISTRO",
+    )
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
+
 
 # Schemas para relatórios
 

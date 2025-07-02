@@ -7,35 +7,41 @@ from pydantic import BaseModel, Field, field_validator, field_serializer
 class CrescimentoBase(BaseModel):
     ID_ANIMAL: int
     DATA_MEDICAO: datetime
-    PESO: Optional[float] = Field(
-        None, gt=0, le=2000, description="Peso em kg")
-    ALTURA: Optional[float] = Field(
-        None, gt=0, le=300, description="Altura em cm")
+    PESO: Optional[float] = Field(None, gt=0, le=2000, description="Peso em kg")
+    ALTURA: Optional[float] = Field(None, gt=0, le=300, description="Altura em cm")
     CIRCUNFERENCIA_CANELA: Optional[float] = Field(
-        None, gt=0, le=100, description="Circunferência da canela em cm")
+        None, gt=0, le=100, description="Circunferência da canela em cm"
+    )
     CIRCUNFERENCIA_TORACICA: Optional[float] = Field(
-        None, gt=0, le=500, description="Circunferência torácica em cm")
+        None, gt=0, le=500, description="Circunferência torácica em cm"
+    )
     COMPRIMENTO_CORPO: Optional[float] = Field(
-        None, gt=0, le=500, description="Comprimento do corpo em cm")
+        None, gt=0, le=500, description="Comprimento do corpo em cm"
+    )
     OBSERVACOES: Optional[str] = None
 
 
 class CrescimentoCreate(CrescimentoBase):
     ID_USUARIO_REGISTRO: int
 
-    @field_validator('DATA_MEDICAO')
+    @field_validator("DATA_MEDICAO")
     @classmethod
     def validate_data_medicao(cls, v):
         if v > datetime.now():
-            raise ValueError('Data de medição não pode ser no futuro')
+            raise ValueError("Data de medição não pode ser no futuro")
         return v
 
-    @field_validator('PESO', 'ALTURA', 'CIRCUNFERENCIA_CANELA',
-                     'CIRCUNFERENCIA_TORACICA', 'COMPRIMENTO_CORPO')
+    @field_validator(
+        "PESO",
+        "ALTURA",
+        "CIRCUNFERENCIA_CANELA",
+        "CIRCUNFERENCIA_TORACICA",
+        "COMPRIMENTO_CORPO",
+    )
     @classmethod
     def validate_medidas(cls, v):
         if v is not None and v <= 0:
-            raise ValueError('Medidas devem ser maiores que zero')
+            raise ValueError("Medidas devem ser maiores que zero")
         return v
 
 
@@ -59,12 +65,13 @@ class CrescimentoResponse(CrescimentoBase):
     ganho_peso: Optional[float] = None  # Comparado com medição anterior
     dias_desde_ultima: Optional[int] = None
 
-    @field_serializer('DATA_MEDICAO', 'DATA_REGISTRO')
+    @field_serializer("DATA_MEDICAO", "DATA_REGISTRO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True
+
 
 # Schemas para relatórios e estatísticas
 

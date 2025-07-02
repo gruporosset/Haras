@@ -1,9 +1,10 @@
 # backend/app/models/saude.py
 import enum
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
+
+from app.models.base import Base
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
-from app.models.base import Base
 
 
 class TipoRegistroEnum(str, enum.Enum):
@@ -25,7 +26,7 @@ class SaudeAnimais(Base):
     __tablename__ = "SAUDE_ANIMAIS"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_ANIMAL = Column(Integer, ForeignKey('ANIMAIS.ID'), nullable=False)
+    ID_ANIMAL = Column(Integer, ForeignKey("ANIMAIS.ID"), nullable=False)
     # Mudado para String para suportar novos tipos
     TIPO_REGISTRO = Column(String(50), nullable=False)
     DATA_OCORRENCIA = Column(DateTime, nullable=False)
@@ -38,7 +39,7 @@ class SaudeAnimais(Base):
     OBSERVACOES = Column(CLOB)
 
     # Campos para integração com medicamentos (se estiver no estoque)
-    ID_MEDICAMENTO = Column(Integer, ForeignKey('MEDICAMENTOS.ID'))
+    ID_MEDICAMENTO = Column(Integer, ForeignKey("MEDICAMENTOS.ID"))
     QUANTIDADE_APLICADA = Column(Float)
     UNIDADE_APLICADA = Column(String(20))
 
@@ -51,5 +52,5 @@ class SaudeAnimais(Base):
     STATUS_CASCO = Column(String(100))
     PROXIMA_AVALIACAO = Column(DateTime)
 
-    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_REGISTRO = Column(DateTime(timezone=True), server_default=func.now())

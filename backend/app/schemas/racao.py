@@ -74,7 +74,7 @@ class ProdutoRacaoBase(BaseModel):
     ESTOQUE_ATUAL: float = Field(default=0, ge=0)
     ESTOQUE_MINIMO: float = Field(default=0, ge=0)
     ESTOQUE_MAXIMO: Optional[float] = Field(None, ge=0)
-    UNIDADE_MEDIDA: str = Field(default='KG', max_length=20)
+    UNIDADE_MEDIDA: str = Field(default="KG", max_length=20)
 
     # Dados comerciais
     PRECO_UNITARIO: Optional[float] = Field(None, ge=0)
@@ -93,21 +93,26 @@ class ProdutoRacaoBase(BaseModel):
 
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_estoques(self):
-        if (self.ESTOQUE_MAXIMO is not None and
-                self.ESTOQUE_MAXIMO <= self.ESTOQUE_MINIMO):
-            raise ValueError('Estoque máximo deve ser maior que o mínimo')
+        if (
+            self.ESTOQUE_MAXIMO is not None
+            and self.ESTOQUE_MAXIMO <= self.ESTOQUE_MINIMO
+        ):
+            raise ValueError("Estoque máximo deve ser maior que o mínimo")
         return self
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_datas(self):
-        if (self.DATA_FABRICACAO and self.DATA_VALIDADE and
-                self.DATA_FABRICACAO >= self.DATA_VALIDADE):
-            raise ValueError('Data de fabricação deve ser anterior à validade')
+        if (
+            self.DATA_FABRICACAO
+            and self.DATA_VALIDADE
+            and self.DATA_FABRICACAO >= self.DATA_VALIDADE
+        ):
+            raise ValueError("Data de fabricação deve ser anterior à validade")
         return self
 
-    @field_serializer('DATA_FABRICACAO', 'DATA_VALIDADE')
+    @field_serializer("DATA_FABRICACAO", "DATA_VALIDADE")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
@@ -177,17 +182,21 @@ class MovimentacaoRacaoBase(BaseModel):
     MOTIVO: Optional[str] = Field(None, max_length=200)
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_datas(self):
-        if (self.DATA_FABRICACAO and self.DATA_VALIDADE and
-                self.DATA_FABRICACAO >= self.DATA_VALIDADE):
-            raise ValueError('Data de fabricação deve ser anterior à validade')
+        if (
+            self.DATA_FABRICACAO
+            and self.DATA_VALIDADE
+            and self.DATA_FABRICACAO >= self.DATA_VALIDADE
+        ):
+            raise ValueError("Data de fabricação deve ser anterior à validade")
         return self
 
 
 class EntradaRacaoCreate(MovimentacaoRacaoBase):
     TIPO_MOVIMENTACAO: TipoMovimentacaoRacaoEnum = Field(
-        default=TipoMovimentacaoRacaoEnum.ENTRADA)
+        default=TipoMovimentacaoRacaoEnum.ENTRADA
+    )
     NOTA_FISCAL: str = Field(..., max_length=100)
     FORNECEDOR: str = Field(..., max_length=100)
     PRECO_UNITARIO: float = Field(..., ge=0)
@@ -242,10 +251,10 @@ class PlanoAlimentarBase(BaseModel):
     STATUS_PLANO: StatusPlanoEnum = StatusPlanoEnum.ATIVO
     OBSERVACOES: Optional[str] = None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validar_periodo(self):
         if self.DATA_FIM and self.DATA_FIM <= self.DATA_INICIO:
-            raise ValueError('Data fim deve ser posterior à data início')
+            raise ValueError("Data fim deve ser posterior à data início")
         return self
 
 
@@ -289,13 +298,17 @@ class ItemPlanoAlimentarBase(BaseModel):
     QUANTIDADE_DIARIA: float = Field(..., gt=0)
     ORDEM_FORNECIMENTO: Optional[int] = Field(None, ge=1, le=100)
     HORARIO_REFEICAO_1: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_2: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_3: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_4: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
 
 
@@ -308,15 +321,19 @@ class ItemPlanoAlimentarUpdate(BaseModel):
     QUANTIDADE_DIARIA: Optional[float] = Field(None, gt=0)
     ORDEM_FORNECIMENTO: Optional[int] = Field(None, ge=1, le=100)
     HORARIO_REFEICAO_1: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_2: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_3: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     HORARIO_REFEICAO_4: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     OBSERVACOES: Optional[str] = Field(None, max_length=500)
-    ATIVO: Optional[str] = Field(None, pattern='^[SN]$')
+    ATIVO: Optional[str] = Field(None, pattern="^[SN]$")
 
 
 class ItemPlanoAlimentarResponse(ItemPlanoAlimentarBase):
@@ -340,7 +357,8 @@ class FornecimentoRacaoBase(BaseModel):
     ID_PLANO: Optional[int] = None
     DATA_FORNECIMENTO: datetime
     HORARIO_FORNECIMENTO: Optional[str] = Field(
-        None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     NUMERO_REFEICAO: Optional[int] = Field(None, ge=1, le=4)
     QUANTIDADE_PLANEJADA: Optional[float] = Field(None, gt=0)
     QUANTIDADE_FORNECIDA: float = Field(..., gt=0)

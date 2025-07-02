@@ -1,20 +1,31 @@
-# backend/app/api/v1/saude.py
-from typing import List, Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import func, desc
+from typing import List, Optional
+
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.saude import SaudeAnimais, TipoRegistroEnum
 from app.models.animal import Animal
-from app.models.user import User
-from app.models.medicamento import Medicamento, MovimentacaoMedicamento, TipoMovimentacaoEnum
-from app.schemas.saude import (
-    SaudeCreate, SaudeUpdate, SaudeResponse, AplicacaoRapida,
-    EstatisticasSaude, ProximasAplicacoes, HistoricoSaude,
-    CalendarioSaude, ConsumoPorTipo, MedicamentoAutocomplete
+from app.models.medicamento import (
+    Medicamento,
+    MovimentacaoMedicamento,
+    TipoMovimentacaoEnum,
 )
+from app.models.saude import SaudeAnimais, TipoRegistroEnum
+from app.models.user import User
+from app.schemas.saude import (
+    AplicacaoRapida,
+    CalendarioSaude,
+    ConsumoPorTipo,
+    EstatisticasSaude,
+    HistoricoSaude,
+    MedicamentoAutocomplete,
+    ProximasAplicacoes,
+    SaudeCreate,
+    SaudeResponse,
+    SaudeUpdate,
+)
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import desc, func
 
 router = APIRouter(prefix="/api/saude", tags=["Saúde"])
 
@@ -23,43 +34,49 @@ router = APIRouter(prefix="/api/saude", tags=["Saúde"])
 async def create_registro_saude(
     saude: SaudeCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     # Verificar se animal existe
     animal = db.query(Animal).filter(Animal.ID == saude.ID_ANIMAL).first()
     if not animal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado"
+        )
 
     # Se especificou medicamento do estoque, fazer validações
     if saude.ID_MEDICAMENTO and saude.QUANTIDADE_APLICADA:
         # Importar aqui para evitar dependência circular
 
-        medicamento = db.query(Medicamento).filter(
-            Medicamento.ID == saude.ID_MEDICAMENTO).first()
+        medicamento = (
+            db.query(Medicamento).filter(Medicamento.ID == saude.ID_MEDICAMENTO).first()
+        )
         if not medicamento:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado")
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Medicamento não encontrado",
+            )
 
         # Verificar se medicamento está ativo
-        if medicamento.ATIVO != 'S':
+        if medicamento.ATIVO != "S":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Medicamento não está ativo"
+                detail="Medicamento não está ativo",
             )
 
         # Verificar estoque suficiente
         if medicamento.ESTOQUE_ATUAL < saude.QUANTIDADE_APLICADA:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+                detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}",
             )
 
         # Preencher campos automáticos baseados no medicamento
         if not saude.MEDICAMENTO_APLICADO:
             saude.MEDICAMENTO_APLICADO = medicamento.NOME
         if not saude.DOSE_APLICADA:
-            saude.DOSE_APLICADA = f"{saude.QUANTIDADE_APLICADA} {medicamento.UNIDADE_MEDIDA}"
+            saude.DOSE_APLICADA = (
+                f"{saude.QUANTIDADE_APLICADA} {medicamento.UNIDADE_MEDIDA}"
+            )
         if not saude.UNIDADE_APLICADA:
             saude.UNIDADE_APLICADA = medicamento.UNIDADE_MEDIDA
 
@@ -80,7 +97,7 @@ async def create_registro_saude(
             ID_SAUDE_ANIMAL=db_saude.ID,
             MOTIVO=f"Aplicação de saúde - {saude.TIPO_REGISTRO}",
             OBSERVACOES=saude.OBSERVACOES,
-            ID_USUARIO_REGISTRO=current_user.ID
+            ID_USUARIO_REGISTRO=current_user.ID,
         )
 
         db.add(movimentacao)
@@ -97,14 +114,13 @@ async def list_registros_saude(
     current_user: User = Depends(get_current_user),
     animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
     tipo_registro: Optional[TipoRegistroEnum] = Query(
-        None, description="Filtrar por tipo"),
-    data_inicio: Optional[str] = Query(
-        None, description="Data início (YYYY-MM-DD)"),
+        None, description="Filtrar por tipo"
+    ),
+    data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
-    veterinario: Optional[str] = Query(
-        None, description="Filtrar por veterinário"),
+    veterinario: Optional[str] = Query(None, description="Filtrar por veterinário"),
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    limit: int = Query(10, ge=1, le=100),
 ):
     query = db.query(SaudeAnimais).join(Animal)
 
@@ -113,19 +129,26 @@ async def list_registros_saude(
     if tipo_registro:
         query = query.filter(SaudeAnimais.TIPO_REGISTRO == tipo_registro)
     if data_inicio:
-        query = query.filter(SaudeAnimais.DATA_OCORRENCIA >=
-                             datetime.fromisoformat(data_inicio))
+        query = query.filter(
+            SaudeAnimais.DATA_OCORRENCIA >= datetime.fromisoformat(data_inicio)
+        )
     if data_fim:
-        query = query.filter(SaudeAnimais.DATA_OCORRENCIA <=
-                             datetime.fromisoformat(data_fim))
+        query = query.filter(
+            SaudeAnimais.DATA_OCORRENCIA <= datetime.fromisoformat(data_fim)
+        )
     if veterinario:
         query = query.filter(
-            SaudeAnimais.VETERINARIO_RESPONSAVEL.ilike(f"%{veterinario}%"))
+            SaudeAnimais.VETERINARIO_RESPONSAVEL.ilike(f"%{veterinario}%")
+        )
 
     total = query.count()
     offset = (page - 1) * limit
-    registros = query.order_by(desc(SaudeAnimais.DATA_OCORRENCIA)).offset(
-        offset).limit(limit).all()
+    registros = (
+        query.order_by(desc(SaudeAnimais.DATA_OCORRENCIA))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Enriquecer com dados relacionados
     enriched_registros = []
@@ -137,7 +160,7 @@ async def list_registros_saude(
         "registros": enriched_registros,
         "total": total,
         "page": page,
-        "limit": limit
+        "limit": limit,
     }
 
 
@@ -145,16 +168,22 @@ async def list_registros_saude(
 async def get_proximas_aplicacoes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    dias: int = Query(365, description="Próximos X dias")
+    dias: int = Query(365, description="Próximos X dias"),
 ):
     """Lista próximas aplicações programadas"""
     data_limite = datetime.now() + timedelta(days=dias)
 
-    registros = db.query(SaudeAnimais, Animal.NOME).join(Animal).filter(
-        SaudeAnimais.PROXIMA_APLICACAO.isnot(None)
-        # SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
-        # SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
-    ).order_by(SaudeAnimais.PROXIMA_APLICACAO).all()
+    registros = (
+        db.query(SaudeAnimais, Animal.NOME)
+        .join(Animal)
+        .filter(
+            SaudeAnimais.PROXIMA_APLICACAO.isnot(None)
+            # SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
+            # SaudeAnimais.PROXIMA_APLICACAO >= datetime.now()
+        )
+        .order_by(SaudeAnimais.PROXIMA_APLICACAO)
+        .all()
+    )
 
     proximas = []
     for saude, animal_nome in registros:
@@ -172,23 +201,29 @@ async def get_proximas_aplicacoes(
         medicamento_nome = None
         if saude.ID_MEDICAMENTO:
             try:
-                medicamento = db.query(Medicamento).filter(
-                    Medicamento.ID == saude.ID_MEDICAMENTO).first()
+                medicamento = (
+                    db.query(Medicamento)
+                    .filter(Medicamento.ID == saude.ID_MEDICAMENTO)
+                    .first()
+                )
                 medicamento_nome = medicamento.NOME if medicamento else None
             except:
                 pass
 
-        proximas.append(ProximasAplicacoes(
-            animal_id=saude.ID_ANIMAL,
-            animal_nome=animal_nome,
-            tipo_registro=saude.TIPO_REGISTRO,
-            data_aplicacao=saude.PROXIMA_APLICACAO,
-            descricao=saude.DESCRICAO or f"{saude.TIPO_REGISTRO} - {saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
-            dias_restantes=dias_restantes,
-            medicamento_nome=medicamento_nome,
-            veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
-            prioridade=prioridade
-        ))
+        proximas.append(
+            ProximasAplicacoes(
+                animal_id=saude.ID_ANIMAL,
+                animal_nome=animal_nome,
+                tipo_registro=saude.TIPO_REGISTRO,
+                data_aplicacao=saude.PROXIMA_APLICACAO,
+                descricao=saude.DESCRICAO
+                or f"{saude.TIPO_REGISTRO} - {saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
+                dias_restantes=dias_restantes,
+                medicamento_nome=medicamento_nome,
+                veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
+                prioridade=prioridade,
+            )
+        )
 
     return proximas
 
@@ -197,12 +232,13 @@ async def get_proximas_aplicacoes(
 async def get_registro_saude(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     registro = db.query(SaudeAnimais).filter(SaudeAnimais.ID == id).first()
     if not registro:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Registro não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Registro não encontrado"
+        )
 
     return await _enrich_saude_response(registro, db)
 
@@ -212,17 +248,23 @@ async def update_registro_saude(
     id: int,
     saude: SaudeUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     db_saude = db.query(SaudeAnimais).filter(SaudeAnimais.ID == id).first()
     if not db_saude:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Registro não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Registro não encontrado"
+        )
 
     # Verificar se está alterando medicamento do estoque
     medicamento_alterado = False
-    if (hasattr(saude, 'ID_MEDICAMENTO') and saude.ID_MEDICAMENTO != db_saude.ID_MEDICAMENTO) or \
-       (hasattr(saude, 'QUANTIDADE_APLICADA') and saude.QUANTIDADE_APLICADA != db_saude.QUANTIDADE_APLICADA):
+    if (
+        hasattr(saude, "ID_MEDICAMENTO")
+        and saude.ID_MEDICAMENTO != db_saude.ID_MEDICAMENTO
+    ) or (
+        hasattr(saude, "QUANTIDADE_APLICADA")
+        and saude.QUANTIDADE_APLICADA != db_saude.QUANTIDADE_APLICADA
+    ):
         medicamento_alterado = True
 
     # Se alterou medicamento, reverter movimentação anterior
@@ -238,7 +280,7 @@ async def update_registro_saude(
                 ID_SAUDE_ANIMAL=db_saude.ID,
                 MOTIVO=f"Reversão por alteração de registro de saúde",
                 OBSERVACOES="Estorno automático por edição",
-                ID_USUARIO_REGISTRO=current_user.ID
+                ID_USUARIO_REGISTRO=current_user.ID,
             )
             db.add(reversao)
 
@@ -249,14 +291,17 @@ async def update_registro_saude(
     # Se tem novo medicamento, criar nova movimentação
     if db_saude.ID_MEDICAMENTO and db_saude.QUANTIDADE_APLICADA:
 
-        medicamento = db.query(Medicamento).filter(
-            Medicamento.ID == db_saude.ID_MEDICAMENTO).first()
+        medicamento = (
+            db.query(Medicamento)
+            .filter(Medicamento.ID == db_saude.ID_MEDICAMENTO)
+            .first()
+        )
         if medicamento:
             # Verificar estoque
             if medicamento.ESTOQUE_ATUAL < db_saude.QUANTIDADE_APLICADA:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+                    detail=f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}",
                 )
 
             # Criar nova movimentação
@@ -268,7 +313,7 @@ async def update_registro_saude(
                 ID_SAUDE_ANIMAL=db_saude.ID,
                 MOTIVO=f"Aplicação atualizada - {db_saude.TIPO_REGISTRO}",
                 OBSERVACOES=db_saude.OBSERVACOES,
-                ID_USUARIO_REGISTRO=current_user.ID
+                ID_USUARIO_REGISTRO=current_user.ID,
             )
             db.add(nova_movimentacao)
 
@@ -281,12 +326,13 @@ async def update_registro_saude(
 async def delete_registro_saude(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     db_saude = db.query(SaudeAnimais).filter(SaudeAnimais.ID == id).first()
     if not db_saude:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Registro não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Registro não encontrado"
+        )
 
     # Se tinha medicamento do estoque, reverter movimentação
     if db_saude.ID_MEDICAMENTO and db_saude.QUANTIDADE_APLICADA:
@@ -299,21 +345,26 @@ async def delete_registro_saude(
             ID_SAUDE_ANIMAL=db_saude.ID,
             MOTIVO=f"Reversão por exclusão de registro de saúde",
             OBSERVACOES="Estorno automático por exclusão",
-            ID_USUARIO_REGISTRO=current_user.ID
+            ID_USUARIO_REGISTRO=current_user.ID,
         )
         db.add(reversao)
 
     db.delete(db_saude)
     db.commit()
 
+
 # === APLICAÇÃO RÁPIDA ===
 
 
-@router.post("/aplicacao-rapida", response_model=SaudeResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/aplicacao-rapida",
+    response_model=SaudeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def aplicacao_rapida(
     aplicacao: AplicacaoRapida,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Endpoint para aplicação rápida de medicamentos/vacinas"""
     saude_data = SaudeCreate(
@@ -326,10 +377,11 @@ async def aplicacao_rapida(
         DOSE_APLICADA=aplicacao.DOSE_APLICADA,
         VETERINARIO_RESPONSAVEL=aplicacao.VETERINARIO_RESPONSAVEL,
         OBSERVACOES=aplicacao.OBSERVACOES,
-        ID_USUARIO_REGISTRO=current_user.ID
+        ID_USUARIO_REGISTRO=current_user.ID,
     )
 
     return await create_registro_saude(saude_data, db, current_user)
+
 
 # === AUTOCOMPLETE MEDICAMENTOS ===
 
@@ -339,19 +391,26 @@ async def autocomplete_medicamentos_saude(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     termo: str = Query(..., description="Termo para busca"),
-    limit: int = Query(10, ge=1, le=50)
+    limit: int = Query(10, ge=1, le=50),
 ):
     """Autocomplete para medicamentos com estoque > 0 para uso em saúde"""
     try:
 
-        medicamentos = db.query(Medicamento).filter(
-            Medicamento.NOME.ilike(f"%{termo}%") if termo != ' ' else True,
-            Medicamento.ATIVO == 'S',
-            Medicamento.ESTOQUE_ATUAL > 0
-        ).order_by(Medicamento.NOME).limit(limit).all()
+        medicamentos = (
+            db.query(Medicamento)
+            .filter(
+                Medicamento.NOME.ilike(f"%{termo}%") if termo != " " else True,
+                Medicamento.ATIVO == "S",
+                Medicamento.ESTOQUE_ATUAL > 0,
+            )
+            .order_by(Medicamento.NOME)
+            .limit(limit)
+            .all()
+        )
 
         print(
-            f"Buscando medicamentos com termo '{termo}' - Encontrados: {len(medicamentos)}")
+            f"Buscando medicamentos com termo '{termo}' - Encontrados: {len(medicamentos)}"
+        )
 
         return [
             MedicamentoAutocomplete(
@@ -362,7 +421,7 @@ async def autocomplete_medicamentos_saude(
                 unidade=med.UNIDADE_MEDIDA,
                 forma=med.FORMA_FARMACEUTICA,
                 carencia=med.PERIODO_CARENCIA,
-                principio_ativo=med.PRINCIPIO_ATIVO
+                principio_ativo=med.PRINCIPIO_ATIVO,
             )
             for med in medicamentos
         ]
@@ -376,16 +435,19 @@ async def validar_estoque_medicamento(
     medicamento_id: int,
     quantidade: float,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Valida se há estoque suficiente para aplicação"""
     try:
 
-        medicamento = db.query(Medicamento).filter(
-            Medicamento.ID == medicamento_id).first()
+        medicamento = (
+            db.query(Medicamento).filter(Medicamento.ID == medicamento_id).first()
+        )
         if not medicamento:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Medicamento não encontrado")
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Medicamento não encontrado",
+            )
 
         estoque_suficiente = medicamento.ESTOQUE_ATUAL >= quantidade
 
@@ -393,16 +455,20 @@ async def validar_estoque_medicamento(
             "valido": estoque_suficiente,
             "estoque_atual": medicamento.ESTOQUE_ATUAL,
             "unidade_medida": medicamento.UNIDADE_MEDIDA,
-            "estoque_restante": medicamento.ESTOQUE_ATUAL - quantidade if estoque_suficiente else None,
-            "erro": None if estoque_suficiente else f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+            "estoque_restante": (
+                medicamento.ESTOQUE_ATUAL - quantidade if estoque_suficiente else None
+            ),
+            "erro": (
+                None
+                if estoque_suficiente
+                else f"Estoque insuficiente. Disponível: {medicamento.ESTOQUE_ATUAL} {medicamento.UNIDADE_MEDIDA}"
+            ),
         }
     except Exception as e:
         if "Medicamento não encontrado" in str(e):
             raise e
-        return {
-            "valido": False,
-            "erro": "Módulo de medicamentos não disponível"
-        }
+        return {"valido": False, "erro": "Módulo de medicamentos não disponível"}
+
 
 # === RELATÓRIOS ===
 
@@ -411,35 +477,48 @@ async def validar_estoque_medicamento(
 async def get_veterinarios_estatisticas(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    meses_periodo: int = Query(12, description="Período em meses para análise")
+    meses_periodo: int = Query(12, description="Período em meses para análise"),
 ):
     """Estatísticas de veterinários mais ativos"""
     data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
 
     # Buscar registros agrupados por veterinário
-    resultados = db.query(
-        SaudeAnimais.VETERINARIO_RESPONSAVEL,
-        func.count(SaudeAnimais.ID).label('total_aplicacoes'),
-        func.count(func.distinct(SaudeAnimais.ID_ANIMAL)
-                   ).label('animais_atendidos'),
-        func.count(func.distinct(SaudeAnimais.TIPO_REGISTRO)
-                   ).label('tipos_diferentes'),
-        func.max(SaudeAnimais.DATA_OCORRENCIA).label('ultimo_atendimento')
-    ).filter(
-        SaudeAnimais.DATA_OCORRENCIA >= data_limite,
-        SaudeAnimais.VETERINARIO_RESPONSAVEL.isnot(None),
-        SaudeAnimais.VETERINARIO_RESPONSAVEL != ''
-    ).group_by(SaudeAnimais.VETERINARIO_RESPONSAVEL).all()
+    resultados = (
+        db.query(
+            SaudeAnimais.VETERINARIO_RESPONSAVEL,
+            func.count(SaudeAnimais.ID).label("total_aplicacoes"),
+            func.count(func.distinct(SaudeAnimais.ID_ANIMAL)).label(
+                "animais_atendidos"
+            ),
+            func.count(func.distinct(SaudeAnimais.TIPO_REGISTRO)).label(
+                "tipos_diferentes"
+            ),
+            func.max(SaudeAnimais.DATA_OCORRENCIA).label("ultimo_atendimento"),
+        )
+        .filter(
+            SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+            SaudeAnimais.VETERINARIO_RESPONSAVEL.isnot(None),
+            SaudeAnimais.VETERINARIO_RESPONSAVEL != "",
+        )
+        .group_by(SaudeAnimais.VETERINARIO_RESPONSAVEL)
+        .all()
+    )
 
     veterinarios = []
     for resultado in resultados:
-        veterinarios.append({
-            "veterinario": resultado.VETERINARIO_RESPONSAVEL,
-            "total_aplicacoes": resultado.total_aplicacoes,
-            "animais_atendidos": resultado.animais_atendidos,
-            "tipos_diferentes": resultado.tipos_diferentes,
-            "ultimo_atendimento": resultado.ultimo_atendimento.strftime("%d/%m/%Y") if resultado.ultimo_atendimento else None
-        })
+        veterinarios.append(
+            {
+                "veterinario": resultado.VETERINARIO_RESPONSAVEL,
+                "total_aplicacoes": resultado.total_aplicacoes,
+                "animais_atendidos": resultado.animais_atendidos,
+                "tipos_diferentes": resultado.tipos_diferentes,
+                "ultimo_atendimento": (
+                    resultado.ultimo_atendimento.strftime("%d/%m/%Y")
+                    if resultado.ultimo_atendimento
+                    else None
+                ),
+            }
+        )
 
     # Ordenar por total de aplicações (decrescente)
     veterinarios.sort(key=lambda x: x["total_aplicacoes"], reverse=True)
@@ -451,22 +530,27 @@ async def get_veterinarios_estatisticas(
 async def get_estatisticas_gerais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    meses_periodo: int = Query(12, description="Período em meses para análise")
+    meses_periodo: int = Query(12, description="Período em meses para análise"),
 ):
     """Estatísticas gerais de saúde por animal"""
     data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
 
     # Buscar animais com registros de saúde
-    animais_com_registros = db.query(Animal.ID, Animal.NOME).join(
-        SaudeAnimais).distinct().all()
+    animais_com_registros = (
+        db.query(Animal.ID, Animal.NOME).join(SaudeAnimais).distinct().all()
+    )
 
     estatisticas = []
     for animal_id, animal_nome in animais_com_registros:
         # Buscar registros do animal no período
-        registros = db.query(SaudeAnimais).filter(
-            SaudeAnimais.ID_ANIMAL == animal_id,
-            SaudeAnimais.DATA_OCORRENCIA >= data_limite
-        ).all()
+        registros = (
+            db.query(SaudeAnimais)
+            .filter(
+                SaudeAnimais.ID_ANIMAL == animal_id,
+                SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+            )
+            .all()
+        )
 
         if not registros:
             continue
@@ -489,28 +573,34 @@ async def get_estatisticas_gerais(
 
         # Última aplicação
         ultima_aplicacao = max(
-            registros, key=lambda x: x.DATA_OCORRENCIA).DATA_OCORRENCIA
+            registros, key=lambda x: x.DATA_OCORRENCIA
+        ).DATA_OCORRENCIA
 
         # Próximas aplicações
-        proximas = db.query(SaudeAnimais).filter(
-            SaudeAnimais.ID_ANIMAL == animal_id,
-            SaudeAnimais.PROXIMA_APLICACAO > datetime.now()
-        ).count()
+        proximas = (
+            db.query(SaudeAnimais)
+            .filter(
+                SaudeAnimais.ID_ANIMAL == animal_id,
+                SaudeAnimais.PROXIMA_APLICACAO > datetime.now(),
+            )
+            .count()
+        )
 
         # Veterinário principal (mais frequente)
-        veterinario_principal = max(
-            veterinarios.keys()) if veterinarios else None
+        veterinario_principal = max(veterinarios.keys()) if veterinarios else None
 
-        estatisticas.append(EstatisticasSaude(
-            animal_id=animal_id,
-            animal_nome=animal_nome,
-            total_registros=len(registros),
-            tipos_aplicados=tipos_aplicados,
-            ultima_aplicacao=ultima_aplicacao,
-            proximas_aplicacoes=proximas,
-            custo_total=custo_total if custo_total > 0 else None,
-            veterinario_principal=veterinario_principal
-        ))
+        estatisticas.append(
+            EstatisticasSaude(
+                animal_id=animal_id,
+                animal_nome=animal_nome,
+                total_registros=len(registros),
+                tipos_aplicados=tipos_aplicados,
+                ultima_aplicacao=ultima_aplicacao,
+                proximas_aplicacoes=proximas,
+                custo_total=custo_total if custo_total > 0 else None,
+                veterinario_principal=veterinario_principal,
+            )
+        )
 
     return estatisticas
 
@@ -520,16 +610,19 @@ async def get_calendario_saude(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     data_inicio: str = Query(..., description="Data início (YYYY-MM-DD)"),
-    data_fim: str = Query(..., description="Data fim (YYYY-MM-DD)")
+    data_fim: str = Query(..., description="Data fim (YYYY-MM-DD)"),
 ):
     """Calendário de aplicações programadas"""
     inicio = datetime.fromisoformat(data_inicio)
     fim = datetime.fromisoformat(data_fim)
 
     # Buscar aplicações no período
-    aplicacoes = db.query(SaudeAnimais, Animal.NOME).join(Animal).filter(
-        SaudeAnimais.PROXIMA_APLICACAO.between(inicio, fim)
-    ).all()
+    aplicacoes = (
+        db.query(SaudeAnimais, Animal.NOME)
+        .join(Animal)
+        .filter(SaudeAnimais.PROXIMA_APLICACAO.between(inicio, fim))
+        .all()
+    )
 
     # Agrupar por data
     calendario = {}
@@ -538,31 +631,33 @@ async def get_calendario_saude(
 
         if data_key not in calendario:
             calendario[data_key] = {
-                'data': saude.PROXIMA_APLICACAO,
-                'eventos': [],
-                'tipos_eventos': set()
+                "data": saude.PROXIMA_APLICACAO,
+                "eventos": [],
+                "tipos_eventos": set(),
             }
 
         evento = {
-            'animal_id': saude.ID_ANIMAL,
-            'animal_nome': animal_nome,
-            'tipo': saude.TIPO_REGISTRO,
-            'descricao': saude.DESCRICAO or saude.MEDICAMENTO_APLICADO,
-            'veterinario': saude.VETERINARIO_RESPONSAVEL
+            "animal_id": saude.ID_ANIMAL,
+            "animal_nome": animal_nome,
+            "tipo": saude.TIPO_REGISTRO,
+            "descricao": saude.DESCRICAO or saude.MEDICAMENTO_APLICADO,
+            "veterinario": saude.VETERINARIO_RESPONSAVEL,
         }
 
-        calendario[data_key]['eventos'].append(evento)
-        calendario[data_key]['tipos_eventos'].add(saude.TIPO_REGISTRO)
+        calendario[data_key]["eventos"].append(evento)
+        calendario[data_key]["tipos_eventos"].add(saude.TIPO_REGISTRO)
 
     # Converter para lista de CalendarioSaude
     resultado = []
     for data_key, dados in calendario.items():
-        resultado.append(CalendarioSaude(
-            data=dados['data'],
-            eventos=dados['eventos'],
-            total_eventos=len(dados['eventos']),
-            tipos_eventos=list(dados['tipos_eventos'])
-        ))
+        resultado.append(
+            CalendarioSaude(
+                data=dados["data"],
+                eventos=dados["eventos"],
+                total_eventos=len(dados["eventos"]),
+                tipos_eventos=list(dados["tipos_eventos"]),
+            )
+        )
 
     # Ordenar por data
     resultado.sort(key=lambda x: x.data)
@@ -573,23 +668,28 @@ async def get_calendario_saude(
 async def get_consumo_por_tipo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    meses_periodo: int = Query(6, description="Período em meses para análise")
+    meses_periodo: int = Query(6, description="Período em meses para análise"),
 ):
     """Relatório de consumo por tipo de registro"""
     data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
 
     # Buscar registros agrupados por tipo
-    resultados = db.query(
-        SaudeAnimais.TIPO_REGISTRO,
-        func.count(SaudeAnimais.ID).label('total_aplicacoes'),
-        func.count(func.distinct(SaudeAnimais.ID_MEDICAMENTO)
-                   ).label('medicamentos_utilizados'),
-        func.sum(SaudeAnimais.CUSTO).label('custo_total'),
-        func.count(func.distinct(SaudeAnimais.ID_ANIMAL)
-                   ).label('animais_atendidos')
-    ).filter(
-        SaudeAnimais.DATA_OCORRENCIA >= data_limite
-    ).group_by(SaudeAnimais.TIPO_REGISTRO).all()
+    resultados = (
+        db.query(
+            SaudeAnimais.TIPO_REGISTRO,
+            func.count(SaudeAnimais.ID).label("total_aplicacoes"),
+            func.count(func.distinct(SaudeAnimais.ID_MEDICAMENTO)).label(
+                "medicamentos_utilizados"
+            ),
+            func.sum(SaudeAnimais.CUSTO).label("custo_total"),
+            func.count(func.distinct(SaudeAnimais.ID_ANIMAL)).label(
+                "animais_atendidos"
+            ),
+        )
+        .filter(SaudeAnimais.DATA_OCORRENCIA >= data_limite)
+        .group_by(SaudeAnimais.TIPO_REGISTRO)
+        .all()
+    )
 
     consumos = []
     for resultado in resultados:
@@ -597,24 +697,31 @@ async def get_consumo_por_tipo(
         medicamentos_count = resultado.medicamentos_utilizados
         if medicamentos_count and medicamentos_count > 0:
             # Verificar se realmente tem medicamentos (não apenas NULLs)
-            real_medicamentos = db.query(func.count(func.distinct(SaudeAnimais.ID_MEDICAMENTO))).filter(
-                SaudeAnimais.TIPO_REGISTRO == resultado.TIPO_REGISTRO,
-                SaudeAnimais.DATA_OCORRENCIA >= data_limite,
-                SaudeAnimais.ID_MEDICAMENTO.isnot(None)
-            ).scalar()
+            real_medicamentos = (
+                db.query(func.count(func.distinct(SaudeAnimais.ID_MEDICAMENTO)))
+                .filter(
+                    SaudeAnimais.TIPO_REGISTRO == resultado.TIPO_REGISTRO,
+                    SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+                    SaudeAnimais.ID_MEDICAMENTO.isnot(None),
+                )
+                .scalar()
+            )
             medicamentos_count = real_medicamentos
         else:
             medicamentos_count = 0
 
-        consumos.append(ConsumoPorTipo(
-            tipo_registro=resultado.TIPO_REGISTRO,
-            total_aplicacoes=resultado.total_aplicacoes,
-            medicamentos_utilizados=medicamentos_count,
-            custo_total=float(
-                resultado.custo_total) if resultado.custo_total else None,
-            periodo_analise=f"{meses_periodo} meses",
-            animais_atendidos=resultado.animais_atendidos
-        ))
+        consumos.append(
+            ConsumoPorTipo(
+                tipo_registro=resultado.TIPO_REGISTRO,
+                total_aplicacoes=resultado.total_aplicacoes,
+                medicamentos_utilizados=medicamentos_count,
+                custo_total=(
+                    float(resultado.custo_total) if resultado.custo_total else None
+                ),
+                periodo_analise=f"{meses_periodo} meses",
+                animais_atendidos=resultado.animais_atendidos,
+            )
+        )
 
     return consumos
 
@@ -624,21 +731,27 @@ async def get_historico_animal(
     animal_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    meses: int = Query(12, description="Período em meses")
+    meses: int = Query(12, description="Período em meses"),
 ):
     """Histórico completo de saúde de um animal"""
     # Verificar se animal existe
     animal = db.query(Animal).filter(Animal.ID == animal_id).first()
     if not animal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado")
+            status_code=status.HTTP_404_NOT_FOUND, detail="Animal não encontrado"
+        )
 
     data_limite = datetime.now() - timedelta(days=meses * 30)
 
-    registros = db.query(SaudeAnimais).filter(
-        SaudeAnimais.ID_ANIMAL == animal_id,
-        SaudeAnimais.DATA_OCORRENCIA >= data_limite
-    ).order_by(desc(SaudeAnimais.DATA_OCORRENCIA)).all()
+    registros = (
+        db.query(SaudeAnimais)
+        .filter(
+            SaudeAnimais.ID_ANIMAL == animal_id,
+            SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+        )
+        .order_by(desc(SaudeAnimais.DATA_OCORRENCIA))
+        .all()
+    )
 
     # Enriquecer registros
     registros_enriched = []
@@ -662,7 +775,7 @@ async def get_historico_animal(
         registros=registros_enriched,
         resumo_tipos=resumo_tipos,
         periodo_analise=f"{meses} meses",
-        total_custo=custo_total if custo_total > 0 else None
+        total_custo=custo_total if custo_total > 0 else None,
     )
 
 
@@ -670,7 +783,7 @@ async def get_historico_animal(
 async def get_aplicacoes_mensais(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    meses: int = Query(6, description="Número de meses para análise")
+    meses: int = Query(6, description="Número de meses para análise"),
 ):
     """Relatório de aplicações por mês"""
     from sqlalchemy import extract
@@ -679,24 +792,39 @@ async def get_aplicacoes_mensais(
     data_limite = datetime.now() - timedelta(days=meses * 30)
 
     # Query para buscar aplicações agrupadas por mês/ano
-    resultados = db.query(
-        extract('year', SaudeAnimais.DATA_OCORRENCIA).label('ano'),
-        extract('month', SaudeAnimais.DATA_OCORRENCIA).label('mes'),
-        func.count(SaudeAnimais.ID).label('total_aplicacoes')
-    ).filter(
-        SaudeAnimais.DATA_OCORRENCIA >= data_limite
-    ).group_by(
-        extract('year', SaudeAnimais.DATA_OCORRENCIA),
-        extract('month', SaudeAnimais.DATA_OCORRENCIA)
-    ).order_by(
-        extract('year', SaudeAnimais.DATA_OCORRENCIA),
-        extract('month', SaudeAnimais.DATA_OCORRENCIA)
-    ).all()
+    resultados = (
+        db.query(
+            extract("year", SaudeAnimais.DATA_OCORRENCIA).label("ano"),
+            extract("month", SaudeAnimais.DATA_OCORRENCIA).label("mes"),
+            func.count(SaudeAnimais.ID).label("total_aplicacoes"),
+        )
+        .filter(SaudeAnimais.DATA_OCORRENCIA >= data_limite)
+        .group_by(
+            extract("year", SaudeAnimais.DATA_OCORRENCIA),
+            extract("month", SaudeAnimais.DATA_OCORRENCIA),
+        )
+        .order_by(
+            extract("year", SaudeAnimais.DATA_OCORRENCIA),
+            extract("month", SaudeAnimais.DATA_OCORRENCIA),
+        )
+        .all()
+    )
 
     # Nomes dos meses em português
     nomes_meses = [
-        '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-        'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+        "",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
     ]
 
     # Converter resultados para formato do gráfico
@@ -711,15 +839,18 @@ async def get_aplicacoes_mensais(
         else:
             label = f"{nomes_meses[mes]}/{ano}"
 
-        dados_mensais.append({
-            "periodo": label,
-            "total_aplicacoes": resultado.total_aplicacoes,
-            "ano": ano,
-            "mes": mes
-        })
+        dados_mensais.append(
+            {
+                "periodo": label,
+                "total_aplicacoes": resultado.total_aplicacoes,
+                "ano": ano,
+                "mes": mes,
+            }
+        )
 
     # Se não houver dados, retornar lista vazia ao invés de dados simulados
     return dados_mensais
+
 
 # === FUNÇÃO AUXILIAR ===
 
@@ -732,10 +863,15 @@ async def _enrich_saude_response(saude: SaudeAnimais, db: Session) -> SaudeRespo
 
     if saude.ID_MEDICAMENTO:
         try:
-            medicamento = db.query(Medicamento).filter(
-                Medicamento.ID == saude.ID_MEDICAMENTO).first()
+            medicamento = (
+                db.query(Medicamento)
+                .filter(Medicamento.ID == saude.ID_MEDICAMENTO)
+                .first()
+            )
             if medicamento and saude.QUANTIDADE_APLICADA:
-                estoque_suficiente = medicamento.ESTOQUE_ATUAL >= saude.QUANTIDADE_APLICADA
+                estoque_suficiente = (
+                    medicamento.ESTOQUE_ATUAL >= saude.QUANTIDADE_APLICADA
+                )
         except:
             pass
 

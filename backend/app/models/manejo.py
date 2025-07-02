@@ -1,8 +1,10 @@
 # backend/app/models/manejo.py
 import enum
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
+
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
+
 from .base import Base
 
 
@@ -51,15 +53,15 @@ class ProdutoManejo(Base):
     # === APLICAÇÃO TÉCNICA ===
     DOSE_RECOMENDADA = Column(Float)  # Dose padrão por HA
     PERIODO_CARENCIA = Column(Integer)  # Dias para liberação do terreno
-    REQUER_RECEITUARIO = Column(String(1), default='N')  # S/N para defensivos
+    REQUER_RECEITUARIO = Column(String(1), default="N")  # S/N para defensivos
 
     # === ARMAZENAMENTO ===
     LOCAL_ARMAZENAMENTO = Column(String(100))  # Depósito, galpão, etc.
     CONDICOES_ARMAZENAMENTO = Column(String(200))  # Temperatura, umidade
 
     OBSERVACOES = Column(CLOB)
-    ATIVO = Column(String(1), default='S')
-    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ATIVO = Column(String(1), default="S")
+    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_CADASTRO = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -67,10 +69,8 @@ class MovimentacaoProdutoManejo(Base):
     __tablename__ = "MOVIMENTACAO_PRODUTOS_MANEJO"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_PRODUTO = Column(Integer, ForeignKey(
-        'PRODUTOS_MANEJO.ID'), nullable=False)
-    TIPO_MOVIMENTACAO = Column(
-        Enum(TipoMovimentacaoManejoEnum), nullable=False)
+    ID_PRODUTO = Column(Integer, ForeignKey("PRODUTOS_MANEJO.ID"), nullable=False)
+    TIPO_MOVIMENTACAO = Column(Enum(TipoMovimentacaoManejoEnum), nullable=False)
 
     # === QUANTIDADES ===
     QUANTIDADE = Column(Float, nullable=False)
@@ -78,8 +78,8 @@ class MovimentacaoProdutoManejo(Base):
     QUANTIDADE_ATUAL = Column(Float)  # Estoque após a movimentação
 
     # === REFERÊNCIA PARA APLICAÇÃO (SAÍDA) ===
-    ID_MANEJO_TERRENO = Column(Integer, ForeignKey('MANEJO_TERRENOS.ID'))
-    ID_TERRENO = Column(Integer, ForeignKey('TERRENOS.ID'))  # Para relatórios
+    ID_MANEJO_TERRENO = Column(Integer, ForeignKey("MANEJO_TERRENOS.ID"))
+    ID_TERRENO = Column(Integer, ForeignKey("TERRENOS.ID"))  # Para relatórios
 
     # === DADOS DA ENTRADA (COMPRA) ===
     NOTA_FISCAL = Column(String(100))
@@ -93,7 +93,7 @@ class MovimentacaoProdutoManejo(Base):
     MOTIVO = Column(String(200))  # Motivo da movimentação
     OBSERVACOES = Column(CLOB)
 
-    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_REGISTRO = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -101,7 +101,7 @@ class AnalisesSolo(Base):
     __tablename__ = "ANALISES_SOLO"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_TERRENO = Column(Integer, ForeignKey('TERRENOS.ID'), nullable=False)
+    ID_TERRENO = Column(Integer, ForeignKey("TERRENOS.ID"), nullable=False)
     DATA_COLETA = Column(DateTime, nullable=False)
     DATA_RESULTADO = Column(DateTime)
     LABORATORIO = Column(String(100))
@@ -131,7 +131,7 @@ class AnalisesSolo(Base):
     OBSERVACOES = Column(CLOB)
     RECOMENDACOES = Column(CLOB)
     ARQUIVO_LAUDO = Column(String(500))  # Path do PDF
-    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_CADASTRO = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -139,9 +139,8 @@ class ManejoTerrenos(Base):
     __tablename__ = "MANEJO_TERRENOS"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_TERRENO = Column(Integer, ForeignKey('TERRENOS.ID'), nullable=False)
-    ID_PRODUTO = Column(Integer, ForeignKey(
-        'PRODUTOS_MANEJO.ID'), nullable=False)
+    ID_TERRENO = Column(Integer, ForeignKey("TERRENOS.ID"), nullable=False)
+    ID_PRODUTO = Column(Integer, ForeignKey("PRODUTOS_MANEJO.ID"), nullable=False)
 
     # === TIPO DE MANEJO ===
     # ADUBACAO, CALAGEM, PLANTIO, APLICACAO_DEFENSIVO
@@ -168,5 +167,5 @@ class ManejoTerrenos(Base):
     DATA_LIBERACAO = Column(DateTime)  # Calculado automaticamente
 
     OBSERVACOES = Column(CLOB)
-    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_REGISTRO = Column(DateTime(timezone=True), server_default=func.now())

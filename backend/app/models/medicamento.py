@@ -1,8 +1,10 @@
 # backend/app/models/medicamento.py
 import enum
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
+
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
+
 from .base import Base
 
 
@@ -45,12 +47,12 @@ class Medicamento(Base):
     FORNECEDOR = Column(String(100))
 
     # Prescrição
-    REQUER_RECEITA = Column(String(1), default='N')
+    REQUER_RECEITA = Column(String(1), default="N")
     PERIODO_CARENCIA = Column(Integer)  # dias para abate
 
     OBSERVACOES = Column(CLOB)
-    ATIVO = Column(String(1), default='S')
-    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ATIVO = Column(String(1), default="S")
+    ID_USUARIO_CADASTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_CADASTRO = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -58,16 +60,15 @@ class MovimentacaoMedicamento(Base):
     __tablename__ = "MOVIMENTACAO_MEDICAMENTOS"
 
     ID = Column(Integer, primary_key=True, autoincrement=True)
-    ID_MEDICAMENTO = Column(Integer, ForeignKey(
-        'MEDICAMENTOS.ID'), nullable=False)
+    ID_MEDICAMENTO = Column(Integer, ForeignKey("MEDICAMENTOS.ID"), nullable=False)
     TIPO_MOVIMENTACAO = Column(Enum(TipoMovimentacaoEnum), nullable=False)
     QUANTIDADE = Column(Float, nullable=False)
     QUANTIDADE_ANTERIOR = Column(Float)
     QUANTIDADE_ATUAL = Column(Float)
 
     # Referência para saída (aplicação em animal)
-    ID_ANIMAL = Column(Integer, ForeignKey('ANIMAIS.ID'))
-    ID_SAUDE_ANIMAL = Column(Integer, ForeignKey('SAUDE_ANIMAIS.ID'))
+    ID_ANIMAL = Column(Integer, ForeignKey("ANIMAIS.ID"))
+    ID_SAUDE_ANIMAL = Column(Integer, ForeignKey("SAUDE_ANIMAIS.ID"))
 
     # Dados da entrada (compra)
     NOTA_FISCAL = Column(String(100))
@@ -78,5 +79,5 @@ class MovimentacaoMedicamento(Base):
 
     MOTIVO = Column(String(200))
     OBSERVACOES = Column(CLOB)
-    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey('USUARIOS.ID'))
+    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
     DATA_REGISTRO = Column(DateTime(timezone=True), server_default=func.now())

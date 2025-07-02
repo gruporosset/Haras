@@ -1,7 +1,10 @@
 # backend/app/models/ferrageamento.py
 import enum
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum
+from datetime import datetime, timedelta
+
+from sqlalchemy import Column, DateTime, Enum, Float, Integer, String
 from sqlalchemy.types import CLOB
+
 from .base import Base
 
 
@@ -45,10 +48,13 @@ class StatusVencimentoEnum(str, enum.Enum):
 
 
 # Extender o modelo SaudeAnimais existente com os novos campos
-# Note: Esta é uma extensão conceitual - na prática, os campos já foram adicionados via ALTER TABLE
+# Note: Esta é uma extensão conceitual - na prática, os campos já foram adicionados
+# via ALTER TABLE
+
 
 class FerrageamentoResumo(Base):
     """View para relatórios de ferrageamento"""
+
     __tablename__ = "VW_FERRAGEAMENTO_RESUMO"
 
     ANIMAL_ID = Column("ANIMAL_ID", Integer, primary_key=True)
@@ -86,7 +92,6 @@ class FerrageamentoMixin:
         if not self.PROXIMA_AVALIACAO:
             return None
 
-        from datetime import datetime
         delta = self.PROXIMA_AVALIACAO - datetime.now()
         return delta.days
 
@@ -108,30 +113,22 @@ class FerrageamentoMixin:
 
     def calcular_proxima_data(self, modalidade="GERAL"):
         """Calcula próxima data baseada no tipo e modalidade"""
-        from datetime import datetime, timedelta
 
         intervalos = {
-            "FERRAGEAMENTO": {
-                "CCE": 30,
-                "APARTACAO": 60,
-                "CORRIDA": 35,
-                "GERAL": 45
-            },
-            "CASQUEAMENTO": {
-                "GERAL": 40
-            },
-            "FERRAGEAMENTO_CORRETIVO": {
-                "GERAL": 21
-            },
-            "CASQUEAMENTO_TERAPEUTICO": {
-                "GERAL": 21
-            }
+            "FERRAGEAMENTO": {"CCE": 30, "APARTACAO": 60, "CORRIDA": 35, "GERAL": 45},
+            "CASQUEAMENTO": {"GERAL": 40},
+            "FERRAGEAMENTO_CORRETIVO": {"GERAL": 21},
+            "CASQUEAMENTO_TERAPEUTICO": {"GERAL": 21},
         }
 
-        tipo_str = str(self.TIPO_REGISTRO) if hasattr(
-            self, 'TIPO_REGISTRO') else "FERRAGEAMENTO"
+        tipo_str = (
+            str(self.TIPO_REGISTRO)
+            if hasattr(self, "TIPO_REGISTRO")
+            else "FERRAGEAMENTO"
+        )
         dias = intervalos.get(tipo_str, {}).get(modalidade, 45)
 
-        data_base = self.DATA_OCORRENCIA if hasattr(
-            self, 'DATA_OCORRENCIA') else datetime.now()
+        data_base = (
+            self.DATA_OCORRENCIA if hasattr(self, "DATA_OCORRENCIA") else datetime.now()
+        )
         return data_base + timedelta(days=dias)

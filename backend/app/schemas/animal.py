@@ -38,22 +38,21 @@ class AnimalBase(BaseModel):
 class AnimalCreate(AnimalBase):
     ID_USUARIO_CADASTRO: int
 
-    @field_validator('NUMERO_REGISTRO', 'CHIP_IDENTIFICACAO')
+    @field_validator("NUMERO_REGISTRO", "CHIP_IDENTIFICACAO")
     def validate_unique_fields(cls, v):
         if v and len(v.strip()) == 0:
             return None
         return v
 
-    @field_validator('CPF_CNPJ_PROPRIETARIO')
+    @field_validator("CPF_CNPJ_PROPRIETARIO")
     def validate_cpf_cnpj(cls, v):
         if v and len(v.strip()) == 0:
             return None
         # Remove formatação
         if v:
-            v = ''.join(filter(str.isdigit, v))
+            v = "".join(filter(str.isdigit, v))
             if len(v) not in [11, 14]:  # CPF tem 11 dígitos, CNPJ tem 14
-                raise ValueError(
-                    'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos')
+                raise ValueError("CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos")
         return v
 
 
@@ -76,16 +75,15 @@ class AnimalUpdate(BaseModel):
     CPF_CNPJ_PROPRIETARIO: Optional[str] = Field(None, max_length=20)
     ID_USUARIO_ALTERACAO: Optional[int] = None
 
-    @field_validator('CPF_CNPJ_PROPRIETARIO')
+    @field_validator("CPF_CNPJ_PROPRIETARIO")
     def validate_cpf_cnpj(cls, v):
         if v and len(v.strip()) == 0:
             return None
         # Remove formatação
         if v:
-            v = ''.join(filter(str.isdigit, v))
+            v = "".join(filter(str.isdigit, v))
             if len(v) not in [11, 14]:  # CPF tem 11 dígitos, CNPJ tem 14
-                raise ValueError(
-                    'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos')
+                raise ValueError("CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos")
         return v
 
 
@@ -96,7 +94,7 @@ class AnimalResponse(AnimalBase):
     ID_USUARIO_ALTERACAO: Optional[int] = None
     DATA_ALTERACAO: Optional[datetime] = None
 
-    @field_serializer('DATA_NASCIMENTO', 'DATA_CADASTRO', 'DATA_ALTERACAO')
+    @field_serializer("DATA_NASCIMENTO", "DATA_CADASTRO", "DATA_ALTERACAO")
     def serialize_dt(self, dt: datetime | None, _info):
         return dt.strftime("%d/%m/%Y") if dt else None
 
@@ -106,11 +104,12 @@ class AnimalResponse(AnimalBase):
 
 class AnimalGenealogia(BaseModel):
     animal: AnimalResponse
-    pai: Optional['AnimalGenealogia'] = None
-    mae: Optional['AnimalGenealogia'] = None
+    pai: Optional["AnimalGenealogia"] = None
+    mae: Optional["AnimalGenealogia"] = None
 
     class Config:
         from_attributes = True
+
 
 # Upload de foto
 
