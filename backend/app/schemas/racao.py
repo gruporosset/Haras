@@ -1,8 +1,9 @@
 # backend/app/schemas/racao.py
+from datetime import datetime
 from enum import Enum
 from typing import Optional
-from datetime import datetime
-from pydantic import BaseModel, Field, model_validator, field_serializer
+
+from pydantic import BaseModel, Field, field_serializer, model_validator
 
 
 class TipoAlimentoEnum(str, Enum):
@@ -372,6 +373,12 @@ class FornecimentoRacaoCreate(FornecimentoRacaoBase):
 
 
 class FornecimentoRacaoUpdate(BaseModel):
+    DATA_FORNECIMENTO: datetime
+    HORARIO_FORNECIMENTO: Optional[str] = Field(
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
+    NUMERO_REFEICAO: Optional[int] = Field(None, ge=1, le=4)
+    QUANTIDADE_PLANEJADA: Optional[float] = Field(None, gt=0)
     QUANTIDADE_FORNECIDA: Optional[float] = Field(None, gt=0)
     PESO_ANIMAL_REFERENCIA: Optional[float] = Field(None, gt=0)
     FUNCIONARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=100)
@@ -389,6 +396,10 @@ class FornecimentoRacaoResponse(FornecimentoRacaoBase):
     produto_nome: Optional[str] = None
     produto_unidade: Optional[str] = None
     custo_fornecimento: Optional[float] = None
+
+    @field_serializer("DATA_FORNECIMENTO")
+    def serialize_dt(self, dt: datetime | None, _info):
+        return dt.strftime("%d/%m/%Y") if dt else None
 
     class Config:
         from_attributes = True

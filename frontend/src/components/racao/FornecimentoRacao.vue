@@ -1,22 +1,5 @@
 <template>
   <div class="fornecimento-racao-container">
-    <!-- HEADER -->
-    <div class="row q-mb-md items-center justify-between">
-      <div class="text-h6 text-primary">
-        <q-icon
-          name="lunch_dining"
-          class="q-mr-sm"
-        />
-        Fornecimento de Ração
-      </div>
-      <q-btn
-        color="primary"
-        icon="add"
-        label="Novo Fornecimento"
-        @click="openDialog()"
-      />
-    </div>
-
     <!-- FILTROS -->
     <q-card
       flat
@@ -24,7 +7,7 @@
       class="q-mb-md"
     >
       <q-card-section>
-        <div class="row q-gutter-md">
+        <div class="row q-gutter-md justify-between">
           <q-select
             v-model="filtros.animal_id"
             :options="animalOptions"
@@ -47,21 +30,21 @@
             class="col-md-3 col-12"
           />
 
-          <q-input
+          <calendario-component
             v-model="filtros.data_inicio"
             label="Data Início"
-            type="date"
             @update:model-value="onFilterChange"
             class="col-md-2 col-12"
           />
 
-          <q-input
+          <calendario-component
             v-model="filtros.data_fim"
             label="Data Fim"
-            type="date"
             @update:model-value="onFilterChange"
             class="col-md-2 col-12"
           />
+
+
         </div>
       </q-card-section>
     </q-card>
@@ -74,8 +57,8 @@
     >
       <q-card-section>
         <div class="text-subtitle1 q-mb-sm">Resumo de Hoje</div>
-        <div class="row q-gutter-md">
-          <div class="col-md-2 col-6">
+        <div class="row q-gutter-md justify-between">
+          <div class="col-md-3 col-6">
             <q-card
               flat
               bordered
@@ -89,7 +72,7 @@
             </q-card>
           </div>
 
-          <div class="col-md-2 col-6">
+          <div class="col-md-3 col-6">
             <q-card
               flat
               bordered
@@ -103,7 +86,7 @@
             </q-card>
           </div>
 
-          <div class="col-md-2 col-6">
+          <div class="col-md-3 col-6">
             <q-card
               flat
               bordered
@@ -135,6 +118,15 @@
     </q-card>
 
     <!-- TABELA -->
+    <div class="row q-mb-md items-center">
+      <q-btn
+        color="primary"
+        icon="add"
+        label="Novo Fornecimento"
+        @click="openDialog()"
+      />
+    </div>
+
     <q-table
       :rows="racaoStore.fornecimentos"
       :columns="columns"
@@ -211,7 +203,7 @@
 
       <template v-slot:body-cell-DATA_FORNECIMENTO="props">
         <q-td :props="props">
-          {{ formatarDataHora(props.value) }}
+          {{ props.row.DATA_FORNECIMENTO + " " + (props.row.HORARIO_FORNECIMENTO ?? '') }}
         </q-td>
       </template>
 
@@ -238,6 +230,17 @@
             >
               <q-tooltip>Editar</q-tooltip>
             </q-btn>
+            <q-btn
+              flat
+              round
+              color="negative"
+              icon="delete"
+              size="sm"
+              @click="confirmDelete(props.row)"
+            >
+              <q-tooltip>Excluir</q-tooltip>
+            </q-btn>
+
           </q-btn-group>
         </q-td>
       </template>
@@ -259,9 +262,10 @@
           <q-form
             @submit="submitForm"
             class="q-gutter-md"
+            ref="formRef"
           >
             <!-- Animal e Produto -->
-            <div class="row q-gutter-md">
+            <div class="row q-gutter-md justify-between">
               <q-select
                 v-model="form.ID_ANIMAL"
                 :options="animalOptionsDialog"
@@ -336,13 +340,12 @@
             </q-card>
 
             <!-- Data e Horário -->
-            <div class="row q-gutter-md">
-              <q-input
+            <div class="row q-gutter-md justify-between">
+              <calendario-component
                 v-model="form.DATA_FORNECIMENTO"
                 label="Data do Fornecimento *"
-                type="date"
                 :rules="[val => !!val || 'Data é obrigatória']"
-                class="col-3"
+                class="col-4"
               />
               <q-input
                 v-model="form.HORARIO_FORNECIMENTO"
@@ -353,14 +356,9 @@
               />
               <q-select
                 v-model="form.NUMERO_REFEICAO"
-                :options="[
-                  { value: 1, label: '1ª Refeição' },
-                  { value: 2, label: '2ª Refeição' },
-                  { value: 3, label: '3ª Refeição' },
-                  { value: 4, label: '4ª Refeição' },
-                ]"
+                :options="refeicaoOptionsDialog"
                 label="Número da Refeição"
-                class="col-5"
+                class="col-4"
               />
             </div>
 
@@ -573,30 +571,70 @@
             label="Editar"
             color="primary"
             @click="
-              openDialog(viewData)
+              openDialog(viewData), 
               viewDialog = false
             "
           />
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- DIALOG CONFIRMAÇÃO EXCLUSÃO -->
+    <q-dialog
+      v-model="deleteDialog"
+      persistent
+    >
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Confirmar Exclusão</div>
+        </q-card-section>
+        <q-card-section>
+          Tem certeza que deseja excluir o fornecimento
+          <strong>{{ recordToDelete?.NOME }}</strong>
+          ?
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="deleteDialog = false"
+          />
+          <q-btn
+            label="Excluir"
+            color="negative"
+            @click="deleteFornecimento"
+            :loading="racaoStore.loading"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </div>
+  
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRacaoStore } from 'stores/racao'
+import { useAnimalStore } from 'stores/animal'
+import { ErrorHandler } from 'src/utils/errorHandler'
+import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
 // Composables
 const $q = useQuasar()
 const racaoStore = useRacaoStore()
+const animalStore = useAnimalStore()
 
 // Estado reativo
 const dialog = ref(false)
 const viewDialog = ref(false)
 const viewData = ref(null)
 const planoAtivo = ref(null)
+const formRef = ref(null)
+const recordToDelete = ref(null)
+const deleteDialog = ref(false)
 
 // Filtros
 const filtros = ref({
@@ -610,15 +648,23 @@ const filtros = ref({
 const form = ref({})
 
 // Opções
+const animalOri = ref([])
 const animalOptions = ref([])
 const animalOptionsDialog = ref([])
+const produtoOri = ref([])
 const produtoOptions = ref([])
 const produtoOptionsDialog = ref([])
+const refeicaoOptionsDialog = ref([
+  { value: 1, label: '1ª Refeição' },
+  { value: 2, label: '2ª Refeição' },
+  { value: 3, label: '3ª Refeição' },
+  { value: 4, label: '4ª Refeição' },
+])
 
 // Computed
 const resumoHoje = computed(() => {
-  const hoje = new Date().toISOString().split('T')[0]
-  const fornecimentosHoje = racaoStore.fornecimentos.filter(f =>
+  const hoje = new Date().toLocaleDateString("pt-br").split(',')[0]
+  const fornecimentosHoje = racaoStore.fornecimentos.filter(f => 
     f.DATA_FORNECIMENTO?.startsWith(hoje)
   )
 
@@ -732,9 +778,35 @@ function openDialog(record) {
 
 function initializeForm(record) {
   planoAtivo.value = null
-
+  form.value = { ...record }
   if (record) {
-    form.value = { ...record }
+    const idAnimal = record.ID_ANIMAL
+    const idProduto = record.ID_PRODUTO
+
+    if (idAnimal && typeof idAnimal === 'number') {
+      const animalOption = animalOri.value.find(f => f.value === idAnimal)
+      if (animalOption) {
+        form.value.ID_ANIMAL = animalOption
+      } else {
+        form.value.ID_ANIMAL = {
+          value: idAnimal,
+          label: record.animal_nome || `Animal: ${idAnimal}`,
+        }
+      }
+    }
+
+    if (idProduto && typeof idProduto === 'number') {
+      const produtoOption = produtoOri.value.find(f => f.value === idProduto)
+      if (produtoOption) {
+        form.value.ID_PRODUTO = produtoOption
+      } else {
+        form.value.ID_PRODUTO = {
+          value: idProduto,
+          label: record.produto_nome || `Produto: ${idProduto}`,
+        }
+      }
+    }
+
   } else {
     form.value = {
       ID_ANIMAL: null,
@@ -750,13 +822,32 @@ function initializeForm(record) {
       OBSERVACOES: '',
     }
   }
+
+  if (form.value.NUMERO_REFEICAO && typeof form.value.NUMERO_REFEICAO === 'number') {
+    const refeicaoOption = refeicaoOptionsDialog.value.find(f => f.value === form.value.NUMERO_REFEICAO)
+    if (refeicaoOption) {
+      form.value.NUMERO_REFEICAO = refeicaoOption
+    }
+  }
 }
 
 async function submitForm() {
   try {
+
+    const isValid = await formRef.value?.validate()
+
+    if (!isValid) {
+      ErrorHandler.handle({},'Por favor, corrija os campos obrigatórios' )
+      return;
+    }
+
     const data = { ...form.value }
+
     if (data.ID_ANIMAL?.value) data.ID_ANIMAL = data.ID_ANIMAL.value
     if (data.ID_PRODUTO?.value) data.ID_PRODUTO = data.ID_PRODUTO.value
+    if (data.NUMERO_REFEICAO?.value) data.NUMERO_REFEICAO = data.NUMERO_REFEICAO.value
+    if (data.HORARIO_FORNECIMENTO === '') delete data.HORARIO_FORNECIMENTO
+    if (data.QUANTIDADE_PLANEJADA === '') delete data.QUANTIDADE_PLANEJADA
 
     if (form.value.ID) {
       await racaoStore.updateFornecimento(form.value.ID, data)
@@ -817,13 +908,47 @@ function usarPlanoAtivo() {
   }
 }
 
-async function loadOptions() {
+async function loadAnimalOptions() {
   try {
-    // Carregar animais e produtos
-    animalOptions.value = []
-    animalOptionsDialog.value = []
-    produtoOptions.value = []
-    produtoOptionsDialog.value = []
+    animalStore.setPagination = {
+      page: 1,
+      rowsPerPage: 5000,
+      rowsNumber: 0,
+      sortBy: 'NOME',
+    }
+
+    animalStore.setFilters = {
+      status: 'ATIVO',
+    }
+
+    const data = await animalStore.fetchAnimais()
+
+    animalOri.value = data.animais.map(el => {
+      return {
+        value: el.ID,
+        label: el.NOME,
+        peso_atual: el.PESO_ATUAL,
+      }
+    })
+    animalOptions.value = [...animalOri.value]
+    animalOptionsDialog.value = [...animalOri.value]
+  } catch (error) {
+    ErrorHandler.handle(error, 'Erro ao carregar animais')
+  }
+}
+
+async function loadOptionsProdutos() {
+try {
+    // Carregar produtos
+    const produtos = await racaoStore.autocompleProdutos('')
+    produtoOri.value = produtos.map(p => ({
+      value: p.value,
+      label: p.label,
+      estoque_atual: p.estoque_atual,
+      unidade_medida: p.unidade_medida,
+      preco_unitario: p.preco_unitario
+    }))
+    produtoOptionsDialog.value = [...produtoOri.value]
   } catch (error) {
     console.error('Erro ao carregar opções:', error)
   }
@@ -832,10 +957,10 @@ async function loadOptions() {
 function filterAnimais(val, update) {
   update(() => {
     if (val === '') {
-      animalOptions.value = [...animalOptionsDialog.value]
+      animalOptions.value = [...animalOri.value]
     } else {
       const needle = val.toLowerCase()
-      animalOptions.value = animalOptionsDialog.value.filter(a =>
+      animalOptions.value = animalOri.value.filter(a =>
         a.label.toLowerCase().includes(needle)
       )
     }
@@ -845,10 +970,10 @@ function filterAnimais(val, update) {
 function filterAnimaisDialog(val, update) {
   update(() => {
     if (val === '') {
-      animalOptionsDialog.value = [...animalOptions.value]
+      animalOptionsDialog.value = [...animalOri.value]
     } else {
       const needle = val.toLowerCase()
-      animalOptionsDialog.value = animalOptions.value.filter(a =>
+      animalOptionsDialog.value = animalOri.value.filter(a =>
         a.label.toLowerCase().includes(needle)
       )
     }
@@ -858,10 +983,10 @@ function filterAnimaisDialog(val, update) {
 function filterProdutos(val, update) {
   update(() => {
     if (val === '') {
-      produtoOptions.value = [...produtoOptionsDialog.value]
+      produtoOptions.value = [...produtoOri.value]
     } else {
       const needle = val.toLowerCase()
-      produtoOptions.value = produtoOptionsDialog.value.filter(p =>
+      produtoOptions.value = produtoOri.value.filter(p =>
         p.label.toLowerCase().includes(needle)
       )
     }
@@ -871,15 +996,32 @@ function filterProdutos(val, update) {
 function filterProdutosDialog(val, update) {
   update(() => {
     if (val === '') {
-      produtoOptionsDialog.value = [...produtoOptions.value]
+      produtoOptionsDialog.value = [...produtoOri.value]
     } else {
       const needle = val.toLowerCase()
-      produtoOptionsDialog.value = produtoOptions.value.filter(p =>
+      produtoOptionsDialog.value = produtoOri.value.filter(p =>
         p.label.toLowerCase().includes(needle)
       )
     }
   })
 }
+
+function confirmDelete(record) {
+  recordToDelete.value = record
+  deleteDialog.value = true
+}
+
+async function deleteFornecimento() {
+  try {
+    await racaoStore.deleteFornecimento(recordToDelete.value.ID)
+    ErrorHandler.success('Fornecimento excluído com sucesso!')
+    deleteDialog.value = false
+    await racaoStore.fetchFornecimentos({ filtros: filtros.value })
+  } catch (error) {
+    ErrorHandler.handle(error, 'Erro ao excluir produto')
+  }
+}
+
 
 // Funções auxiliares
 function getCorRefeicao(numero) {
@@ -914,7 +1056,8 @@ function formatarDataHora(data) {
 
 // Lifecycle
 onMounted(async () => {
-  await loadOptions()
+  await loadAnimalOptions()
+  await loadOptionsProdutos()
   await racaoStore.fetchFornecimentos({ filtros: filtros.value })
 })
 </script>

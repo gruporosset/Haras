@@ -565,7 +565,7 @@
             label="Ver Itens"
             color="primary"
             @click="
-              viewItens(viewData)
+              viewItens(viewData),
               viewDialog = false
             "
           />

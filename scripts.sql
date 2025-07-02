@@ -1149,20 +1149,6 @@ begin
               :new.id_usuario_registro );
 end;
 
--- Trigger para atualizar referência de fornecimento na movimentação
-create or replace trigger trg_update_fornecimento_ref after
-   insert on movimentacao_produtos_racao
-   for each row
-begin
-    -- Se foi criado por fornecimento, atualizar referência
-   if :new.id_fornecimento_animal is not null then
-      update movimentacao_produtos_racao
-         set
-         id_fornecimento_animal = :new.id_fornecimento_animal
-       where id = :new.id;
-   end if;
-end;
-
 -- ========================================
 -- Views
 -- ========================================

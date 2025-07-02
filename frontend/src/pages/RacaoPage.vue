@@ -174,7 +174,7 @@ const $q = useQuasar()
 const racaoStore = useRacaoStore()
 
 // Estado reativo
-const activeTab = ref('produtos') 
+const activeTab = ref('fornecimento') 
 const quickViewDialog = ref(false)
 const quickViewTitle = ref('')
 const quickViewContent = ref('')

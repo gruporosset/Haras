@@ -65,7 +65,10 @@ export const useRacaoStore = defineStore('racao', {
       { value: 'JOVEM', label: 'Jovem' },
       { value: 'ADULTO_MANUTENCAO', label: 'Adulto - Manutenção' },
       { value: 'ADULTO_TRABALHO_LEVE', label: 'Adulto - Trabalho Leve' },
-      { value: 'ADULTO_TRABALHO_MODERADO', label: 'Adulto - Trabalho Moderado' },
+      {
+        value: 'ADULTO_TRABALHO_MODERADO',
+        label: 'Adulto - Trabalho Moderado',
+      },
       { value: 'ADULTO_TRABALHO_INTENSO', label: 'Adulto - Trabalho Intenso' },
       { value: 'EGUA_GESTANTE', label: 'Égua Gestante' },
       { value: 'EGUA_LACTANTE', label: 'Égua Lactante' },
@@ -95,50 +98,60 @@ export const useRacaoStore = defineStore('racao', {
     statusEstoque: () => [
       { value: 'SEM_ESTOQUE', label: 'Sem Estoque', color: 'red' },
       { value: 'ESTOQUE_BAIXO', label: 'Estoque Baixo', color: 'orange' },
-      { value: 'VENCIMENTO_PROXIMO', label: 'Vencimento Próximo', color: 'purple' },
+      {
+        value: 'VENCIMENTO_PROXIMO',
+        label: 'Vencimento Próximo',
+        color: 'purple',
+      },
       { value: 'VENCIDO', label: 'Vencido', color: 'red-10' },
       { value: 'OK', label: 'OK', color: 'green' },
     ],
 
     // === PRODUTOS FILTRADOS ===
-    produtosAtivos: (state) => state.produtos.filter((p) => p.ATIVO === 'S'),
+    produtosAtivos: state => state.produtos.filter(p => p.ATIVO === 'S'),
 
-    produtosByTipo: (state) => (tipo) => {
-      return state.produtos.filter((p) => p.TIPO_ALIMENTO === tipo && p.ATIVO === 'S')
-    },
-
-    produtosComEstoqueBaixo: (state) => {
+    produtosByTipo: state => tipo => {
       return state.produtos.filter(
-        (p) =>
-          p.ATIVO === 'S' &&
-          (p.status_estoque === 'ESTOQUE_BAIXO' || p.status_estoque === 'SEM_ESTOQUE'),
+        p => p.TIPO_ALIMENTO === tipo && p.ATIVO === 'S'
       )
     },
 
-    produtosVencendoProximo: (state) => {
+    produtosComEstoqueBaixo: state => {
       return state.produtos.filter(
-        (p) => p.ATIVO === 'S' && p.status_estoque === 'VENCIMENTO_PROXIMO',
+        p =>
+          p.ATIVO === 'S' &&
+          (p.status_estoque === 'ESTOQUE_BAIXO' ||
+            p.status_estoque === 'SEM_ESTOQUE')
+      )
+    },
+
+    produtosVencendoProximo: state => {
+      return state.produtos.filter(
+        p => p.ATIVO === 'S' && p.status_estoque === 'VENCIMENTO_PROXIMO'
       )
     },
 
     // === PLANOS FILTRADOS ===
-    planosAtivos: (state) => state.planosAlimentares.filter((p) => p.STATUS_PLANO === 'ATIVO'),
+    planosAtivos: state =>
+      state.planosAlimentares.filter(p => p.STATUS_PLANO === 'ATIVO'),
 
-    planosPorAnimal: (state) => (animalId) => {
-      return state.planosAlimentares.filter((p) => p.ID_ANIMAL === animalId)
+    planosPorAnimal: state => animalId => {
+      return state.planosAlimentares.filter(p => p.ID_ANIMAL === animalId)
     },
 
     // === ESTATÍSTICAS ===
-    estatisticasProdutos: (state) => {
-      const ativos = state.produtos.filter((p) => p.ATIVO === 'S')
-      const comEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) > 0)
+    estatisticasProdutos: state => {
+      const ativos = state.produtos.filter(p => p.ATIVO === 'S')
+      const comEstoque = ativos.filter(p => (p.ESTOQUE_ATUAL || 0) > 0)
       const estoqueBaixo = ativos.filter(
-        (p) => (p.ESTOQUE_ATUAL || 0) <= (p.ESTOQUE_MINIMO || 0) && (p.ESTOQUE_ATUAL || 0) > 0,
+        p =>
+          (p.ESTOQUE_ATUAL || 0) <= (p.ESTOQUE_MINIMO || 0) &&
+          (p.ESTOQUE_ATUAL || 0) > 0
       )
-      const semEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) === 0)
+      const semEstoque = ativos.filter(p => (p.ESTOQUE_ATUAL || 0) === 0)
       const valorTotal = ativos.reduce(
         (sum, p) => sum + (p.ESTOQUE_ATUAL || 0) * (p.PRECO_UNITARIO || 0),
-        0,
+        0
       )
 
       return {
@@ -148,14 +161,23 @@ export const useRacaoStore = defineStore('racao', {
         semEstoque: semEstoque.length,
         valorTotalEstoque: valorTotal,
         percentualComEstoque:
-          ativos.length > 0 ? ((comEstoque.length / ativos.length) * 100).toFixed(1) : 0,
+          ativos.length > 0
+            ? ((comEstoque.length / ativos.length) * 100).toFixed(1)
+            : 0,
       }
     },
 
-    estatisticasPlanos: (state) => {
-      const ativos = state.planosAlimentares.filter((p) => p.STATUS_PLANO === 'ATIVO')
-      const suspensos = state.planosAlimentares.filter((p) => p.STATUS_PLANO === 'SUSPENSO')
-      const custoTotal = ativos.reduce((sum, p) => sum + (p.custo_diario_estimado || 0), 0)
+    estatisticasPlanos: state => {
+      const ativos = state.planosAlimentares.filter(
+        p => p.STATUS_PLANO === 'ATIVO'
+      )
+      const suspensos = state.planosAlimentares.filter(
+        p => p.STATUS_PLANO === 'SUSPENSO'
+      )
+      const custoTotal = ativos.reduce(
+        (sum, p) => sum + (p.custo_diario_estimado || 0),
+        0
+      )
 
       return {
         totalPlanos: state.planosAlimentares.length,
@@ -192,7 +214,9 @@ export const useRacaoStore = defineStore('racao', {
           queryParams.ativo = queryParams.ativo.value
         }
 
-        const response = await api.get('/api/racao/produtos', { params: queryParams })
+        const response = await api.get('/api/racao/produtos', {
+          params: queryParams,
+        })
         this.produtos = response.data.produtos || []
 
         this.pagination = {
@@ -217,7 +241,10 @@ export const useRacaoStore = defineStore('racao', {
         if (produtoData.TIPO_ALIMENTO?.value) {
           produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
         }
-        const dados = prepareFormData(produtoData, ['DATA_FABRICACAO', 'DATA_VALIDADE'])
+        const dados = prepareFormData(produtoData, [
+          'DATA_FABRICACAO',
+          'DATA_VALIDADE',
+        ])
 
         const response = await api.post('/api/racao/produtos', dados)
         return response.data
@@ -235,7 +262,10 @@ export const useRacaoStore = defineStore('racao', {
         if (produtoData.TIPO_ALIMENTO?.value) {
           produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
         }
-        const dados = prepareFormData(produtoData, ['DATA_FABRICACAO', 'DATA_VALIDADE'])
+        const dados = prepareFormData(produtoData, [
+          'DATA_FABRICACAO',
+          'DATA_VALIDADE',
+        ])
 
         const response = await api.put(`/api/racao/produtos/${id}`, dados)
         return response.data
@@ -260,9 +290,12 @@ export const useRacaoStore = defineStore('racao', {
 
     async autocompleProdutos(query = '') {
       try {
-        const response = await api.get('/api/racao/produtos/search/autocomplete', {
-          params: { q: query },
-        })
+        const response = await api.get(
+          '/api/racao/produtos/search/autocomplete',
+          {
+            params: { q: query },
+          }
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro na busca'
@@ -291,7 +324,9 @@ export const useRacaoStore = defineStore('racao', {
           queryParams.tipo_movimentacao = queryParams.tipo_movimentacao.value
         }
 
-        const response = await api.get('/api/racao/estoque/movimentacoes', { params: queryParams })
+        const response = await api.get('/api/racao/estoque/movimentacoes', {
+          params: queryParams,
+        })
         this.movimentacoes = response.data.movimentacoes || []
 
         this.pagination = {
@@ -312,7 +347,10 @@ export const useRacaoStore = defineStore('racao', {
     async entradaEstoque(entradaData) {
       this.loading = true
       try {
-        const response = await api.post('/api/racao/estoque/entrada', entradaData)
+        const response = await api.post(
+          '/api/racao/estoque/entrada',
+          entradaData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao registrar entrada'
@@ -371,7 +409,9 @@ export const useRacaoStore = defineStore('racao', {
           queryParams.status_plano = queryParams.status_plano.value
         }
 
-        const response = await api.get('/api/racao/planos', { params: queryParams })
+        const response = await api.get('/api/racao/planos', {
+          params: queryParams,
+        })
         this.planosAlimentares = response.data.planos || []
 
         this.pagination = {
@@ -383,7 +423,9 @@ export const useRacaoStore = defineStore('racao', {
 
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar planos alimentares'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar planos alimentares'
+        )
       } finally {
         this.loading = false
       }
@@ -454,7 +496,10 @@ export const useRacaoStore = defineStore('racao', {
       this.loading = true
       console.log(JSON.stringify(itemData))
       try {
-        const response = await api.post(`/api/racao/planos/${planoId}/itens`, itemData)
+        const response = await api.post(
+          `/api/racao/planos/${planoId}/itens`,
+          itemData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao adicionar item ao plano'
@@ -466,7 +511,10 @@ export const useRacaoStore = defineStore('racao', {
     async updateItemPlano(itemId, itemData) {
       this.loading = true
       try {
-        const response = await api.put(`/api/racao/planos/itens/${itemId}`, itemData)
+        const response = await api.put(
+          `/api/racao/planos/itens/${itemId}`,
+          itemData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar item'
@@ -509,7 +557,9 @@ export const useRacaoStore = defineStore('racao', {
           queryParams.produto_id = queryParams.produto_id.value
         }
 
-        const response = await api.get('/api/racao/fornecimento', { params: queryParams })
+        const response = await api.get('/api/racao/fornecimento', {
+          params: queryParams,
+        })
         this.fornecimentos = response.data.fornecimentos || []
 
         this.pagination = {
@@ -529,8 +579,16 @@ export const useRacaoStore = defineStore('racao', {
 
     async registrarFornecimento(fornecimentoData) {
       this.loading = true
+
+      const dados = prepareFormData(fornecimentoData, ['DATA_FORNECIMENTO'])
+
+      console.log(JSON.stringify(dados))
+
       try {
-        const response = await api.post('/api/racao/fornecimento', fornecimentoData)
+        const response = await api.post(
+          '/api/racao/fornecimento',
+          fornecimentoData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao registrar fornecimento'
@@ -541,11 +599,25 @@ export const useRacaoStore = defineStore('racao', {
 
     async updateFornecimento(id, fornecimentoData) {
       this.loading = true
+      const dados = prepareFormData(fornecimentoData, ['DATA_FORNECIMENTO'])
+
       try {
-        const response = await api.put(`/api/racao/fornecimento/${id}`, fornecimentoData)
+        const response = await api.put(`/api/racao/fornecimento/${id}`, dados)
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar fornecimento'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteFornecimento(id) {
+      this.loading = true
+      try {
+        await api.delete(`/api/racao/fornecimento/${id}`)
+        return true
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao excluir fornecimento'
       } finally {
         this.loading = false
       }
@@ -558,9 +630,12 @@ export const useRacaoStore = defineStore('racao', {
     async calcularNecessidadesNutricionais(animalId, categoria) {
       this.loading = true
       try {
-        const response = await api.get(`/api/racao/calculo-nutricional/${animalId}`, {
-          params: { categoria },
-        })
+        const response = await api.get(
+          `/api/racao/calculo-nutricional/${animalId}`,
+          {
+            params: { categoria },
+          }
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao calcular necessidades'
@@ -585,7 +660,9 @@ export const useRacaoStore = defineStore('racao', {
 
     async getConsumoAnimal(params = {}) {
       try {
-        const response = await api.get('/api/racao/relatorios/consumo-animal', { params })
+        const response = await api.get('/api/racao/relatorios/consumo-animal', {
+          params,
+        })
         this.consumoAnimal = response.data
         return response.data
       } catch (error) {
@@ -599,17 +676,22 @@ export const useRacaoStore = defineStore('racao', {
         this.previsaoConsumo = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        )
       }
     },
 
     async getAlertasEstoque() {
       try {
         const response = await api.get('/api/racao/relatorios/estoque-baixo')
-        this.alertasEstoque = response.data.filter((item) =>
-          ['SEM_ESTOQUE', 'ESTOQUE_BAIXO', 'VENCIDO', 'VENCIMENTO_PROXIMO'].includes(
-            item.status_alerta,
-          ),
+        this.alertasEstoque = response.data.filter(item =>
+          [
+            'SEM_ESTOQUE',
+            'ESTOQUE_BAIXO',
+            'VENCIDO',
+            'VENCIMENTO_PROXIMO',
+          ].includes(item.status_alerta)
         )
 
         return this.alertasEstoque
@@ -638,17 +720,19 @@ export const useRacaoStore = defineStore('racao', {
     },
 
     getStatusColor(status) {
-      const statusObj = this.statusEstoque.find((s) => s.value === status)
+      const statusObj = this.statusEstoque.find(s => s.value === status)
       return statusObj?.color || 'grey'
     },
 
     getCategoriaLabel(categoria) {
-      const categoriaObj = this.categoriasNutricionais.find((c) => c.value === categoria)
+      const categoriaObj = this.categoriasNutricionais.find(
+        c => c.value === categoria
+      )
       return categoriaObj?.label || categoria
     },
 
     getTipoAlimentoLabel(tipo) {
-      const tipoObj = this.tiposAlimento.find((t) => t.value === tipo)
+      const tipoObj = this.tiposAlimento.find(t => t.value === tipo)
       return tipoObj?.label || tipo
     },
 

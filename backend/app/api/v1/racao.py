@@ -13,7 +13,7 @@ from app.models.racao import (
     ProdutoRacao,
 )
 from app.models.user import User
-from app.schemas.racao import (  # Produtos; Movimentação; Planos; Fornecimento; Relatórios
+from app.schemas.racao import (
     AjusteRacaoCreate,
     CalculoNutricional,
     CategoriaNutricionalEnum,
@@ -272,7 +272,8 @@ async def saida_estoque_racao(
     if produto.ESTOQUE_ATUAL < saida.QUANTIDADE:
         raise HTTPException(
             status_code=400,
-            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL} {produto.UNIDADE_MEDIDA}",
+            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL} "
+            "{produto.UNIDADE_MEDIDA}",
         )
 
     db_movimentacao = MovimentacaoProdutoRacao(
@@ -483,6 +484,59 @@ async def list_planos_alimentares(
 # ======================================
 # FORNECIMENTO INDIVIDUAL
 # ======================================
+@router.get("/fornecimento", response_model=dict)
+async def list_fornecimentos(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
+    produto_id: Optional[int] = Query(None, description="Filtrar por produto"),
+    data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
+    page: int = Query(1, ge=1, description="Página"),
+    limit: int = Query(20, ge=1, le=100, description="Itens por página"),
+):
+    """Listar fornecimentos de ração"""
+    query = db.query(FornecimentoRacaoAnimal)
+
+    # Filtros
+    if animal_id:
+        query = query.filter(FornecimentoRacaoAnimal.ID_ANIMAL == animal_id)
+    if produto_id:
+        query = query.filter(FornecimentoRacaoAnimal.ID_PRODUTO == produto_id)
+    if data_inicio:
+        query = query.filter(
+            FornecimentoRacaoAnimal.DATA_FORNECIMENTO
+            >= datetime.fromisoformat(data_inicio)
+        )
+    if data_fim:
+        query = query.filter(
+            FornecimentoRacaoAnimal.DATA_FORNECIMENTO
+            <= datetime.fromisoformat(data_fim)
+        )
+
+    # Paginação
+    total = query.count()
+    offset = (page - 1) * limit
+    fornecimentos = (
+        query.order_by(desc(FornecimentoRacaoAnimal.DATA_FORNECIMENTO))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    # Enriquecer resposta
+    fornecimentos_response = []
+    for fornecimento in fornecimentos:
+        response = await _enrich_fornecimento_response(fornecimento, db)
+        fornecimentos_response.append(response)
+
+    return {
+        "fornecimentos": fornecimentos_response,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit,
+    }
 
 
 @router.post(
@@ -517,7 +571,8 @@ async def registrar_fornecimento(
     if produto.ESTOQUE_ATUAL < fornecimento.QUANTIDADE_FORNECIDA:
         raise HTTPException(
             status_code=400,
-            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL} {produto.UNIDADE_MEDIDA}",
+            detail=f"Estoque insuficiente. Disponível: {produto.ESTOQUE_ATUAL} "
+            "{produto.UNIDADE_MEDIDA}",
         )
 
     # Buscar peso atual do animal se não informado
@@ -543,6 +598,75 @@ async def registrar_fornecimento(
     db.refresh(db_fornecimento)
 
     return await _enrich_fornecimento_response(db_fornecimento, db)
+
+
+@router.put("/fornecimento/{fornecimento_id}", response_model=FornecimentoRacaoResponse)
+async def update_fornecimento(
+    fornecimento_id: int,
+    fornecimento_update: FornecimentoRacaoUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Atualizar registro de fornecimento"""
+    fornecimento = (
+        db.query(FornecimentoRacaoAnimal)
+        .filter(FornecimentoRacaoAnimal.ID == fornecimento_id)
+        .first()
+    )
+    if not fornecimento:
+        raise HTTPException(status_code=404, detail="Fornecimento não encontrado")
+
+    for field, value in fornecimento_update.dict(exclude_unset=True).items():
+        setattr(fornecimento, field, value)
+
+    db.commit()
+    db.refresh(fornecimento)
+
+    return await _enrich_fornecimento_response(fornecimento, db)
+
+
+@router.delete("/fornecimento/{fornecimento_id}")
+async def delete_fornecimento(
+    fornecimento_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Excluir registro de fornecimento (estorna estoque)"""
+    fornecimento = (
+        db.query(FornecimentoRacaoAnimal)
+        .filter(FornecimentoRacaoAnimal.ID == fornecimento_id)
+        .first()
+    )
+    if not fornecimento:
+        raise HTTPException(status_code=404, detail="Fornecimento não encontrado")
+
+    # Estornar estoque automaticamente
+    produto = (
+        db.query(ProdutoRacao)
+        .filter(ProdutoRacao.ID == fornecimento.ID_PRODUTO)
+        .first()
+    )
+
+    if produto:
+        # Criar movimentação de entrada para estorno
+        db_movimentacao = MovimentacaoProdutoRacao(
+            ID_PRODUTO=fornecimento.ID_PRODUTO,
+            TIPO_MOVIMENTACAO=TipoMovimentacaoRacaoEnum.ENTRADA,
+            QUANTIDADE=fornecimento.QUANTIDADE_FORNECIDA,
+            ID_ANIMAL=fornecimento.ID_ANIMAL,
+            MOTIVO=(
+                f"Estorno por exclusão de fornecimento - Animal: "
+                f"{fornecimento.ID_ANIMAL}"
+            ),
+            ID_USUARIO_REGISTRO=current_user.ID,
+        )
+        db.add(db_movimentacao)
+
+    # Excluir fornecimento
+    db.delete(fornecimento)
+    db.commit()
+
+    return {"message": "Fornecimento excluído e estoque estornado com sucesso"}
 
 
 # ======================================
@@ -644,31 +768,6 @@ async def update_plano_alimentar(
     db.refresh(plano)
 
     return await _enrich_plano_response(plano, db)
-
-
-@router.put("/fornecimento/{fornecimento_id}", response_model=FornecimentoRacaoResponse)
-async def update_fornecimento(
-    fornecimento_id: int,
-    fornecimento_update: FornecimentoRacaoUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Atualizar registro de fornecimento"""
-    fornecimento = (
-        db.query(FornecimentoRacaoAnimal)
-        .filter(FornecimentoRacaoAnimal.ID == fornecimento_id)
-        .first()
-    )
-    if not fornecimento:
-        raise HTTPException(status_code=404, detail="Fornecimento não encontrado")
-
-    for field, value in fornecimento_update.dict(exclude_unset=True).items():
-        setattr(fornecimento, field, value)
-
-    db.commit()
-    db.refresh(fornecimento)
-
-    return await _enrich_fornecimento_response(fornecimento, db)
 
 
 @router.delete("/planos/itens/{item_id}")
@@ -830,7 +929,8 @@ async def relatorio_consumo_animal(
 
     query = text(
         str(query)
-        + " GROUP BY a.ID, a.NOME, a.NUMERO_REGISTRO, p.NOME, p.TIPO_ALIMENTO ORDER BY a.NOME, p.NOME"
+        + " GROUP BY a.ID, a.NOME, a.NUMERO_REGISTRO, p.NOME, p.TIPO_ALIMENTO "
+        "ORDER BY a.NOME, p.NOME"
     )
 
     result = db.execute(query, params).fetchall()
@@ -921,19 +1021,18 @@ async def relatorio_estoque_baixo(
     """Relatório de produtos com estoque baixo ou vencimento próximo"""
     query = text(
         """
-        SELECT ID AS id, 
-               NOME AS nome, 
-               TIPO_ALIMENTO as tipo_alimento, 
-               ESTOQUE_ATUAL as estoque_atual, 
+        SELECT ID AS id,
+               NOME AS nome,
+               TIPO_ALIMENTO as tipo_alimento,
+               ESTOQUE_ATUAL as estoque_atual,
                ESTOQUE_MINIMO as estoque_minimo,
-               UNIDADE_MEDIDA as unidade_medida,  
-               FORNECEDOR_PRINCIPAL as fornecedor_principal, 
+               UNIDADE_MEDIDA as unidade_medida,
+               FORNECEDOR_PRINCIPAL as fornecedor_principal,
                DATA_VALIDADE as data_validade,
-               STATUS_ALERTA as status_alerta, 
+               STATUS_ALERTA as status_alerta,
                DIAS_VENCIMENTO as dias_vencimento
         FROM VW_PRODUTOS_RACAO_ALERTAS
-        ORDER BY 
-            CASE STATUS_ALERTA
+        ORDER BY CASE STATUS_ALERTA
                 WHEN 'SEM_ESTOQUE' THEN 1
                 WHEN 'ESTOQUE_BAIXO' THEN 2
                 WHEN 'VENCIDO' THEN 3
@@ -1137,15 +1236,29 @@ def _get_percentual_por_categoria(categoria: CategoriaNutricionalEnum) -> float:
 def _get_observacoes_categoria(categoria: CategoriaNutricionalEnum) -> str:
     """Retornar observações específicas por categoria"""
     observacoes = {
-        CategoriaNutricionalEnum.POTRO: "Ração com alta digestibilidade e proteína para crescimento",
-        CategoriaNutricionalEnum.JOVEM: "Balanceamento adequado para desenvolvimento",
-        CategoriaNutricionalEnum.ADULTO_MANUTENCAO: "Manutenção do peso e condição corporal",
-        CategoriaNutricionalEnum.ADULTO_TRABALHO_LEVE: "Energia adicional para atividade leve",
-        CategoriaNutricionalEnum.ADULTO_TRABALHO_MODERADO: "Suporte energético para trabalho moderado",
-        CategoriaNutricionalEnum.ADULTO_TRABALHO_INTENSO: "Alta energia e proteína para performance",
-        CategoriaNutricionalEnum.EGUA_GESTANTE: "Nutrição adequada para gestação",
-        CategoriaNutricionalEnum.EGUA_LACTANTE: "Suporte nutricional para lactação",
-        CategoriaNutricionalEnum.REPRODUTOR: "Nutrição para manutenção da fertilidade",
-        CategoriaNutricionalEnum.IDOSO: "Digestibilidade facilitada para cavalos idosos",
+        CategoriaNutricionalEnum.POTRO: (
+            "Ração com alta digestibilidade e proteína para crescimento"
+        ),
+        CategoriaNutricionalEnum.JOVEM: ("Balanceamento adequado para desenvolvimento"),
+        CategoriaNutricionalEnum.ADULTO_MANUTENCAO: (
+            "Manutenção do peso e condição corporal"
+        ),
+        CategoriaNutricionalEnum.ADULTO_TRABALHO_LEVE: (
+            "Energia adicional para atividade leve"
+        ),
+        CategoriaNutricionalEnum.ADULTO_TRABALHO_MODERADO: (
+            "Suporte energético para trabalho moderado"
+        ),
+        CategoriaNutricionalEnum.ADULTO_TRABALHO_INTENSO: (
+            "Alta energia e proteína para performance"
+        ),
+        CategoriaNutricionalEnum.EGUA_GESTANTE: ("Nutrição adequada para gestação"),
+        CategoriaNutricionalEnum.EGUA_LACTANTE: ("Suporte nutricional para lactação"),
+        CategoriaNutricionalEnum.REPRODUTOR: (
+            "Nutrição para manutenção da fertilidade"
+        ),
+        CategoriaNutricionalEnum.IDOSO: (
+            "Digestibilidade facilitada para cavalos idosos"
+        ),
     }
     return observacoes.get(categoria, "Consulte um nutricionista equino")
