@@ -84,7 +84,7 @@ async def list_animais(
     ),
     chip: Optional[str] = Query(None, description="Filtrar por chip"),
     page: int = Query(1, ge=1, description="Número da página"),
-    limit: int = Query(10, ge=1, le=100, description="Itens por página"),
+    limit: int = Query(10, ge=1, le=1000, description="Itens por página"),
     sort_by: Optional[str] = Query("ID", description="Coluna para ordenação"),
     order: Optional[str] = Query("asc", description="Ordem: asc ou desc"),
 ):
@@ -282,10 +282,10 @@ async def upload_foto(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(foto.file, buffer)
 
-    # Atualizar animal se for primeira foto
-    if animal.FOTO_PRINCIPAL is None:
-        animal.FOTO_PRINCIPAL = f"/uploads/animais/{filename}"
-        db.commit()
+    # Atualizar foto do animal
+    # if animal.FOTO_PRINCIPAL is None:
+    animal.FOTO_PRINCIPAL = f"/uploads/animais/{filename}"
+    db.commit()
 
     return {
         "filename": filename,

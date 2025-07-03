@@ -17,6 +17,7 @@ class StatusAnimalEnum(str, enum.Enum):
     VENDIDO = "VENDIDO"
     MORTO = "MORTO"
     EMPRESTADO = "EMPRESTADO"
+    APOSENTADO = "APOSENTADO"
 
 
 class Animal(Base):

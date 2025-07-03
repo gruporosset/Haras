@@ -199,7 +199,8 @@ const statusOptions = [
   { label: 'Ativo', value: 'ATIVO' },
   { label: 'Vendido', value: 'VENDIDO' },
   { label: 'Morto', value: 'MORTO' },
-  { label: 'Emprestado', value: 'EMPRESTADO' }
+  { label: 'Emprestado', value: 'EMPRESTADO' },
+  { label: 'Aposentado', value: 'APOSENTADO' }
 ]
 
 const paiOptions = ref([])

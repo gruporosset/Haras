@@ -1,6 +1,7 @@
-from typing import Optional
 from datetime import datetime
 from enum import Enum
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
@@ -14,6 +15,7 @@ class StatusAnimalEnum(str, Enum):
     VENDIDO = "VENDIDO"
     MORTO = "MORTO"
     EMPRESTADO = "EMPRESTADO"
+    APOSENTADO = "APOSENTADO"
 
 
 class AnimalBase(BaseModel):
@@ -39,12 +41,14 @@ class AnimalCreate(AnimalBase):
     ID_USUARIO_CADASTRO: int
 
     @field_validator("NUMERO_REGISTRO", "CHIP_IDENTIFICACAO")
+    @classmethod
     def validate_unique_fields(cls, v):
         if v and len(v.strip()) == 0:
             return None
         return v
 
     @field_validator("CPF_CNPJ_PROPRIETARIO")
+    @classmethod
     def validate_cpf_cnpj(cls, v):
         if v and len(v.strip()) == 0:
             return None
@@ -76,6 +80,7 @@ class AnimalUpdate(BaseModel):
     ID_USUARIO_ALTERACAO: Optional[int] = None
 
     @field_validator("CPF_CNPJ_PROPRIETARIO")
+    @classmethod
     def validate_cpf_cnpj(cls, v):
         if v and len(v.strip()) == 0:
             return None

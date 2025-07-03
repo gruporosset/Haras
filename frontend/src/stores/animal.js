@@ -28,26 +28,33 @@ export const useAnimalStore = defineStore('animal', {
   }),
 
   getters: {
-    animaisAtivos: (state) => state.animais.filter((a) => a.STATUS_ANIMAL === 'ATIVO'),
-    machos: (state) => state.animais.filter((a) => a.SEXO === 'M' && a.STATUS_ANIMAL === 'ATIVO'),
-    femeas: (state) => state.animais.filter((a) => a.SEXO === 'F' && a.STATUS_ANIMAL === 'ATIVO'),
+    animaisAtivos: state =>
+      state.animais.filter(a => a.STATUS_ANIMAL === 'ATIVO'),
+    machos: state =>
+      state.animais.filter(a => a.SEXO === 'M' && a.STATUS_ANIMAL === 'ATIVO'),
+    femeas: state =>
+      state.animais.filter(a => a.SEXO === 'F' && a.STATUS_ANIMAL === 'ATIVO'),
 
-    animalById: (state) => (id) => state.animais.find((a) => a.ID === id),
+    animalById: state => id => state.animais.find(a => a.ID === id),
 
-    estatisticas: (state) => {
+    estatisticas: state => {
       const total = state.animais.length
-      const ativos = state.animais.filter((a) => a.STATUS_ANIMAL === 'ATIVO').length
-      const machos = state.animais.filter((a) => a.SEXO === 'M').length
-      const femeas = state.animais.filter((a) => a.SEXO === 'F').length
+      const ativos = state.animais.filter(
+        a => a.STATUS_ANIMAL === 'ATIVO'
+      ).length
+      const machos = state.animais.filter(a => a.SEXO === 'M').length
+      const femeas = state.animais.filter(a => a.SEXO === 'F').length
 
       return {
         total,
         ativos,
         machos,
         femeas,
-        vendidos: state.animais.filter((a) => a.STATUS_ANIMAL === 'VENDIDO').length,
-        emprestados: state.animais.filter((a) => a.STATUS_ANIMAL === 'EMPRESTADO').length,
-        mortos: state.animais.filter((a) => a.STATUS_ANIMAL === 'MORTO').length,
+        vendidos: state.animais.filter(a => a.STATUS_ANIMAL === 'VENDIDO')
+          .length,
+        emprestados: state.animais.filter(a => a.STATUS_ANIMAL === 'EMPRESTADO')
+          .length,
+        mortos: state.animais.filter(a => a.STATUS_ANIMAL === 'MORTO').length,
       }
     },
 
@@ -61,6 +68,7 @@ export const useAnimalStore = defineStore('animal', {
       { value: 'VENDIDO', label: 'Vendido' },
       { value: 'MORTO', label: 'Morto' },
       { value: 'EMPRESTADO', label: 'Emprestado' },
+      { label: 'Aposentado', value: 'APOSENTADO' },
     ],
   },
 
@@ -208,32 +216,34 @@ export const useAnimalStore = defineStore('animal', {
 
     // Métodos auxiliares para busca rápida
     findAnimalByRegistro(numeroRegistro) {
-      return this.animais.find((a) => a.NUMERO_REGISTRO === numeroRegistro)
+      return this.animais.find(a => a.NUMERO_REGISTRO === numeroRegistro)
     },
 
     findAnimalByChip(chip) {
-      return this.animais.find((a) => a.CHIP_IDENTIFICACAO === chip)
+      return this.animais.find(a => a.CHIP_IDENTIFICACAO === chip)
     },
 
     findAnimalByNome(nome) {
-      return this.animais.filter((a) => a.NOME.toLowerCase().includes(nome.toLowerCase()))
+      return this.animais.filter(a =>
+        a.NOME.toLowerCase().includes(nome.toLowerCase())
+      )
     },
 
     // Métodos para relatórios
     getAnimaisByStatus(status) {
-      return this.animais.filter((a) => a.STATUS_ANIMAL === status)
+      return this.animais.filter(a => a.STATUS_ANIMAL === status)
     },
 
     getAnimaisBySexo(sexo) {
-      return this.animais.filter((a) => a.SEXO === sexo)
+      return this.animais.filter(a => a.SEXO === sexo)
     },
 
     getAnimaisComFoto() {
-      return this.animais.filter((a) => a.FOTO_PRINCIPAL)
+      return this.animais.filter(a => a.FOTO_PRINCIPAL)
     },
 
     getAnimaisSemFoto() {
-      return this.animais.filter((a) => !a.FOTO_PRINCIPAL)
+      return this.animais.filter(a => !a.FOTO_PRINCIPAL)
     },
   },
 })
