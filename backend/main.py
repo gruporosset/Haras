@@ -3,6 +3,7 @@ from pathlib import Path
 from app.api.v1.animal import router as animal_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.crescimento import router as crescimento_router
+from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.ferrageamento import router as ferrageamento_router
 from app.api.v1.manejo import router as manejo_router
 from app.api.v1.medicamento import router as medicamento_router
@@ -44,6 +45,7 @@ app.include_router(manejo_router)
 app.include_router(medicamento_router)
 app.include_router(ferrageamento_router)
 app.include_router(racao_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/")

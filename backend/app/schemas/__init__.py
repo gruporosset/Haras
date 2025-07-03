@@ -17,6 +17,20 @@ from .crescimento import (
     CrescimentoUpdate,
     EstatisticasCrescimento,
 )
+from .dashboard import (
+    AlertaEstoque,
+    AlertaSaude,
+    CustoAnimal,
+    CustoProprietario,
+    DashboardFiltros,
+    DashboardKPIs,
+    DashboardResponse,
+    GraficoBarras,
+    GraficoLinha,
+    GraficoPizza,
+    RelatorioAnimal,
+    RelatorioTerreno,
+)
 from .ferrageamento import (
     AlertaVencimento,
     EstatisticasFerrageamento,
