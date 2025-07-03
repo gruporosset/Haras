@@ -95,14 +95,14 @@ async def create_ferrageamento(
 @router.get("/", response_model=dict)
 async def list_ferrageamentos(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     animal_id: Optional[int] = Query(None),
     tipo_registro: Optional[TipoFerrageamentoEnum] = Query(None),
     ferrador: Optional[str] = Query(None),
+    apenas_vencidos: Optional[bool] = Query(False),
     data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
     page: int = Query(1, ge=1),
-    limit: int = Query(50, le=100),
+    limit: int = Query(50, le=1000),
 ):
     """Listar registros de ferrageamento com filtros e paginação"""
     offset = (page - 1) * limit
@@ -141,6 +141,10 @@ async def list_ferrageamentos(
         query = query.filter(
             SaudeAnimais.DATA_OCORRENCIA <= datetime.fromisoformat(data_fim)
         )
+
+    if apenas_vencidos:
+        data_hoje = datetime.now().date()
+        query = query.filter(SaudeAnimais.PROXIMA_AVALIACAO <= data_hoje)
 
     # Contar total
     total = query.count()
