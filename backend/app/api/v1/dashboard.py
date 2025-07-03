@@ -65,7 +65,9 @@ async def get_dashboard(
     animais_tratamento = (
         db.query(func.count(func.distinct(SaudeAnimais.ID_ANIMAL)))
         .filter(
-            SaudeAnimais.DATA_OCORRENCIA >= datetime.now() - timedelta(days=7),
+            SaudeAnimais.PROXIMA_APLICACAO >= datetime.now().date(),
+            SaudeAnimais.PROXIMA_APLICACAO
+            <= (datetime.now() + timedelta(days=7)).date(),
         )
         .scalar()
     )
@@ -114,7 +116,7 @@ async def get_dashboard(
     # Gestações ativas
     gestacoes_ativas = (
         db.query(func.count(Reproducao.ID))
-        .filter(Reproducao.STATUS_REPRODUCAO == "GESTANTE", Reproducao.ATIVO == "S")
+        .filter(Reproducao.STATUS_REPRODUCAO == "ATIVO")
         .scalar()
     )
 
@@ -178,7 +180,9 @@ async def get_relatorio_animal(
 
     # Buscar animal
     animal = (
-        db.query(Animal).filter(Animal.ID == animal_id, Animal.ATIVO == "S").first()
+        db.query(Animal)
+        .filter(Animal.ID == animal_id, Animal.STATUS_ANIMAL == "ATIVO")
+        .first()
     )
     if not animal:
         raise HTTPException(status_code=404, detail="Animal não encontrado")
@@ -258,7 +262,7 @@ async def get_relatorio_animal(
             FornecimentoRacaoAnimal.DATA_FORNECIMENTO.between(
                 data_inicio_dt, data_fim_dt
             ),
-            FornecimentoRacaoAnimal.ATIVO == "S",
+            FornecimentoRacaoAnimal.STATUS_ANIMAL == "ATIVO",
         )
         .scalar()
         or 0.0
@@ -267,7 +271,9 @@ async def get_relatorio_animal(
     # Status reprodução
     status_reproducao = (
         db.query(Reproducao.STATUS_REPRODUCAO)
-        .filter(Reproducao.ID_EGUA == animal_id, Reproducao.ATIVO == "S")
+        .filter(
+            Reproducao.ID_EGUA == animal_id,
+        )
         .order_by(desc(Reproducao.DATA_REGISTRO))
         .first()
     )
@@ -275,7 +281,9 @@ async def get_relatorio_animal(
     # Última cobertura
     data_ultima_cobertura = (
         db.query(Reproducao.DATA_COBERTURA)
-        .filter(Reproducao.ID_EGUA == animal_id, Reproducao.ATIVO == "S")
+        .filter(
+            Reproducao.ID_EGUA == animal_id, Reproducao.STATUS_REPRODUCAO == "ATIVO"
+        )
         .order_by(desc(Reproducao.DATA_COBERTURA))
         .first()
     )
@@ -318,7 +326,7 @@ async def get_relatorio_terreno(
     # Animais atuais
     animais_atuais = (
         db.query(func.count(Animal.ID))
-        .filter(Animal.ID_TERRENO_ATUAL == terreno_id, Animal.ATIVO == "S")
+        .filter(Animal.ID_TERRENO_ATUAL == terreno_id, Animal.STATUS_ANIMAL == "ATIVO")
         .scalar()
     )
 
@@ -353,12 +361,11 @@ async def _get_alertas_saude(db: Session) -> List[AlertaSaude]:
     # Vacinas vencidas ou próximas do vencimento
     query = text(
         """
-        SELECT a.ID, a.NOME, s.PROXIMA_APLICACAO, s.TIPO_APLICACAO
+        SELECT a.ID, a.NOME, s.PROXIMA_APLICACAO, s.TIPO_REGISTRO
         FROM ANIMAIS a
         JOIN SAUDE_ANIMAIS s ON a.ID = s.ID_ANIMAL
         WHERE s.PROXIMA_APLICACAO <= SYSDATE + 7
-        AND s.ATIVO = 'S'
-        AND a.ATIVO = 'S'
+        AND a.STATUS_ANIMAL = 'ATIVO'
         ORDER BY s.PROXIMA_APLICACAO
     """
     )
@@ -366,7 +373,7 @@ async def _get_alertas_saude(db: Session) -> List[AlertaSaude]:
     resultado = db.execute(query).fetchall()
 
     for row in resultado:
-        dias_atraso = (datetime.now().date() - row[2]).days if row[2] else 0
+        dias_atraso = (datetime.now().date() - row[2].date()).days if row[2] else 0
         prioridade = "ALTA" if dias_atraso > 0 else "MEDIA"
 
         alertas.append(
@@ -520,14 +527,15 @@ async def _get_grafico_custos_mensal(
 
 
 async def _get_grafico_distribuicao_animais(db: Session) -> GraficoPizza:
-    """Gráfico de distribuição de animais por raça"""
+    """Gráfico de distribuição de animais por proprietário"""
 
     query = text(
         """
-        SELECT COALESCE(RACA, 'Não informado') as raca, COUNT(*) as total
-        FROM ANIMAIS 
-        WHERE ATIVO = 'S'
-        GROUP BY RACA
+        SELECT COALESCE(PROPRIETARIO, 'Não informado') as proprietario,
+                 COUNT(*) as total
+        FROM ANIMAIS
+        WHERE STATUS_ANIMAL = 'ATIVO'
+        GROUP BY PROPRIETARIO
         ORDER BY total DESC
     """
     )
@@ -538,5 +546,5 @@ async def _get_grafico_distribuicao_animais(db: Session) -> GraficoPizza:
     data = [float(row[1]) for row in resultado]
 
     return GraficoPizza(
-        labels=labels, data=data, titulo="Distribuição de Animais por Raça"
+        labels=labels, data=data, titulo="Distribuição de Animais por Proprietário"
     )
