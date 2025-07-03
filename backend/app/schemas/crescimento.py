@@ -1,7 +1,8 @@
 # backend/app/schemas/crescimento.py
-from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator, field_serializer
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class CrescimentoBase(BaseModel):
@@ -22,7 +23,6 @@ class CrescimentoBase(BaseModel):
 
 
 class CrescimentoCreate(CrescimentoBase):
-    ID_USUARIO_REGISTRO: int
 
     @field_validator("DATA_MEDICAO")
     @classmethod

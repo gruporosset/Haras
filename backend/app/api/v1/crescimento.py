@@ -55,6 +55,7 @@ async def create_crescimento(
         )
 
     db_crescimento = HistoricoCrescimento(**crescimento.dict())
+    db_crescimento.ID_USUARIO_REGISTRO = current_user.ID
     db.add(db_crescimento)
 
     # Atualizar peso atual do animal se informado
