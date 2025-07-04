@@ -15,10 +15,10 @@
             emit-value
             map-options
           />
-          <q-btn 
-            color="primary" 
-            icon="refresh" 
-            label="Atualizar" 
+          <q-btn
+            color="primary"
+            icon="refresh"
+            label="Atualizar"
             @click="refreshGraficos"
           />
         </div>
@@ -26,11 +26,14 @@
     </q-card>
 
     <!-- Gráficos -->
-    <div v-if="animalSelecionado" class="row q-gutter-md">
+    <div
+      v-if="animalSelecionado"
+      class="row q-gutter-md"
+    >
       <q-card class="col-6">
         <q-card-section>
           <div class="text-h6">Evolução do Peso</div>
-          <crescimento-chart 
+          <crescimento-chart
             :dados="dadosGraficoPeso"
             tipo="peso"
             height="400px"
@@ -39,11 +42,11 @@
           />
         </q-card-section>
       </q-card>
-      
+
       <q-card class="col-6">
         <q-card-section>
           <div class="text-h6">Evolução da Altura</div>
-          <crescimento-chart 
+          <crescimento-chart
             :dados="dadosGraficoAltura"
             tipo="altura"
             height="400px"
@@ -55,7 +58,10 @@
     </div>
 
     <!-- Comparação entre Animais -->
-    <q-card v-if="animalSelecionado" class="q-mt-md">
+    <q-card
+      v-if="animalSelecionado"
+      class="q-mt-md"
+    >
       <q-card-section>
         <div class="text-h6 q-mb-md">Comparação com Outros Animais</div>
         <div class="row q-gutter-md">
@@ -73,12 +79,18 @@
             map-options
           />
         </div>
-        
-        <div v-if="animaisComparacao.length > 0" class="q-mt-md">
-          <q-card flat bordered>
+
+        <div
+          v-if="animaisComparacao.length > 0"
+          class="q-mt-md"
+        >
+          <q-card
+            flat
+            bordered
+          >
             <q-card-section>
               <div class="text-subtitle1">Comparação de Peso</div>
-              <crescimento-chart 
+              <crescimento-chart
                 :dados="dadosComparacaoPeso"
                 tipo="peso"
                 height="350px"
@@ -92,8 +104,15 @@
     </q-card>
 
     <!-- Estado Vazio -->
-    <div v-if="!animalSelecionado" class="text-center q-pa-xl">
-      <q-icon name="show_chart" size="4rem" color="grey" />
+    <div
+      v-if="!animalSelecionado"
+      class="text-center q-pa-xl"
+    >
+      <q-icon
+        name="show_chart"
+        size="4rem"
+        color="grey"
+      />
       <div class="text-h6 text-grey q-mt-md">
         Selecione um animal para visualizar os gráficos
       </div>
@@ -102,121 +121,123 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useCrescimentoStore } from 'stores/crescimento'
-import { useAnimalStore } from 'stores/animal'
-import { ErrorHandler } from 'src/utils/errorHandler'
-import CrescimentoChart from 'components/crescimento/CrescimentoChart.vue'
+  import { ref, computed, onMounted } from 'vue'
+  import { useCrescimentoStore } from 'stores/crescimento'
+  import { useAnimalStore } from 'stores/animal'
+  import { ErrorHandler } from 'src/utils/errorHandler'
+  import CrescimentoChart from 'components/crescimento/CrescimentoChart.vue'
 
-// Stores
-const crescimentoStore = useCrescimentoStore()
-const animalStore = useAnimalStore()
+  // Stores
+  const crescimentoStore = useCrescimentoStore()
+  const animalStore = useAnimalStore()
 
-// Estado reativo
-const animalSelecionado = ref(null)
-const animaisComparacao = ref([])
-const animalOri = ref([])
-const animalOptions = ref([])
+  // Estado reativo
+  const animalSelecionado = ref(null)
+  const animaisComparacao = ref([])
+  const animalOri = ref([])
+  const animalOptions = ref([])
 
-// Computed
-const dadosGraficoPeso = computed(() => {
-  if (!animalSelecionado.value) return []
-  return crescimentoStore.dadosGraficoPeso(animalSelecionado.value)
-})
+  // Computed
+  const dadosGraficoPeso = computed(() => {
+    if (!animalSelecionado.value) return []
+    return crescimentoStore.dadosGraficoPeso(animalSelecionado.value)
+  })
 
-const dadosGraficoAltura = computed(() => {
-  if (!animalSelecionado.value) return []
-  return crescimentoStore.dadosGraficoAltura(animalSelecionado.value)
-})
+  const dadosGraficoAltura = computed(() => {
+    if (!animalSelecionado.value) return []
+    return crescimentoStore.dadosGraficoAltura(animalSelecionado.value)
+  })
 
-const dadosComparacaoPeso = computed(() => {
-  if (!animaisComparacao.value.length) return []
-  
-  const todosAnimais = [animalSelecionado.value, ...animaisComparacao.value]
-  const dados = []
-  
-  todosAnimais.forEach(animalId => {
-    const dadosAnimal = crescimentoStore.dadosGraficoPeso(animalId)
-    const nomeAnimal = animalOptions.value.find(a => a.value === animalId)?.label
-    
-    dadosAnimal.forEach(item => {
-      dados.push({
-        ...item,
-        animal: nomeAnimal,
-        animalId
+  const dadosComparacaoPeso = computed(() => {
+    if (!animaisComparacao.value.length) return []
+
+    const todosAnimais = [animalSelecionado.value, ...animaisComparacao.value]
+    const dados = []
+
+    todosAnimais.forEach(animalId => {
+      const dadosAnimal = crescimentoStore.dadosGraficoPeso(animalId)
+      const nomeAnimal = animalOptions.value.find(
+        a => a.value === animalId
+      )?.label
+
+      dadosAnimal.forEach(item => {
+        dados.push({
+          ...item,
+          animal: nomeAnimal,
+          animalId,
+        })
       })
     })
+
+    return dados
   })
-  
-  return dados
-})
 
-// Métodos
-async function loadAnimais() {
-  try {
-    await animalStore.fetchAnimais({ limit: 100 })
-    animalOri.value = animalStore.animais.map(a => ({
-      value: a.ID,
-      label: a.NOME
-    }))
-    animalOptions.value = [...animalOri.value]
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar animais')
-  }
-}
-
-function filterAnimais(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptions.value = animalOri.value
-    } else {
-      const needle = val.toLowerCase()
-      animalOptions.value = animalOri.value.filter(
-        v => v.label.toLowerCase().indexOf(needle) > -1
-      )
+  // Métodos
+  async function loadAnimais() {
+    try {
+      await animalStore.fetchAnimais({ limit: 100 })
+      animalOri.value = animalStore.animais.map(a => ({
+        value: a.ID,
+        label: a.NOME,
+      }))
+      animalOptions.value = [...animalOri.value]
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar animais')
     }
+  }
+
+  function filterAnimais(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptions.value = animalOri.value
+      } else {
+        const needle = val.toLowerCase()
+        animalOptions.value = animalOri.value.filter(
+          v => v.label.toLowerCase().indexOf(needle) > -1
+        )
+      }
+    })
+  }
+
+  async function loadGraficos() {
+    if (!animalSelecionado.value) return
+
+    try {
+      await crescimentoStore.fetchHistoricoAnimal(animalSelecionado.value)
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar gráficos')
+    }
+  }
+
+  async function loadComparacao() {
+    if (!animaisComparacao.value.length) return
+
+    try {
+      for (const animalId of animaisComparacao.value) {
+        await crescimentoStore.fetchHistoricoAnimal(animalId)
+      }
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar dados de comparação')
+    }
+  }
+
+  async function refreshGraficos() {
+    await loadAnimais()
+    if (animalSelecionado.value) {
+      await loadGraficos()
+    }
+    if (animaisComparacao.value.length) {
+      await loadComparacao()
+    }
+  }
+
+  // Lifecycle
+  onMounted(() => {
+    loadAnimais()
   })
-}
 
-async function loadGraficos() {
-  if (!animalSelecionado.value) return
-  
-  try {
-    await crescimentoStore.fetchHistoricoAnimal(animalSelecionado.value)
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar gráficos')
-  }
-}
-
-async function loadComparacao() {
-  if (!animaisComparacao.value.length) return
-  
-  try {
-    for (const animalId of animaisComparacao.value) {
-      await crescimentoStore.fetchHistoricoAnimal(animalId)
-    }
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar dados de comparação')
-  }
-}
-
-async function refreshGraficos() {
-  await loadAnimais()
-  if (animalSelecionado.value) {
-    await loadGraficos()
-  }
-  if (animaisComparacao.value.length) {
-    await loadComparacao()
-  }
-}
-
-// Lifecycle
-onMounted(() => {
-  loadAnimais()
-})
-
-// Expor métodos
-defineExpose({
-  refreshGraficos
-})
+  // Expor métodos
+  defineExpose({
+    refreshGraficos,
+  })
 </script>

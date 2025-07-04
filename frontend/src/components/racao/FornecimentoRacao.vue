@@ -43,8 +43,6 @@
             @update:model-value="onFilterChange"
             class="col-md-2 col-12"
           />
-
-
         </div>
       </q-card-section>
     </q-card>
@@ -203,7 +201,11 @@
 
       <template v-slot:body-cell-DATA_FORNECIMENTO="props">
         <q-td :props="props">
-          {{ props.row.DATA_FORNECIMENTO + " " + (props.row.HORARIO_FORNECIMENTO ?? '') }}
+          {{
+            props.row.DATA_FORNECIMENTO +
+            ' ' +
+            (props.row.HORARIO_FORNECIMENTO ?? '')
+          }}
         </q-td>
       </template>
 
@@ -240,7 +242,6 @@
             >
               <q-tooltip>Excluir</q-tooltip>
             </q-btn>
-
           </q-btn-group>
         </q-td>
       </template>
@@ -570,10 +571,7 @@
           <q-btn
             label="Editar"
             color="primary"
-            @click="
-              openDialog(viewData), 
-              viewDialog = false
-            "
+            @click="(openDialog(viewData), (viewDialog = false))"
           />
         </q-card-actions>
       </q-card>
@@ -609,469 +607,476 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-
   </div>
-  
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useQuasar } from 'quasar'
-import { useRacaoStore } from 'stores/racao'
-import { useAnimalStore } from 'stores/animal'
-import { ErrorHandler } from 'src/utils/errorHandler'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { useQuasar } from 'quasar'
+  import { useRacaoStore } from 'stores/racao'
+  import { useAnimalStore } from 'stores/animal'
+  import { ErrorHandler } from 'src/utils/errorHandler'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
-// Composables
-const $q = useQuasar()
-const racaoStore = useRacaoStore()
-const animalStore = useAnimalStore()
+  // Composables
+  const $q = useQuasar()
+  const racaoStore = useRacaoStore()
+  const animalStore = useAnimalStore()
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const viewData = ref(null)
-const planoAtivo = ref(null)
-const formRef = ref(null)
-const recordToDelete = ref(null)
-const deleteDialog = ref(false)
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const viewData = ref(null)
+  const planoAtivo = ref(null)
+  const formRef = ref(null)
+  const recordToDelete = ref(null)
+  const deleteDialog = ref(false)
 
-// Filtros
-const filtros = ref({
-  animal_id: null,
-  produto_id: null,
-  data_inicio: '',
-  data_fim: '',
-})
+  // Filtros
+  const filtros = ref({
+    animal_id: null,
+    produto_id: null,
+    data_inicio: '',
+    data_fim: '',
+  })
 
-// Formulário
-const form = ref({})
+  // Formulário
+  const form = ref({})
 
-// Opções
-const animalOri = ref([])
-const animalOptions = ref([])
-const animalOptionsDialog = ref([])
-const produtoOri = ref([])
-const produtoOptions = ref([])
-const produtoOptionsDialog = ref([])
-const refeicaoOptionsDialog = ref([
-  { value: 1, label: '1ª Refeição' },
-  { value: 2, label: '2ª Refeição' },
-  { value: 3, label: '3ª Refeição' },
-  { value: 4, label: '4ª Refeição' },
-])
+  // Opções
+  const animalOri = ref([])
+  const animalOptions = ref([])
+  const animalOptionsDialog = ref([])
+  const produtoOri = ref([])
+  const produtoOptions = ref([])
+  const produtoOptionsDialog = ref([])
+  const refeicaoOptionsDialog = ref([
+    { value: 1, label: '1ª Refeição' },
+    { value: 2, label: '2ª Refeição' },
+    { value: 3, label: '3ª Refeição' },
+    { value: 4, label: '4ª Refeição' },
+  ])
 
-// Computed
-const resumoHoje = computed(() => {
-  const hoje = new Date().toLocaleDateString("pt-br").split(',')[0]
-  const fornecimentosHoje = racaoStore.fornecimentos.filter(f => 
-    f.DATA_FORNECIMENTO?.startsWith(hoje)
-  )
-
-  return {
-    totalFornecimentos: fornecimentosHoje.length,
-    animaisAlimentados: new Set(fornecimentosHoje.map(f => f.ID_ANIMAL)).size,
-    totalRacao: fornecimentosHoje.reduce(
-      (sum, f) => sum + (f.QUANTIDADE_FORNECIDA || 0),
-      0
-    ),
-    custoTotal: fornecimentosHoje.reduce(
-      (sum, f) => sum + (f.custo_fornecimento || 0),
-      0
-    ),
-  }
-})
-
-const unidadeSelecionada = computed(() => {
-  if (!form.value.ID_PRODUTO?.unidade_medida) return ''
-  return form.value.ID_PRODUTO.unidade_medida
-})
-
-const estoqueDisponivel = computed(() => {
-  if (!form.value.ID_PRODUTO?.estoque_atual) return 0
-  return form.value.ID_PRODUTO.estoque_atual
-})
-
-const custoEstimado = computed(() => {
-  if (
-    !form.value.QUANTIDADE_FORNECIDA ||
-    !form.value.ID_PRODUTO?.preco_unitario
-  )
-    return 0
-  return form.value.QUANTIDADE_FORNECIDA * form.value.ID_PRODUTO.preco_unitario
-})
-
-const percentualPesoVivo = computed(() => {
-  if (!form.value.QUANTIDADE_FORNECIDA || !form.value.PESO_ANIMAL_REFERENCIA)
-    return 0
-  return (
-    (form.value.QUANTIDADE_FORNECIDA / form.value.PESO_ANIMAL_REFERENCIA) * 100
-  )
-})
-
-// Colunas
-const columns = [
-  {
-    name: 'animal_nome',
-    label: 'Animal',
-    field: 'animal_nome',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'produto_nome',
-    label: 'Produto',
-    field: 'produto_nome',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'refeicao',
-    label: 'Refeição',
-    field: 'refeicao',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'quantidades',
-    label: 'Quantidades',
-    field: 'quantidades',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'custo_fornecimento',
-    label: 'Custo',
-    field: 'custo_fornecimento',
-    sortable: true,
-    align: 'right',
-  },
-  {
-    name: 'DATA_FORNECIMENTO',
-    label: 'Data/Hora',
-    field: 'DATA_FORNECIMENTO',
-    sortable: true,
-    align: 'left',
-  },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
-]
-
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  racaoStore.pagination.page = page
-  racaoStore.pagination.rowsPerPage = rowsPerPage
-  racaoStore.pagination.sortBy = sortBy
-  racaoStore.pagination.descending = descending
-  await racaoStore.fetchFornecimentos({ ...props, filtros: filtros.value })
-}
-
-async function onFilterChange() {
-  racaoStore.pagination.page = 1
-  await racaoStore.fetchFornecimentos({ filtros: filtros.value })
-}
-
-function openDialog(record) {
-  initializeForm(record)
-  dialog.value = true
-}
-
-function initializeForm(record) {
-  planoAtivo.value = null
-  form.value = { ...record }
-  if (record) {
-    const idAnimal = record.ID_ANIMAL
-    const idProduto = record.ID_PRODUTO
-
-    if (idAnimal && typeof idAnimal === 'number') {
-      const animalOption = animalOri.value.find(f => f.value === idAnimal)
-      if (animalOption) {
-        form.value.ID_ANIMAL = animalOption
-      } else {
-        form.value.ID_ANIMAL = {
-          value: idAnimal,
-          label: record.animal_nome || `Animal: ${idAnimal}`,
-        }
-      }
-    }
-
-    if (idProduto && typeof idProduto === 'number') {
-      const produtoOption = produtoOri.value.find(f => f.value === idProduto)
-      if (produtoOption) {
-        form.value.ID_PRODUTO = produtoOption
-      } else {
-        form.value.ID_PRODUTO = {
-          value: idProduto,
-          label: record.produto_nome || `Produto: ${idProduto}`,
-        }
-      }
-    }
-
-  } else {
-    form.value = {
-      ID_ANIMAL: null,
-      ID_PRODUTO: null,
-      ID_PLANO: null,
-      DATA_FORNECIMENTO: new Date().toISOString().split('T')[0],
-      HORARIO_FORNECIMENTO: '',
-      NUMERO_REFEICAO: 1,
-      QUANTIDADE_PLANEJADA: null,
-      QUANTIDADE_FORNECIDA: null,
-      PESO_ANIMAL_REFERENCIA: null,
-      FUNCIONARIO_RESPONSAVEL: '',
-      OBSERVACOES: '',
-    }
-  }
-
-  if (form.value.NUMERO_REFEICAO && typeof form.value.NUMERO_REFEICAO === 'number') {
-    const refeicaoOption = refeicaoOptionsDialog.value.find(f => f.value === form.value.NUMERO_REFEICAO)
-    if (refeicaoOption) {
-      form.value.NUMERO_REFEICAO = refeicaoOption
-    }
-  }
-}
-
-async function submitForm() {
-  try {
-
-    const isValid = await formRef.value?.validate()
-
-    if (!isValid) {
-      ErrorHandler.handle({},'Por favor, corrija os campos obrigatórios' )
-      return;
-    }
-
-    const data = { ...form.value }
-
-    if (data.ID_ANIMAL?.value) data.ID_ANIMAL = data.ID_ANIMAL.value
-    if (data.ID_PRODUTO?.value) data.ID_PRODUTO = data.ID_PRODUTO.value
-    if (data.NUMERO_REFEICAO?.value) data.NUMERO_REFEICAO = data.NUMERO_REFEICAO.value
-    if (data.HORARIO_FORNECIMENTO === '') delete data.HORARIO_FORNECIMENTO
-    if (data.QUANTIDADE_PLANEJADA === '') delete data.QUANTIDADE_PLANEJADA
-
-    if (form.value.ID) {
-      await racaoStore.updateFornecimento(form.value.ID, data)
-      $q.notify({ type: 'positive', message: 'Fornecimento atualizado!' })
-    } else {
-      await racaoStore.registrarFornecimento(data)
-      $q.notify({ type: 'positive', message: 'Fornecimento registrado!' })
-    }
-
-    dialog.value = false
-    await racaoStore.fetchFornecimentos({ filtros: filtros.value })
-  } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro ao salvar' })
-  }
-}
-
-function viewFornecimento(fornecimento) {
-  viewData.value = fornecimento
-  viewDialog.value = true
-}
-
-async function onAnimalSelected(animal) {
-  if (animal?.value) {
-    // Buscar plano ativo do animal
-    const planosAtivos = racaoStore.planosAtivos.filter(
-      p => p.ID_ANIMAL === animal.value
+  // Computed
+  const resumoHoje = computed(() => {
+    const hoje = new Date().toLocaleDateString('pt-br').split(',')[0]
+    const fornecimentosHoje = racaoStore.fornecimentos.filter(f =>
+      f.DATA_FORNECIMENTO?.startsWith(hoje)
     )
-    if (planosAtivos.length > 0) {
-      planoAtivo.value = planosAtivos[0]
+
+    return {
+      totalFornecimentos: fornecimentosHoje.length,
+      animaisAlimentados: new Set(fornecimentosHoje.map(f => f.ID_ANIMAL)).size,
+      totalRacao: fornecimentosHoje.reduce(
+        (sum, f) => sum + (f.QUANTIDADE_FORNECIDA || 0),
+        0
+      ),
+      custoTotal: fornecimentosHoje.reduce(
+        (sum, f) => sum + (f.custo_fornecimento || 0),
+        0
+      ),
+    }
+  })
+
+  const unidadeSelecionada = computed(() => {
+    if (!form.value.ID_PRODUTO?.unidade_medida) return ''
+    return form.value.ID_PRODUTO.unidade_medida
+  })
+
+  const estoqueDisponivel = computed(() => {
+    if (!form.value.ID_PRODUTO?.estoque_atual) return 0
+    return form.value.ID_PRODUTO.estoque_atual
+  })
+
+  const custoEstimado = computed(() => {
+    if (
+      !form.value.QUANTIDADE_FORNECIDA ||
+      !form.value.ID_PRODUTO?.preco_unitario
+    )
+      return 0
+    return (
+      form.value.QUANTIDADE_FORNECIDA * form.value.ID_PRODUTO.preco_unitario
+    )
+  })
+
+  const percentualPesoVivo = computed(() => {
+    if (!form.value.QUANTIDADE_FORNECIDA || !form.value.PESO_ANIMAL_REFERENCIA)
+      return 0
+    return (
+      (form.value.QUANTIDADE_FORNECIDA / form.value.PESO_ANIMAL_REFERENCIA) *
+      100
+    )
+  })
+
+  // Colunas
+  const columns = [
+    {
+      name: 'animal_nome',
+      label: 'Animal',
+      field: 'animal_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'produto_nome',
+      label: 'Produto',
+      field: 'produto_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'refeicao',
+      label: 'Refeição',
+      field: 'refeicao',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'quantidades',
+      label: 'Quantidades',
+      field: 'quantidades',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'custo_fornecimento',
+      label: 'Custo',
+      field: 'custo_fornecimento',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      name: 'DATA_FORNECIMENTO',
+      label: 'Data/Hora',
+      field: 'DATA_FORNECIMENTO',
+      sortable: true,
+      align: 'left',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
+
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    racaoStore.pagination.page = page
+    racaoStore.pagination.rowsPerPage = rowsPerPage
+    racaoStore.pagination.sortBy = sortBy
+    racaoStore.pagination.descending = descending
+    await racaoStore.fetchFornecimentos({ ...props, filtros: filtros.value })
+  }
+
+  async function onFilterChange() {
+    racaoStore.pagination.page = 1
+    await racaoStore.fetchFornecimentos({ filtros: filtros.value })
+  }
+
+  function openDialog(record) {
+    initializeForm(record)
+    dialog.value = true
+  }
+
+  function initializeForm(record) {
+    planoAtivo.value = null
+    form.value = { ...record }
+    if (record) {
+      const idAnimal = record.ID_ANIMAL
+      const idProduto = record.ID_PRODUTO
+
+      if (idAnimal && typeof idAnimal === 'number') {
+        const animalOption = animalOri.value.find(f => f.value === idAnimal)
+        if (animalOption) {
+          form.value.ID_ANIMAL = animalOption
+        } else {
+          form.value.ID_ANIMAL = {
+            value: idAnimal,
+            label: record.animal_nome || `Animal: ${idAnimal}`,
+          }
+        }
+      }
+
+      if (idProduto && typeof idProduto === 'number') {
+        const produtoOption = produtoOri.value.find(f => f.value === idProduto)
+        if (produtoOption) {
+          form.value.ID_PRODUTO = produtoOption
+        } else {
+          form.value.ID_PRODUTO = {
+            value: idProduto,
+            label: record.produto_nome || `Produto: ${idProduto}`,
+          }
+        }
+      }
+    } else {
+      form.value = {
+        ID_ANIMAL: null,
+        ID_PRODUTO: null,
+        ID_PLANO: null,
+        DATA_FORNECIMENTO: new Date().toISOString().split('T')[0],
+        HORARIO_FORNECIMENTO: '',
+        NUMERO_REFEICAO: 1,
+        QUANTIDADE_PLANEJADA: null,
+        QUANTIDADE_FORNECIDA: null,
+        PESO_ANIMAL_REFERENCIA: null,
+        FUNCIONARIO_RESPONSAVEL: '',
+        OBSERVACOES: '',
+      }
     }
 
-    // Definir peso se disponível
-    if (animal.peso_atual) {
-      form.value.PESO_ANIMAL_REFERENCIA = animal.peso_atual
+    if (
+      form.value.NUMERO_REFEICAO &&
+      typeof form.value.NUMERO_REFEICAO === 'number'
+    ) {
+      const refeicaoOption = refeicaoOptionsDialog.value.find(
+        f => f.value === form.value.NUMERO_REFEICAO
+      )
+      if (refeicaoOption) {
+        form.value.NUMERO_REFEICAO = refeicaoOption
+      }
     }
   }
-}
 
-function onProdutoSelected(produto) {
-  if (produto?.value) {
-    form.value.ID_PRODUTO = {
-      value: produto.value,
-      label: produto.label,
-      estoque_atual: produto.estoque_atual || 0,
-      unidade_medida: produto.unidade_medida,
-      preco_unitario: produto.preco_unitario,
+  async function submitForm() {
+    try {
+      const isValid = await formRef.value?.validate()
+
+      if (!isValid) {
+        ErrorHandler.handle({}, 'Por favor, corrija os campos obrigatórios')
+        return
+      }
+
+      const data = { ...form.value }
+
+      if (data.ID_ANIMAL?.value) data.ID_ANIMAL = data.ID_ANIMAL.value
+      if (data.ID_PRODUTO?.value) data.ID_PRODUTO = data.ID_PRODUTO.value
+      if (data.NUMERO_REFEICAO?.value)
+        data.NUMERO_REFEICAO = data.NUMERO_REFEICAO.value
+      if (data.HORARIO_FORNECIMENTO === '') delete data.HORARIO_FORNECIMENTO
+      if (data.QUANTIDADE_PLANEJADA === '') delete data.QUANTIDADE_PLANEJADA
+
+      if (form.value.ID) {
+        await racaoStore.updateFornecimento(form.value.ID, data)
+        $q.notify({ type: 'positive', message: 'Fornecimento atualizado!' })
+      } else {
+        await racaoStore.registrarFornecimento(data)
+        $q.notify({ type: 'positive', message: 'Fornecimento registrado!' })
+      }
+
+      dialog.value = false
+      await racaoStore.fetchFornecimentos({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro ao salvar',
+      })
     }
   }
-}
 
-function usarPlanoAtivo() {
-  if (planoAtivo.value) {
-    form.value.ID_PLANO = planoAtivo.value.ID
-    form.value.QUANTIDADE_PLANEJADA =
-      planoAtivo.value.QUANTIDADE_DIARIA_TOTAL /
-      planoAtivo.value.NUMERO_REFEICOES
-    form.value.QUANTIDADE_FORNECIDA = form.value.QUANTIDADE_PLANEJADA
+  function viewFornecimento(fornecimento) {
+    viewData.value = fornecimento
+    viewDialog.value = true
   }
-}
 
-async function loadAnimalOptions() {
-  try {
-    animalStore.setPagination = {
-      page: 1,
-      rowsPerPage: 5000,
-      rowsNumber: 0,
-      sortBy: 'NOME',
+  async function onAnimalSelected(animal) {
+    if (animal?.value) {
+      // Buscar plano ativo do animal
+      const planosAtivos = racaoStore.planosAtivos.filter(
+        p => p.ID_ANIMAL === animal.value
+      )
+      if (planosAtivos.length > 0) {
+        planoAtivo.value = planosAtivos[0]
+      }
+
+      // Definir peso se disponível
+      if (animal.peso_atual) {
+        form.value.PESO_ANIMAL_REFERENCIA = animal.peso_atual
+      }
     }
+  }
 
-    animalStore.setFilters = {
-      status: 'ATIVO',
+  function onProdutoSelected(produto) {
+    if (produto?.value) {
+      form.value.ID_PRODUTO = {
+        value: produto.value,
+        label: produto.label,
+        estoque_atual: produto.estoque_atual || 0,
+        unidade_medida: produto.unidade_medida,
+        preco_unitario: produto.preco_unitario,
+      }
     }
+  }
 
-    const data = await animalStore.fetchAnimais()
+  function usarPlanoAtivo() {
+    if (planoAtivo.value) {
+      form.value.ID_PLANO = planoAtivo.value.ID
+      form.value.QUANTIDADE_PLANEJADA =
+        planoAtivo.value.QUANTIDADE_DIARIA_TOTAL /
+        planoAtivo.value.NUMERO_REFEICOES
+      form.value.QUANTIDADE_FORNECIDA = form.value.QUANTIDADE_PLANEJADA
+    }
+  }
 
-    animalOri.value = data.animais.map(el => {
-      return {
-        value: el.ID,
-        label: el.NOME,
-        peso_atual: el.PESO_ATUAL,
+  async function loadAnimalOptions() {
+    try {
+      animalStore.setPagination = {
+        page: 1,
+        rowsPerPage: 5000,
+        rowsNumber: 0,
+        sortBy: 'NOME',
+      }
+
+      animalStore.setFilters = {
+        status: 'ATIVO',
+      }
+
+      const data = await animalStore.fetchAnimais()
+
+      animalOri.value = data.animais.map(el => {
+        return {
+          value: el.ID,
+          label: el.NOME,
+          peso_atual: el.PESO_ATUAL,
+        }
+      })
+      animalOptions.value = [...animalOri.value]
+      animalOptionsDialog.value = [...animalOri.value]
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar animais')
+    }
+  }
+
+  async function loadOptionsProdutos() {
+    try {
+      // Carregar produtos
+      const produtos = await racaoStore.autocompleProdutos('')
+      produtoOri.value = produtos.map(p => ({
+        value: p.value,
+        label: p.label,
+        estoque_atual: p.estoque_atual,
+        unidade_medida: p.unidade_medida,
+        preco_unitario: p.preco_unitario,
+      }))
+      produtoOptionsDialog.value = [...produtoOri.value]
+    } catch (error) {
+      console.error('Erro ao carregar opções:', error)
+    }
+  }
+
+  function filterAnimais(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptions.value = [...animalOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        animalOptions.value = animalOri.value.filter(a =>
+          a.label.toLowerCase().includes(needle)
+        )
       }
     })
-    animalOptions.value = [...animalOri.value]
-    animalOptionsDialog.value = [...animalOri.value]
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar animais')
   }
-}
 
-async function loadOptionsProdutos() {
-try {
-    // Carregar produtos
-    const produtos = await racaoStore.autocompleProdutos('')
-    produtoOri.value = produtos.map(p => ({
-      value: p.value,
-      label: p.label,
-      estoque_atual: p.estoque_atual,
-      unidade_medida: p.unidade_medida,
-      preco_unitario: p.preco_unitario
-    }))
-    produtoOptionsDialog.value = [...produtoOri.value]
-  } catch (error) {
-    console.error('Erro ao carregar opções:', error)
+  function filterAnimaisDialog(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptionsDialog.value = [...animalOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        animalOptionsDialog.value = animalOri.value.filter(a =>
+          a.label.toLowerCase().includes(needle)
+        )
+      }
+    })
   }
-}
 
-function filterAnimais(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptions.value = [...animalOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      animalOptions.value = animalOri.value.filter(a =>
-        a.label.toLowerCase().includes(needle)
-      )
+  function filterProdutos(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptions.value = [...produtoOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptions.value = produtoOri.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
+      }
+    })
+  }
+
+  function filterProdutosDialog(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptionsDialog.value = [...produtoOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptionsDialog.value = produtoOri.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
+      }
+    })
+  }
+
+  function confirmDelete(record) {
+    recordToDelete.value = record
+    deleteDialog.value = true
+  }
+
+  async function deleteFornecimento() {
+    try {
+      await racaoStore.deleteFornecimento(recordToDelete.value.ID)
+      ErrorHandler.success('Fornecimento excluído com sucesso!')
+      deleteDialog.value = false
+      await racaoStore.fetchFornecimentos({ filtros: filtros.value })
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao excluir produto')
     }
-  })
-}
+  }
 
-function filterAnimaisDialog(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptionsDialog.value = [...animalOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      animalOptionsDialog.value = animalOri.value.filter(a =>
-        a.label.toLowerCase().includes(needle)
-      )
-    }
-  })
-}
+  // Funções auxiliares
+  function getCorRefeicao(numero) {
+    const cores = { 1: 'primary', 2: 'secondary', 3: 'accent', 4: 'warning' }
+    return cores[numero] || 'grey'
+  }
 
-function filterProdutos(val, update) {
-  update(() => {
-    if (val === '') {
-      produtoOptions.value = [...produtoOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptions.value = produtoOri.value.filter(p =>
-        p.label.toLowerCase().includes(needle)
-      )
-    }
-  })
-}
+  function getDiferencaClass(fornecimento) {
+    const planejada = fornecimento.QUANTIDADE_PLANEJADA || 0
+    const fornecida = fornecimento.QUANTIDADE_FORNECIDA || 0
+    const diferenca = fornecida - planejada
 
-function filterProdutosDialog(val, update) {
-  update(() => {
-    if (val === '') {
-      produtoOptionsDialog.value = [...produtoOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptionsDialog.value = produtoOri.value.filter(p =>
-        p.label.toLowerCase().includes(needle)
-      )
-    }
-  })
-}
+    if (diferenca > 0) return 'text-warning'
+    if (diferenca < 0) return 'text-negative'
+    return 'text-positive'
+  }
 
-function confirmDelete(record) {
-  recordToDelete.value = record
-  deleteDialog.value = true
-}
+  function getDiferencaTexto(fornecimento) {
+    const planejada = fornecimento.QUANTIDADE_PLANEJADA || 0
+    const fornecida = fornecimento.QUANTIDADE_FORNECIDA || 0
+    const diferenca = fornecida - planejada
 
-async function deleteFornecimento() {
-  try {
-    await racaoStore.deleteFornecimento(recordToDelete.value.ID)
-    ErrorHandler.success('Fornecimento excluído com sucesso!')
-    deleteDialog.value = false
+    if (diferenca === 0) return 'Conforme planejado'
+    if (diferenca > 0) return `+${racaoStore.formatarPeso(diferenca)}`
+    return racaoStore.formatarPeso(diferenca)
+  }
+
+  function formatarDataHora(data) {
+    if (!data) return '-'
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
+  // Lifecycle
+  onMounted(async () => {
+    await loadAnimalOptions()
+    await loadOptionsProdutos()
     await racaoStore.fetchFornecimentos({ filtros: filtros.value })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao excluir produto')
-  }
-}
-
-
-// Funções auxiliares
-function getCorRefeicao(numero) {
-  const cores = { 1: 'primary', 2: 'secondary', 3: 'accent', 4: 'warning' }
-  return cores[numero] || 'grey'
-}
-
-function getDiferencaClass(fornecimento) {
-  const planejada = fornecimento.QUANTIDADE_PLANEJADA || 0
-  const fornecida = fornecimento.QUANTIDADE_FORNECIDA || 0
-  const diferenca = fornecida - planejada
-
-  if (diferenca > 0) return 'text-warning'
-  if (diferenca < 0) return 'text-negative'
-  return 'text-positive'
-}
-
-function getDiferencaTexto(fornecimento) {
-  const planejada = fornecimento.QUANTIDADE_PLANEJADA || 0
-  const fornecida = fornecimento.QUANTIDADE_FORNECIDA || 0
-  const diferenca = fornecida - planejada
-
-  if (diferenca === 0) return 'Conforme planejado'
-  if (diferenca > 0) return `+${racaoStore.formatarPeso(diferenca)}`
-  return racaoStore.formatarPeso(diferenca)
-}
-
-function formatarDataHora(data) {
-  if (!data) return '-'
-  return new Date(data).toLocaleString('pt-BR')
-}
-
-// Lifecycle
-onMounted(async () => {
-  await loadAnimalOptions()
-  await loadOptionsProdutos()
-  await racaoStore.fetchFornecimentos({ filtros: filtros.value })
-})
+  })
 </script>
 
 <style scoped>
-.fornecimento-racao-container {
-  width: 100%;
-}
+  .fornecimento-racao-container {
+    width: 100%;
+  }
 
-.fornecimentos-table {
-  border-radius: 8px;
-}
+  .fornecimentos-table {
+    border-radius: 8px;
+  }
 
-.fornecimentos-table .q-table__top {
-  padding: 16px;
-}
+  .fornecimentos-table .q-table__top {
+    padding: 16px;
+  }
 </style>

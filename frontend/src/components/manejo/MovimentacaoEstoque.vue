@@ -1,7 +1,10 @@
 <template>
   <div class="movimentacao-estoque-container">
     <!-- HEADER COM FILTROS -->
-    <q-card flat class="q-mb-md">
+    <q-card
+      flat
+      class="q-mb-md"
+    >
       <q-card-section>
         <div class="row q-gutter-md items-end">
           <div class="col-md-3 col-12">
@@ -16,7 +19,7 @@
               @update:model-value="onFilterChange"
             />
           </div>
-          
+
           <div class="col-md-2 col-12">
             <q-select
               v-model="filtros.tipo_movimentacao"
@@ -27,7 +30,7 @@
               @update:model-value="onFilterChange"
             />
           </div>
-          
+
           <div class="col-md-2 col-12">
             <calendario-component
               v-model="filtros.data_inicio"
@@ -35,7 +38,7 @@
               @update:model-value="onFilterChange"
             />
           </div>
-          
+
           <div class="col-md-2 col-12">
             <calendario-component
               v-model="filtros.data_fim"
@@ -44,7 +47,7 @@
             />
           </div>
         </div>
-          
+
         <div class="row q-gutter-md items-end q-mt-sm">
           <div class="col-auto">
             <q-btn-group>
@@ -53,8 +56,8 @@
                 icon="add_box"
                 label="Entrada"
                 @click="openDialog('ENTRADA')"
-                />
-                <q-btn
+              />
+              <q-btn
                 color="negative"
                 icon="remove_circle"
                 label="Saída"
@@ -79,7 +82,10 @@
         <q-card>
           <q-card-section>
             <div class="text-h6 text-positive">
-              <q-icon name="trending_up" class="q-mr-sm" />
+              <q-icon
+                name="trending_up"
+                class="q-mr-sm"
+              />
               {{ estatisticas.totalEntradas }}
             </div>
             <div class="text-subtitle2">Total Entradas</div>
@@ -89,12 +95,15 @@
           </q-card-section>
         </q-card>
       </div>
-      
+
       <div class="col-md-3 col-12">
         <q-card>
           <q-card-section>
             <div class="text-h6 text-negative">
-              <q-icon name="trending_down" class="q-mr-sm" />
+              <q-icon
+                name="trending_down"
+                class="q-mr-sm"
+              />
               {{ estatisticas.totalSaidas }}
             </div>
             <div class="text-subtitle2">Total Saídas</div>
@@ -104,12 +113,15 @@
           </q-card-section>
         </q-card>
       </div>
-      
+
       <div class="col-md-3 col-12">
         <q-card>
           <q-card-section>
             <div class="text-h6 text-warning">
-              <q-icon name="build" class="q-mr-sm" />
+              <q-icon
+                name="build"
+                class="q-mr-sm"
+              />
               {{ estatisticas.totalAjustes }}
             </div>
             <div class="text-subtitle2">Ajustes</div>
@@ -119,18 +131,19 @@
           </q-card-section>
         </q-card>
       </div>
-      
+
       <div class="col-md-2 col-12">
         <q-card>
           <q-card-section>
             <div class="text-h6 text-info">
-              <q-icon name="inventory" class="q-mr-sm" />
+              <q-icon
+                name="inventory"
+                class="q-mr-sm"
+              />
               {{ estatisticas.produtosMovimentados }}
             </div>
             <div class="text-subtitle2">Produtos Movimentados</div>
-            <div class="text-caption text-grey-6">
-              No período filtrado
-            </div>
+            <div class="text-caption text-grey-6">No período filtrado</div>
           </q-card-section>
         </q-card>
       </div>
@@ -176,23 +189,27 @@
         <q-td :props="props">
           <div class="row items-center q-gutter-xs">
             <div class="col-12 flex justify-center">
-            <div>
-              <div class="text-caption text-grey-6">Anterior</div>
-              <div class="text-body2">
-                {{ (props.row.QUANTIDADE_ANTERIOR || 0).toLocaleString('pt-BR') }}
+              <div>
+                <div class="text-caption text-grey-6">Anterior</div>
+                <div class="text-body2">
+                  {{
+                    (props.row.QUANTIDADE_ANTERIOR || 0).toLocaleString('pt-BR')
+                  }}
+                </div>
               </div>
-            </div>
-            <q-icon 
-              :name="getSaldoIcon(props.row)" 
-              :color="getSaldoColor(props.row)"
-              size="sm"
-            />
-            <div>
-              <div class="text-caption text-grey-6">Atual</div>
-              <div class="text-body2 text-weight-medium">
-                {{ (props.row.QUANTIDADE_ATUAL || 0).toLocaleString('pt-BR') }}
+              <q-icon
+                :name="getSaldoIcon(props.row)"
+                :color="getSaldoColor(props.row)"
+                size="sm"
+              />
+              <div>
+                <div class="text-caption text-grey-6">Atual</div>
+                <div class="text-body2 text-weight-medium">
+                  {{
+                    (props.row.QUANTIDADE_ATUAL || 0).toLocaleString('pt-BR')
+                  }}
+                </div>
               </div>
-            </div>
             </div>
           </div>
         </q-td>
@@ -200,12 +217,29 @@
 
       <template v-slot:body-cell-valor="props">
         <q-td :props="props">
-          <div v-if="props.row.PRECO_UNITARIO" class="text-weight-medium">
-            {{ manejoStore.formatarMoeda(props.row.QUANTIDADE * props.row.PRECO_UNITARIO) }}
+          <div
+            v-if="props.row.PRECO_UNITARIO"
+            class="text-weight-medium"
+          >
+            {{
+              manejoStore.formatarMoeda(
+                props.row.QUANTIDADE * props.row.PRECO_UNITARIO
+              )
+            }}
           </div>
-          <div v-else class="text-grey-6">-</div>
-          <div v-if="props.row.PRECO_UNITARIO" class="text-caption text-grey-6">
-            {{ manejoStore.formatarMoeda(props.row.PRECO_UNITARIO) }}/{{ getUnidadeProduto(props.row) }}
+          <div
+            v-else
+            class="text-grey-6"
+          >
+            -
+          </div>
+          <div
+            v-if="props.row.PRECO_UNITARIO"
+            class="text-caption text-grey-6"
+          >
+            {{ manejoStore.formatarMoeda(props.row.PRECO_UNITARIO) }}/{{
+              getUnidadeProduto(props.row)
+            }}
           </div>
         </q-td>
       </template>
@@ -235,7 +269,10 @@
     </q-table>
 
     <!-- DIALOG FORMULÁRIO -->
-    <q-dialog v-model="dialog" persistent>
+    <q-dialog
+      v-model="dialog"
+      persistent
+    >
       <q-card style="min-width: 600px">
         <q-card-section>
           <div class="text-h6">
@@ -244,7 +281,10 @@
         </q-card-section>
 
         <q-card-section>
-          <q-form @submit="submitForm" class="q-gutter-md">
+          <q-form
+            @submit="submitForm"
+            class="q-gutter-md"
+          >
             <!-- Seleção de Produto -->
             <q-select
               v-model="form.ID_PRODUTO"
@@ -291,7 +331,9 @@
                   step="0.01"
                   min="0"
                   prefix="R$"
-                  :rules="[val => val >= 0 || 'Preço deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Preço deve ser maior ou igual a 0',
+                  ]"
                   class="col-3"
                 />
                 <q-input
@@ -318,14 +360,26 @@
               </div>
 
               <!-- Resumo da Entrada -->
-              <q-card flat bordered class="bg-positive-1">
+              <q-card
+                flat
+                bordered
+                class="bg-positive-1"
+              >
                 <q-card-section class="q-pa-sm">
                   <div class="text-weight-medium text-positive">
-                    <q-icon name="add_box" class="q-mr-sm" />
+                    <q-icon
+                      name="add_box"
+                      class="q-mr-sm"
+                    />
                     Resumo da Entrada
                   </div>
                   <div class="text-body2 q-mt-xs">
-                    Valor Total: {{ manejoStore.formatarMoeda((form.QUANTIDADE || 0) * (form.PRECO_UNITARIO || 0)) }}
+                    Valor Total:
+                    {{
+                      manejoStore.formatarMoeda(
+                        (form.QUANTIDADE || 0) * (form.PRECO_UNITARIO || 0)
+                      )
+                    }}
                   </div>
                 </q-card-section>
               </q-card>
@@ -344,7 +398,9 @@
                   :suffix="unidadeSelecionada"
                   :rules="[
                     val => val > 0 || 'Quantidade deve ser maior que 0',
-                    val => val <= estoqueDisponivel || `Máximo disponível: ${estoqueDisponivel}`
+                    val =>
+                      val <= estoqueDisponivel ||
+                      `Máximo disponível: ${estoqueDisponivel}`,
                   ]"
                   class="col-5"
                 />
@@ -358,17 +414,34 @@
               </div>
 
               <!-- Info do Estoque -->
-              <q-card flat bordered class="bg-orange-1">
+              <q-card
+                flat
+                bordered
+                class="bg-orange-1"
+              >
                 <q-card-section class="q-pa-sm">
                   <div class="text-weight-medium text-orange-8">
-                    <q-icon name="inventory" class="q-mr-sm" />
+                    <q-icon
+                      name="inventory"
+                      class="q-mr-sm"
+                    />
                     Estoque Disponível
                   </div>
                   <div class="text-body2 q-mt-xs">
-                    {{ estoqueDisponivel.toLocaleString('pt-BR') }} {{ unidadeSelecionada }}
+                    {{ estoqueDisponivel.toLocaleString('pt-BR') }}
+                    {{ unidadeSelecionada }}
                   </div>
-                  <div v-if="form.QUANTIDADE" class="text-body2 text-orange-8 q-mt-xs">
-                    Restará: {{ (estoqueDisponivel - (form.QUANTIDADE || 0)).toLocaleString('pt-BR') }} {{ unidadeSelecionada }}
+                  <div
+                    v-if="form.QUANTIDADE"
+                    class="text-body2 text-orange-8 q-mt-xs"
+                  >
+                    Restará:
+                    {{
+                      (
+                        estoqueDisponivel - (form.QUANTIDADE || 0)
+                      ).toLocaleString('pt-BR')
+                    }}
+                    {{ unidadeSelecionada }}
                   </div>
                 </q-card-section>
               </q-card>
@@ -384,7 +457,9 @@
                   step="0.01"
                   min="0"
                   :suffix="unidadeSelecionada"
-                  :rules="[val => val >= 0 || 'Quantidade deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Quantidade deve ser maior ou igual a 0',
+                  ]"
                   class="col-5"
                 />
                 <q-input
@@ -397,24 +472,44 @@
               </div>
 
               <!-- Preview do Ajuste -->
-              <q-card flat bordered class="bg-blue-1">
+              <q-card
+                flat
+                bordered
+                class="bg-blue-1"
+              >
                 <q-card-section class="q-pa-sm">
                   <div class="text-weight-medium text-blue-8">
-                    <q-icon name="tune" class="q-mr-sm" />
+                    <q-icon
+                      name="tune"
+                      class="q-mr-sm"
+                    />
                     Preview do Ajuste
                   </div>
                   <div class="row q-mt-xs">
                     <div class="col">
                       <div class="text-caption text-grey-6">Estoque Atual</div>
-                      <div class="text-body2">{{ estoqueDisponivel.toLocaleString('pt-BR') }} {{ unidadeSelecionada }}</div>
+                      <div class="text-body2">
+                        {{ estoqueDisponivel.toLocaleString('pt-BR') }}
+                        {{ unidadeSelecionada }}
+                      </div>
                     </div>
                     <div class="col">
-                      <div class="text-caption text-grey-6">Nova Quantidade</div>
-                      <div class="text-body2">{{ (form.QUANTIDADE_NOVA || 0).toLocaleString('pt-BR') }} {{ unidadeSelecionada }}</div>
+                      <div class="text-caption text-grey-6">
+                        Nova Quantidade
+                      </div>
+                      <div class="text-body2">
+                        {{
+                          (form.QUANTIDADE_NOVA || 0).toLocaleString('pt-BR')
+                        }}
+                        {{ unidadeSelecionada }}
+                      </div>
                     </div>
                     <div class="col">
                       <div class="text-caption text-grey-6">Diferença</div>
-                      <div class="text-body2" :class="getDiferencaClass()">
+                      <div
+                        class="text-body2"
+                        :class="getDiferencaClass()"
+                      >
                         {{ getDiferencaTexto() }}
                       </div>
                     </div>
@@ -434,7 +529,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="dialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="dialog = false"
+          />
           <q-btn
             :label="getLabelBotao()"
             :color="getCorBotao()"
@@ -466,7 +566,11 @@
                 <q-item-label caption>Tipo de Movimentação</q-item-label>
                 <q-item-label>
                   <q-chip
-                    :color="manejoStore.getMovimentacaoColor(viewData?.TIPO_MOVIMENTACAO)"
+                    :color="
+                      manejoStore.getMovimentacaoColor(
+                        viewData?.TIPO_MOVIMENTACAO
+                      )
+                    "
                     text-color="white"
                     size="sm"
                   >
@@ -479,7 +583,10 @@
             <q-item>
               <q-item-section>
                 <q-item-label caption>Quantidade</q-item-label>
-                <q-item-label>{{ viewData?.QUANTIDADE?.toLocaleString('pt-BR') }} {{ getUnidadeProduto(viewData) }}</q-item-label>
+                <q-item-label>
+                  {{ viewData?.QUANTIDADE?.toLocaleString('pt-BR') }}
+                  {{ getUnidadeProduto(viewData) }}
+                </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -487,8 +594,13 @@
               <q-item-section>
                 <q-item-label caption>Saldo Anterior → Atual</q-item-label>
                 <q-item-label>
-                  {{ (viewData?.QUANTIDADE_ANTERIOR || 0).toLocaleString('pt-BR') }} → 
-                  {{ (viewData?.QUANTIDADE_ATUAL || 0).toLocaleString('pt-BR') }}
+                  {{
+                    (viewData?.QUANTIDADE_ANTERIOR || 0).toLocaleString('pt-BR')
+                  }}
+                  →
+                  {{
+                    (viewData?.QUANTIDADE_ATUAL || 0).toLocaleString('pt-BR')
+                  }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -510,7 +622,9 @@
             <q-item v-if="viewData?.PRECO_UNITARIO">
               <q-item-section>
                 <q-item-label caption>Preço Unitário</q-item-label>
-                <q-item-label>{{ manejoStore.formatarMoeda(viewData.PRECO_UNITARIO) }}</q-item-label>
+                <q-item-label>
+                  {{ manejoStore.formatarMoeda(viewData.PRECO_UNITARIO) }}
+                </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -531,14 +645,21 @@
             <q-item>
               <q-item-section>
                 <q-item-label caption>Data/Hora</q-item-label>
-                <q-item-label>{{ formatarDataHora(viewData?.DATA_REGISTRO) }}</q-item-label>
+                <q-item-label>
+                  {{ formatarDataHora(viewData?.DATA_REGISTRO) }}
+                </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Fechar" color="grey" @click="viewDialog = false" />
+          <q-btn
+            flat
+            label="Fechar"
+            color="grey"
+            @click="viewDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -546,318 +667,379 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useQuasar } from 'quasar'
-import { useManejoStore } from 'stores/manejo'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { useQuasar } from 'quasar'
+  import { useManejoStore } from 'stores/manejo'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
-// Composables
-const $q = useQuasar()
-const manejoStore = useManejoStore()
+  // Composables
+  const $q = useQuasar()
+  const manejoStore = useManejoStore()
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const viewData = ref(null)
-const tipoMovimentacao = ref('ENTRADA')
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const viewData = ref(null)
+  const tipoMovimentacao = ref('ENTRADA')
 
-// Filtros
-const filtros = ref({
-  produto_id: null,
-  tipo_movimentacao: null,
-  data_inicio: '',
-  data_fim: ''
-})
+  // Filtros
+  const filtros = ref({
+    produto_id: null,
+    tipo_movimentacao: null,
+    data_inicio: '',
+    data_fim: '',
+  })
 
-// Formulário
-const form = ref({})
+  // Formulário
+  const form = ref({})
 
-// Opções
-const produtoOptions = ref([])
-const produtoOptionsDialog = ref([])
+  // Opções
+  const produtoOptions = ref([])
+  const produtoOptionsDialog = ref([])
 
-// Computed
-const unidadeSelecionada = computed(() => {
-  if (!form.value.ID_PRODUTO?.unidade_medida) return ''
-  return form.value.ID_PRODUTO.unidade_medida
-})
+  // Computed
+  const unidadeSelecionada = computed(() => {
+    if (!form.value.ID_PRODUTO?.unidade_medida) return ''
+    return form.value.ID_PRODUTO.unidade_medida
+  })
 
-const estoqueDisponivel = computed(() => {
-  if (!form.value.ID_PRODUTO?.estoque_atual) return 0
-  return form.value.ID_PRODUTO.estoque_atual
-})
+  const estoqueDisponivel = computed(() => {
+    if (!form.value.ID_PRODUTO?.estoque_atual) return 0
+    return form.value.ID_PRODUTO.estoque_atual
+  })
 
-const estatisticas = computed(() => {
-  const movs = manejoStore.movimentacoes
-  const entradas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'ENTRADA')
-  const saidas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'SAIDA')
-  const ajustes = movs.filter(m => m.TIPO_MOVIMENTACAO === 'AJUSTE')
-  
-  return {
-    totalEntradas: entradas.length,
-    totalSaidas: saidas.length,
-    totalAjustes: ajustes.length,
-    valorEntradas: entradas.reduce((sum, m) => sum + ((m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0)), 0),
-    valorSaidas: saidas.reduce((sum, m) => sum + ((m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0)), 0),
-    produtosMovimentados: new Set(movs.map(m => m.ID_PRODUTO)).size,
-    ultimoAjuste: ajustes.length > 0 ? 
-      new Date(Math.max(...ajustes.map(a => new Date(a.DATA_REGISTRO)))).toLocaleDateString('pt-BR') : 
-      null
-  }
-})
+  const estatisticas = computed(() => {
+    const movs = manejoStore.movimentacoes
+    const entradas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'ENTRADA')
+    const saidas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'SAIDA')
+    const ajustes = movs.filter(m => m.TIPO_MOVIMENTACAO === 'AJUSTE')
 
-// Colunas da tabela
-const columns = [
-  { name: 'produto_nome', label: 'Produto', field: 'produto_nome', sortable: true, align: 'left' },
-  { name: 'TIPO_MOVIMENTACAO', label: 'Tipo', field: 'TIPO_MOVIMENTACAO', sortable: true, align: 'center' },
-  { name: 'QUANTIDADE', label: 'Quantidade', field: 'QUANTIDADE', sortable: true, align: 'right' },
-  { name: 'saldo', label: 'Saldo Anterior → Atual', field: 'saldo', sortable: false, align: 'center' },
-  { name: 'valor', label: 'Valor', field: 'valor', sortable: false, align: 'right' },
-  { name: 'DATA_REGISTRO', label: 'Data/Hora', field: 'DATA_REGISTRO', sortable: true, align: 'left' },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
-]
-
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  manejoStore.setPagination({ page, rowsPerPage, sortBy, descending })
-  await manejoStore.fetchMovimentacoes({ ...props, filtros: filtros.value })
-}
-
-async function onFilterChange() {
-  await manejoStore.fetchMovimentacoes({ filtros: filtros.value })
-}
-
-function openDialog(tipo) {
-  tipoMovimentacao.value = tipo
-  initializeForm()
-  dialog.value = true
-}
-
-function initializeForm() {
-  form.value = {
-    ID_PRODUTO: null,
-    QUANTIDADE: null,
-    QUANTIDADE_NOVA: null,
-    NOTA_FISCAL: '',
-    FORNECEDOR: '',
-    PRECO_UNITARIO: null,
-    LOTE: '',
-    DATA_VALIDADE: '',
-    DATA_FABRICACAO: '',
-    MOTIVO: '',
-    OBSERVACOES: ''
-  }
-}
-
-async function submitForm() {
-  try {
-    
-    // Preparar dados baseado no tipo
-    const data = { ...form.value }
-    if (data.ID_PRODUTO?.value) {
-      data.ID_PRODUTO = data.ID_PRODUTO.value
+    return {
+      totalEntradas: entradas.length,
+      totalSaidas: saidas.length,
+      totalAjustes: ajustes.length,
+      valorEntradas: entradas.reduce(
+        (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
+        0
+      ),
+      valorSaidas: saidas.reduce(
+        (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
+        0
+      ),
+      produtosMovimentados: new Set(movs.map(m => m.ID_PRODUTO)).size,
+      ultimoAjuste:
+        ajustes.length > 0
+          ? new Date(
+              Math.max(...ajustes.map(a => new Date(a.DATA_REGISTRO)))
+            ).toLocaleDateString('pt-BR')
+          : null,
     }
-    
-    switch (tipoMovimentacao.value) {
-      case 'ENTRADA':
-        await manejoStore.entradaEstoque(data)
-        $q.notify({ type: 'positive', message: 'Entrada registrada com sucesso!' })
-        break
-        
-      case 'SAIDA':
-        await manejoStore.saidaEstoque(data)
-        $q.notify({ type: 'positive', message: 'Saída registrada com sucesso!' })
-        break
-        
-      case 'AJUSTE':
-        await manejoStore.ajusteEstoque(data)
-        $q.notify({ type: 'positive', message: 'Ajuste realizado com sucesso!' })
-        break
-    }
-    
-    dialog.value = false
+  })
+
+  // Colunas da tabela
+  const columns = [
+    {
+      name: 'produto_nome',
+      label: 'Produto',
+      field: 'produto_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'TIPO_MOVIMENTACAO',
+      label: 'Tipo',
+      field: 'TIPO_MOVIMENTACAO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'QUANTIDADE',
+      label: 'Quantidade',
+      field: 'QUANTIDADE',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      name: 'saldo',
+      label: 'Saldo Anterior → Atual',
+      field: 'saldo',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'valor',
+      label: 'Valor',
+      field: 'valor',
+      sortable: false,
+      align: 'right',
+    },
+    {
+      name: 'DATA_REGISTRO',
+      label: 'Data/Hora',
+      field: 'DATA_REGISTRO',
+      sortable: true,
+      align: 'left',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
+
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    manejoStore.setPagination({ page, rowsPerPage, sortBy, descending })
+    await manejoStore.fetchMovimentacoes({ ...props, filtros: filtros.value })
+  }
+
+  async function onFilterChange() {
     await manejoStore.fetchMovimentacoes({ filtros: filtros.value })
-    
-  } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro na movimentação' })
   }
-}
 
-function viewMovimentacao(movimentacao) {
-  viewData.value = movimentacao
-  viewDialog.value = true
-}
-
-async function loadProdutoOptions() {
-  try {
-    const produtos = await manejoStore.getAutocompleProdutos()
-    produtoOptions.value = produtos.map(p => ({
-      value: p.value,
-      label: p.label
-    }))
-    produtoOptionsDialog.value = [...produtoOptions.value]
-  } catch (error) {
-    console.error('Erro ao carregar produtos:', error)
+  function openDialog(tipo) {
+    tipoMovimentacao.value = tipo
+    initializeForm()
+    dialog.value = true
   }
-}
 
-function filterProdutos(val, update) {
-  update(() => {
-    if (val === '') {
-      produtoOptions.value = [...produtoOptionsDialog.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptions.value = produtoOptionsDialog.value.filter(
-        p => p.label.toLowerCase().includes(needle)
-      )
+  function initializeForm() {
+    form.value = {
+      ID_PRODUTO: null,
+      QUANTIDADE: null,
+      QUANTIDADE_NOVA: null,
+      NOTA_FISCAL: '',
+      FORNECEDOR: '',
+      PRECO_UNITARIO: null,
+      LOTE: '',
+      DATA_VALIDADE: '',
+      DATA_FABRICACAO: '',
+      MOTIVO: '',
+      OBSERVACOES: '',
     }
-  })
-}
+  }
 
-function filterProdutosDialog(val, update) {
-  update(() => {
-    if (val === '') {
+  async function submitForm() {
+    try {
+      // Preparar dados baseado no tipo
+      const data = { ...form.value }
+      if (data.ID_PRODUTO?.value) {
+        data.ID_PRODUTO = data.ID_PRODUTO.value
+      }
+
+      switch (tipoMovimentacao.value) {
+        case 'ENTRADA':
+          await manejoStore.entradaEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Entrada registrada com sucesso!',
+          })
+          break
+
+        case 'SAIDA':
+          await manejoStore.saidaEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Saída registrada com sucesso!',
+          })
+          break
+
+        case 'AJUSTE':
+          await manejoStore.ajusteEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Ajuste realizado com sucesso!',
+          })
+          break
+      }
+
+      dialog.value = false
+      await manejoStore.fetchMovimentacoes({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro na movimentação',
+      })
+    }
+  }
+
+  function viewMovimentacao(movimentacao) {
+    viewData.value = movimentacao
+    viewDialog.value = true
+  }
+
+  async function loadProdutoOptions() {
+    try {
+      const produtos = await manejoStore.getAutocompleProdutos()
+      produtoOptions.value = produtos.map(p => ({
+        value: p.value,
+        label: p.label,
+      }))
       produtoOptionsDialog.value = [...produtoOptions.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptionsDialog.value = produtoOptions.value.filter(
-        p => p.label.toLowerCase().includes(needle)
-      )
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error)
     }
-  })
-}
+  }
 
-function onProdutoSelected(produto) {
-  if (produto?.value) {
-    // Buscar dados completos do produto
-    manejoStore.getProdutoById(produto.value).then(produtoCompleto => {
-      form.value.ID_PRODUTO = {
-        value: produto.value,
-        label: produto.label,
-        estoque_atual: produtoCompleto.ESTOQUE_ATUAL || 0,
-        unidade_medida: produtoCompleto.UNIDADE_MEDIDA,
-        preco_unitario: produtoCompleto.PRECO_UNITARIO
+  function filterProdutos(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptions.value = [...produtoOptionsDialog.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptions.value = produtoOptionsDialog.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
       }
-      
-      // Pré-preencher preço se for entrada
-      if (tipoMovimentacao.value === 'ENTRADA' && produtoCompleto.PRECO_UNITARIO) {
-        form.value.PRECO_UNITARIO = produtoCompleto.PRECO_UNITARIO
-      }
-      
-      // Pré-preencher quantidade nova se for ajuste
-      if (tipoMovimentacao.value === 'AJUSTE') {
-        form.value.QUANTIDADE_NOVA = produtoCompleto.ESTOQUE_ATUAL || 0
-      }
-    }).catch(error => {
-      console.error('Erro ao buscar produto:', error)
     })
   }
-}
 
-// Helpers
-function getTipoLabel(tipo) {
-  const labels = {
-    'ENTRADA': 'Entrada',
-    'SAIDA': 'Saída',
-    'AJUSTE': 'Ajuste'
+  function filterProdutosDialog(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptionsDialog.value = [...produtoOptions.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptionsDialog.value = produtoOptions.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
+      }
+    })
   }
-  return labels[tipo] || tipo
-}
 
-function getIconeMovimentacao(tipo) {
-  const icones = {
-    'ENTRADA': 'add_box',
-    'SAIDA': 'remove_circle',
-    'AJUSTE': 'tune'
+  function onProdutoSelected(produto) {
+    if (produto?.value) {
+      // Buscar dados completos do produto
+      manejoStore
+        .getProdutoById(produto.value)
+        .then(produtoCompleto => {
+          form.value.ID_PRODUTO = {
+            value: produto.value,
+            label: produto.label,
+            estoque_atual: produtoCompleto.ESTOQUE_ATUAL || 0,
+            unidade_medida: produtoCompleto.UNIDADE_MEDIDA,
+            preco_unitario: produtoCompleto.PRECO_UNITARIO,
+          }
+
+          // Pré-preencher preço se for entrada
+          if (
+            tipoMovimentacao.value === 'ENTRADA' &&
+            produtoCompleto.PRECO_UNITARIO
+          ) {
+            form.value.PRECO_UNITARIO = produtoCompleto.PRECO_UNITARIO
+          }
+
+          // Pré-preencher quantidade nova se for ajuste
+          if (tipoMovimentacao.value === 'AJUSTE') {
+            form.value.QUANTIDADE_NOVA = produtoCompleto.ESTOQUE_ATUAL || 0
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao buscar produto:', error)
+        })
+    }
   }
-  return icones[tipo] || 'help'
-}
 
-function getTituloDialog() {
-  const titulos = {
-    'ENTRADA': 'Nova Entrada de Estoque',
-    'SAIDA': 'Nova Saída de Estoque',
-    'AJUSTE': 'Ajustar Estoque'
+  // Helpers
+  function getTipoLabel(tipo) {
+    const labels = {
+      ENTRADA: 'Entrada',
+      SAIDA: 'Saída',
+      AJUSTE: 'Ajuste',
+    }
+    return labels[tipo] || tipo
   }
-  return titulos[tipoMovimentacao.value] || 'Movimentação'
-}
 
-function getLabelBotao() {
-  const labels = {
-    'ENTRADA': 'Registrar Entrada',
-    'SAIDA': 'Registrar Saída',
-    'AJUSTE': 'Confirmar Ajuste'
+  function getIconeMovimentacao(tipo) {
+    const icones = {
+      ENTRADA: 'add_box',
+      SAIDA: 'remove_circle',
+      AJUSTE: 'tune',
+    }
+    return icones[tipo] || 'help'
   }
-  return labels[tipoMovimentacao.value] || 'Confirmar'
-}
 
-function getCorBotao() {
-  const cores = {
-    'ENTRADA': 'positive',
-    'SAIDA': 'negative',
-    'AJUSTE': 'warning'
+  function getTituloDialog() {
+    const titulos = {
+      ENTRADA: 'Nova Entrada de Estoque',
+      SAIDA: 'Nova Saída de Estoque',
+      AJUSTE: 'Ajustar Estoque',
+    }
+    return titulos[tipoMovimentacao.value] || 'Movimentação'
   }
-  return cores[tipoMovimentacao.value] || 'primary'
-}
 
-function getUnidadeProduto(row) {
-  if (row?.produto_unidade) return row.produto_unidade
-  if (row?.ID_PRODUTO?.unidade_medida) return row.ID_PRODUTO.unidade_medida
-  return ''
-}
+  function getLabelBotao() {
+    const labels = {
+      ENTRADA: 'Registrar Entrada',
+      SAIDA: 'Registrar Saída',
+      AJUSTE: 'Confirmar Ajuste',
+    }
+    return labels[tipoMovimentacao.value] || 'Confirmar'
+  }
 
-function getSaldoIcon(row) {
-  const anterior = row.QUANTIDADE_ANTERIOR || 0
-  const atual = row.QUANTIDADE_ATUAL || 0
-  
-  if (atual > anterior) return 'trending_up'
-  if (atual < anterior) return 'trending_down'
-  return 'remove'
-}
+  function getCorBotao() {
+    const cores = {
+      ENTRADA: 'positive',
+      SAIDA: 'negative',
+      AJUSTE: 'warning',
+    }
+    return cores[tipoMovimentacao.value] || 'primary'
+  }
 
-function getSaldoColor(row) {
-  const anterior = row.QUANTIDADE_ANTERIOR || 0
-  const atual = row.QUANTIDADE_ATUAL || 0
-  
-  if (atual > anterior) return 'positive'
-  if (atual < anterior) return 'negative'
-  return 'grey'
-}
+  function getUnidadeProduto(row) {
+    if (row?.produto_unidade) return row.produto_unidade
+    if (row?.ID_PRODUTO?.unidade_medida) return row.ID_PRODUTO.unidade_medida
+    return ''
+  }
 
-function getDiferencaClass() {
-  const atual = estoqueDisponivel.value
-  const nova = form.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - atual
-  
-  if (diferenca > 0) return 'text-positive'
-  if (diferenca < 0) return 'text-negative'
-  return 'text-grey-6'
-}
+  function getSaldoIcon(row) {
+    const anterior = row.QUANTIDADE_ANTERIOR || 0
+    const atual = row.QUANTIDADE_ATUAL || 0
 
-function getDiferencaTexto() {
-  const atual = estoqueDisponivel.value
-  const nova = form.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - atual
-  
-  if (diferenca === 0) return 'Sem alteração'
-  if (diferenca > 0) return `+${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
-  return `${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
-}
+    if (atual > anterior) return 'trending_up'
+    if (atual < anterior) return 'trending_down'
+    return 'remove'
+  }
 
-function formatarDataHora(data) {
-  if (!data) return '-'
-  return new Date(data).toLocaleString('pt-BR')
-}
+  function getSaldoColor(row) {
+    const anterior = row.QUANTIDADE_ANTERIOR || 0
+    const atual = row.QUANTIDADE_ATUAL || 0
 
-// Lifecycle
-onMounted(async () => {
-  await loadProdutoOptions()
-  await manejoStore.fetchMovimentacoes({ filtros: filtros.value })
-})
+    if (atual > anterior) return 'positive'
+    if (atual < anterior) return 'negative'
+    return 'grey'
+  }
+
+  function getDiferencaClass() {
+    const atual = estoqueDisponivel.value
+    const nova = form.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - atual
+
+    if (diferenca > 0) return 'text-positive'
+    if (diferenca < 0) return 'text-negative'
+    return 'text-grey-6'
+  }
+
+  function getDiferencaTexto() {
+    const atual = estoqueDisponivel.value
+    const nova = form.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - atual
+
+    if (diferenca === 0) return 'Sem alteração'
+    if (diferenca > 0)
+      return `+${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
+    return `${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
+  }
+
+  function formatarDataHora(data) {
+    if (!data) return '-'
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
+  // Lifecycle
+  onMounted(async () => {
+    await loadProdutoOptions()
+    await manejoStore.fetchMovimentacoes({ filtros: filtros.value })
+  })
 </script>
 
 <style scoped>
-@import 'src/css/components/movimentacaoestoque.css';
+  @import 'src/css/components/movimentacaoestoque.css';
 </style>
-

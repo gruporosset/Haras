@@ -154,9 +154,7 @@
             {{ racaoStore.formatarPeso(props.row.QUANTIDADE_DIARIA_TOTAL) }}/dia
           </div>
           <div class="text-caption text-grey-6">
-            {{
-              racaoStore.formatarPercentual(props.row.PERCENTUAL_PESO_VIVO)
-            }}
+            {{ racaoStore.formatarPercentual(props.row.PERCENTUAL_PESO_VIVO) }}
             PV
           </div>
         </q-td>
@@ -564,10 +562,7 @@
           <q-btn
             label="Ver Itens"
             color="primary"
-            @click="
-              viewItens(viewData),
-              viewDialog = false
-            "
+            @click="(viewItens(viewData), (viewDialog = false))"
           />
         </q-card-actions>
       </q-card>
@@ -742,465 +737,470 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
-import { useQuasar } from 'quasar'
-import { useRacaoStore } from 'stores/racao'
-import { useAnimalStore } from 'stores/animal'
-import { ErrorHandler } from 'src/utils/errorHandler'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
-import ItemPlanoDialog from 'components/racao/ItemPlanoDialog.vue'
+  import { ref, onMounted, computed, watch } from 'vue'
+  import { useQuasar } from 'quasar'
+  import { useRacaoStore } from 'stores/racao'
+  import { useAnimalStore } from 'stores/animal'
+  import { ErrorHandler } from 'src/utils/errorHandler'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import ItemPlanoDialog from 'components/racao/ItemPlanoDialog.vue'
 
-// Composables
-const $q = useQuasar()
-const racaoStore = useRacaoStore()
-const animalStore = useAnimalStore()
+  // Composables
+  const $q = useQuasar()
+  const racaoStore = useRacaoStore()
+  const animalStore = useAnimalStore()
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const itensDialog = ref(false)
-const viewData = ref(null)
-const planoSelecionado = ref(null)
-const sugestaoNutricional = ref(null)
-const itemDialog = ref(false)
-const itemEditando = ref(null)
-const deleteItemDialog = ref(false)
-const itemParaExcluir = ref(null)
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const itensDialog = ref(false)
+  const viewData = ref(null)
+  const planoSelecionado = ref(null)
+  const sugestaoNutricional = ref(null)
+  const itemDialog = ref(false)
+  const itemEditando = ref(null)
+  const deleteItemDialog = ref(false)
+  const itemParaExcluir = ref(null)
 
-// Filtros
-const filtros = ref({
-  animal_id: null,
-  categoria: null,
-  status_plano: null,
-})
+  // Filtros
+  const filtros = ref({
+    animal_id: null,
+    categoria: null,
+    status_plano: null,
+  })
 
-// Formulário
-const form = ref({})
+  // Formulário
+  const form = ref({})
 
-// Opções
-const animalOri = ref([])
-const animalOptions = ref([])
-const animalOptionsDialog = ref([])
+  // Opções
+  const animalOri = ref([])
+  const animalOptions = ref([])
+  const animalOptionsDialog = ref([])
 
-// Computed
-const estatisticas = computed(() => racaoStore.estatisticasPlanos)
+  // Computed
+  const estatisticas = computed(() => racaoStore.estatisticasPlanos)
 
-const percentualPesoVivo = computed(() => {
-  if (!form.value.PESO_REFERENCIA || !form.value.QUANTIDADE_DIARIA_TOTAL)
-    return 0
-  return (form.value.QUANTIDADE_DIARIA_TOTAL / form.value.PESO_REFERENCIA) * 100
-})
+  const percentualPesoVivo = computed(() => {
+    if (!form.value.PESO_REFERENCIA || !form.value.QUANTIDADE_DIARIA_TOTAL)
+      return 0
+    return (
+      (form.value.QUANTIDADE_DIARIA_TOTAL / form.value.PESO_REFERENCIA) * 100
+    )
+  })
 
-// Colunas
-const columns = [
-  {
-    name: 'animal_nome',
-    label: 'Animal',
-    field: 'animal_nome',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'CATEGORIA_NUTRICIONAL',
-    label: 'Categoria',
-    field: 'CATEGORIA_NUTRICIONAL',
-    sortable: true,
-    align: 'center',
-  },
-  {
-    name: 'peso_dieta',
-    label: 'Peso/Dieta',
-    field: 'peso_dieta',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'refeicoes_produtos',
-    label: 'Refeições/Produtos',
-    field: 'refeicoes_produtos',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'custo_diario',
-    label: 'Custo Diário',
-    field: 'custo_diario_estimado',
-    sortable: true,
-    align: 'right',
-  },
-  {
-    name: 'STATUS_PLANO',
-    label: 'Status',
-    field: 'STATUS_PLANO',
-    sortable: true,
-    align: 'center',
-  },
-  {
-    name: 'periodo',
-    label: 'Período',
-    field: 'periodo',
-    sortable: false,
-    align: 'left',
-  },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
-]
+  // Colunas
+  const columns = [
+    {
+      name: 'animal_nome',
+      label: 'Animal',
+      field: 'animal_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'CATEGORIA_NUTRICIONAL',
+      label: 'Categoria',
+      field: 'CATEGORIA_NUTRICIONAL',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'peso_dieta',
+      label: 'Peso/Dieta',
+      field: 'peso_dieta',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'refeicoes_produtos',
+      label: 'Refeições/Produtos',
+      field: 'refeicoes_produtos',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'custo_diario',
+      label: 'Custo Diário',
+      field: 'custo_diario_estimado',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      name: 'STATUS_PLANO',
+      label: 'Status',
+      field: 'STATUS_PLANO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'periodo',
+      label: 'Período',
+      field: 'periodo',
+      sortable: false,
+      align: 'left',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-const itensColumns = [
-  {
-    name: 'produto_nome',
-    label: 'Produto',
-    field: 'produto_nome',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'quantidades',
-    label: 'Quantidades',
-    field: 'quantidades',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'horarios',
-    label: 'Horários',
-    field: 'horarios',
-    sortable: false,
-    align: 'left',
-  },
-  {
-    name: 'custo_diario',
-    label: 'Custo Diário',
-    field: 'custo_diario',
-    sortable: true,
-    align: 'right',
-  },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
-]
+  const itensColumns = [
+    {
+      name: 'produto_nome',
+      label: 'Produto',
+      field: 'produto_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'quantidades',
+      label: 'Quantidades',
+      field: 'quantidades',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'horarios',
+      label: 'Horários',
+      field: 'horarios',
+      sortable: false,
+      align: 'left',
+    },
+    {
+      name: 'custo_diario',
+      label: 'Custo Diário',
+      field: 'custo_diario',
+      sortable: true,
+      align: 'right',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  racaoStore.pagination.page = page
-  racaoStore.pagination.rowsPerPage = rowsPerPage
-  racaoStore.pagination.sortBy = sortBy
-  racaoStore.pagination.descending = descending
-  await racaoStore.fetchPlanosAlimentares({ ...props, filtros: filtros.value })
-}
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    racaoStore.pagination.page = page
+    racaoStore.pagination.rowsPerPage = rowsPerPage
+    racaoStore.pagination.sortBy = sortBy
+    racaoStore.pagination.descending = descending
+    await racaoStore.fetchPlanosAlimentares({
+      ...props,
+      filtros: filtros.value,
+    })
+  }
 
-async function onFilterChange() {
-  racaoStore.pagination.page = 1
-  await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-}
+  async function onFilterChange() {
+    racaoStore.pagination.page = 1
+    await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+  }
 
-function openDialog(record) {
-  initializeForm(record)
-  dialog.value = true
-}
+  function openDialog(record) {
+    initializeForm(record)
+    dialog.value = true
+  }
 
-function initializeForm(record) {
-  sugestaoNutricional.value = null
+  function initializeForm(record) {
+    sugestaoNutricional.value = null
 
-  if (record) {
-    form.value = { ...record }
-    const idAnimal = record.ID_ANIMAL
-    const categoriaNutricional = record.CATEGORIA_NUTRICIONAL
-    const intensidadeTrabalho = record.INTENSIDADE_TRABALHO
-    const statusPlano = record.STATUS_PLANO
-    if (idAnimal && typeof idAnimal === 'number') {
-      const animalOption = animalOri.value.find(f => f.value === idAnimal)
-      if (animalOption) {
-        form.value.ID_ANIMAL = animalOption
-      } else {
-        form.value.ID_ANIMAL = {
-          value: idAnimal,
-          label: record.animal_nome || `Animal: ${idAnimal}`,
+    if (record) {
+      form.value = { ...record }
+      const idAnimal = record.ID_ANIMAL
+      const categoriaNutricional = record.CATEGORIA_NUTRICIONAL
+      const intensidadeTrabalho = record.INTENSIDADE_TRABALHO
+      const statusPlano = record.STATUS_PLANO
+      if (idAnimal && typeof idAnimal === 'number') {
+        const animalOption = animalOri.value.find(f => f.value === idAnimal)
+        if (animalOption) {
+          form.value.ID_ANIMAL = animalOption
+        } else {
+          form.value.ID_ANIMAL = {
+            value: idAnimal,
+            label: record.animal_nome || `Animal: ${idAnimal}`,
+          }
         }
       }
-    }
-    if (categoriaNutricional && typeof categoriaNutricional === 'string') {
-      const categoriaOption = racaoStore.categoriasNutricionais.find(
-        c => c.value === categoriaNutricional
-      )
-      if (categoriaOption) {
-        form.value.CATEGORIA_NUTRICIONAL = categoriaOption
-      }
-    }
-    if (intensidadeTrabalho && typeof intensidadeTrabalho === 'string') {
-      const intensidadeTrabalhoOption = racaoStore.intensidadeTrabalho.find(
-        c => c.value === intensidadeTrabalho
-      )
-      if (intensidadeTrabalhoOption) {
-        form.value.INTENSIDADE_TRABALHO = intensidadeTrabalhoOption
-      }
-    }
-    if (statusPlano && typeof statusPlano === 'string') {
-      const statusPlanoOption = racaoStore.statusPlano.find(
-        c => c.value === statusPlano
-      )
-      if (statusPlanoOption) {
-        form.value.STATUS_PLANO = statusPlanoOption
-      }
-    }
-    onCategoriaChanged()
-  } else {
-    form.value = {
-      ID_ANIMAL: null,
-      CATEGORIA_NUTRICIONAL: null,
-      PESO_REFERENCIA: null,
-      ESCORE_CORPORAL: null,
-      INTENSIDADE_TRABALHO: null,
-      QUANTIDADE_DIARIA_TOTAL: null,
-      NUMERO_REFEICOES: 3,
-      PERCENTUAL_PESO_VIVO: null,
-      DATA_INICIO: new Date().toISOString().split('T')[0],
-      DATA_FIM: '',
-      STATUS_PLANO: 'ATIVO',
-      OBSERVACOES: '',
-    }
-  }
-}
-
-async function submitForm() {
-  try {
-    // Calcular percentual peso vivo
-    if (form.value.PESO_REFERENCIA && form.value.QUANTIDADE_DIARIA_TOTAL) {
-      form.value.PERCENTUAL_PESO_VIVO = percentualPesoVivo.value
-    }
-
-    if (form.value.ID) {
-      await racaoStore.updatePlanoAlimentar(form.value.ID, form.value)
-      ErrorHandler.success('Plano atualizado com sucesso!')
-    } else {
-      await racaoStore.createPlanoAlimentar(form.value)
-      ErrorHandler.success('Plano criado com sucesso!')
-    }
-
-    dialog.value = false
-    await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao salvar plano')
-  }
-}
-
-function viewPlano(plano) {
-  viewData.value = plano
-  viewDialog.value = true
-}
-
-async function viewItens(plano) {
-  planoSelecionado.value = plano
-  await racaoStore.fetchItensPlano(plano.ID)
-  itensDialog.value = true
-}
-
-async function calcularPlano(plano) {
-  try {
-    const calculo = await racaoStore.calcularNecessidadesNutricionais(
-      plano.ID_ANIMAL,
-      plano.CATEGORIA_NUTRICIONAL
-    )
-
-    $q.dialog({
-      title: 'Cálculo Nutricional',
-      message: `Sugestão: ${racaoStore.formatarPeso(
-        calculo.quantidade_sugerida_kg
-      )}/dia (${racaoStore.formatarPercentual(
-        calculo.percentual_peso_vivo
-      )} PV)`,
-      ok: 'Aplicar',
-      cancel: 'Fechar',
-    }).onOk(async () => {
-      const updateData = {
-        QUANTIDADE_DIARIA_TOTAL: calculo.quantidade_sugerida_kg,
-        PERCENTUAL_PESO_VIVO: calculo.percentual_peso_vivo,
-      }
-
-      await racaoStore.updatePlanoAlimentar(plano.ID, updateData)
-      await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-      ErrorHandler.success('Plano recalculado!')
-    })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao calcular necessidades')
-  }
-}
-
-async function onAnimalSelected(animal) {
-  if (animal?.peso_atual) {
-    form.value.PESO_REFERENCIA = animal.peso_atual
-  }
-}
-
-async function onCategoriaChanged() {
-  if (
-    form.value.ID_ANIMAL &&
-    form.value.CATEGORIA_NUTRICIONAL &&
-    form.value.PESO_REFERENCIA
-  ) {
-    try {
-      sugestaoNutricional.value =
-        await racaoStore.calcularNecessidadesNutricionais(
-          form.value.ID_ANIMAL.value,
-          form.value.CATEGORIA_NUTRICIONAL.value
+      if (categoriaNutricional && typeof categoriaNutricional === 'string') {
+        const categoriaOption = racaoStore.categoriasNutricionais.find(
+          c => c.value === categoriaNutricional
         )
+        if (categoriaOption) {
+          form.value.CATEGORIA_NUTRICIONAL = categoriaOption
+        }
+      }
+      if (intensidadeTrabalho && typeof intensidadeTrabalho === 'string') {
+        const intensidadeTrabalhoOption = racaoStore.intensidadeTrabalho.find(
+          c => c.value === intensidadeTrabalho
+        )
+        if (intensidadeTrabalhoOption) {
+          form.value.INTENSIDADE_TRABALHO = intensidadeTrabalhoOption
+        }
+      }
+      if (statusPlano && typeof statusPlano === 'string') {
+        const statusPlanoOption = racaoStore.statusPlano.find(
+          c => c.value === statusPlano
+        )
+        if (statusPlanoOption) {
+          form.value.STATUS_PLANO = statusPlanoOption
+        }
+      }
+      onCategoriaChanged()
+    } else {
+      form.value = {
+        ID_ANIMAL: null,
+        CATEGORIA_NUTRICIONAL: null,
+        PESO_REFERENCIA: null,
+        ESCORE_CORPORAL: null,
+        INTENSIDADE_TRABALHO: null,
+        QUANTIDADE_DIARIA_TOTAL: null,
+        NUMERO_REFEICOES: 3,
+        PERCENTUAL_PESO_VIVO: null,
+        DATA_INICIO: new Date().toISOString().split('T')[0],
+        DATA_FIM: '',
+        STATUS_PLANO: 'ATIVO',
+        OBSERVACOES: '',
+      }
+    }
+  }
+
+  async function submitForm() {
+    try {
+      // Calcular percentual peso vivo
+      if (form.value.PESO_REFERENCIA && form.value.QUANTIDADE_DIARIA_TOTAL) {
+        form.value.PERCENTUAL_PESO_VIVO = percentualPesoVivo.value
+      }
+
+      if (form.value.ID) {
+        await racaoStore.updatePlanoAlimentar(form.value.ID, form.value)
+        ErrorHandler.success('Plano atualizado com sucesso!')
+      } else {
+        await racaoStore.createPlanoAlimentar(form.value)
+        ErrorHandler.success('Plano criado com sucesso!')
+      }
+
+      dialog.value = false
+      await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
     } catch (error) {
-      ErrorHandler.handle(error, 'Erro ao calcular sugestão')
+      ErrorHandler.handle(error, 'Erro ao salvar plano')
     }
   }
-}
 
-function usarSugestao() {
-  if (sugestaoNutricional.value) {
-    form.value.QUANTIDADE_DIARIA_TOTAL =
-      sugestaoNutricional.value.quantidade_sugerida_kg
-    form.value.PERCENTUAL_PESO_VIVO =
-      sugestaoNutricional.value.percentual_peso_vivo
+  function viewPlano(plano) {
+    viewData.value = plano
+    viewDialog.value = true
   }
-}
 
-async function loadAnimalOptions() {
-  try {
-    animalStore.setPagination = {
-      page: 1,
-      rowsPerPage: 5000,
-      rowsNumber: 0,
-      sortBy: 'NOME',
+  async function viewItens(plano) {
+    planoSelecionado.value = plano
+    await racaoStore.fetchItensPlano(plano.ID)
+    itensDialog.value = true
+  }
+
+  async function calcularPlano(plano) {
+    try {
+      const calculo = await racaoStore.calcularNecessidadesNutricionais(
+        plano.ID_ANIMAL,
+        plano.CATEGORIA_NUTRICIONAL
+      )
+
+      $q.dialog({
+        title: 'Cálculo Nutricional',
+        message: `Sugestão: ${racaoStore.formatarPeso(
+          calculo.quantidade_sugerida_kg
+        )}/dia (${racaoStore.formatarPercentual(
+          calculo.percentual_peso_vivo
+        )} PV)`,
+        ok: 'Aplicar',
+        cancel: 'Fechar',
+      }).onOk(async () => {
+        const updateData = {
+          QUANTIDADE_DIARIA_TOTAL: calculo.quantidade_sugerida_kg,
+          PERCENTUAL_PESO_VIVO: calculo.percentual_peso_vivo,
+        }
+
+        await racaoStore.updatePlanoAlimentar(plano.ID, updateData)
+        await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+        ErrorHandler.success('Plano recalculado!')
+      })
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao calcular necessidades')
     }
+  }
 
-    animalStore.setFilters = {
-      status: 'ATIVO',
+  async function onAnimalSelected(animal) {
+    if (animal?.peso_atual) {
+      form.value.PESO_REFERENCIA = animal.peso_atual
     }
+  }
 
-    const data = await animalStore.fetchAnimais()
+  async function onCategoriaChanged() {
+    if (
+      form.value.ID_ANIMAL &&
+      form.value.CATEGORIA_NUTRICIONAL &&
+      form.value.PESO_REFERENCIA
+    ) {
+      try {
+        sugestaoNutricional.value =
+          await racaoStore.calcularNecessidadesNutricionais(
+            form.value.ID_ANIMAL.value,
+            form.value.CATEGORIA_NUTRICIONAL.value
+          )
+      } catch (error) {
+        ErrorHandler.handle(error, 'Erro ao calcular sugestão')
+      }
+    }
+  }
 
-    animalOri.value = data.animais.map(el => {
-      return {
-        value: el.ID,
-        label: el.NOME,
-        peso_atual: el.PESO_ATUAL,
+  function usarSugestao() {
+    if (sugestaoNutricional.value) {
+      form.value.QUANTIDADE_DIARIA_TOTAL =
+        sugestaoNutricional.value.quantidade_sugerida_kg
+      form.value.PERCENTUAL_PESO_VIVO =
+        sugestaoNutricional.value.percentual_peso_vivo
+    }
+  }
+
+  async function loadAnimalOptions() {
+    try {
+      animalStore.setPagination = {
+        page: 1,
+        rowsPerPage: 5000,
+        rowsNumber: 0,
+        sortBy: 'NOME',
+      }
+
+      animalStore.setFilters = {
+        status: 'ATIVO',
+      }
+
+      const data = await animalStore.fetchAnimais()
+
+      animalOri.value = data.animais.map(el => {
+        return {
+          value: el.ID,
+          label: el.NOME,
+          peso_atual: el.PESO_ATUAL,
+        }
+      })
+      animalOptions.value = [...animalOri.value]
+      animalOptionsDialog.value = [...animalOri.value]
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar animais')
+    }
+  }
+
+  function filterAnimais(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptions.value = [...animalOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        animalOptions.value = animalOri.value.filter(a =>
+          a.label.toLowerCase().includes(needle)
+        )
       }
     })
-    animalOptions.value = [...animalOri.value]
-    animalOptionsDialog.value = [...animalOri.value]
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar animais')
   }
-}
 
-function filterAnimais(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptions.value = [...animalOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      animalOptions.value = animalOri.value.filter(a =>
-        a.label.toLowerCase().includes(needle)
-      )
+  function filterAnimaisDialog(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptionsDialog.value = [...animalOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        animalOptionsDialog.value = animalOri.value.filter(a =>
+          a.label.toLowerCase().includes(needle)
+        )
+      }
+    })
+  }
+
+  function openItemDialog(item = null) {
+    itemEditando.value = item
+    itemDialog.value = true
+  }
+
+  function confirmDeleteItem(item) {
+    itemParaExcluir.value = item
+    deleteItemDialog.value = true
+  }
+
+  async function deleteItem() {
+    try {
+      await racaoStore.deleteItemPlano(itemParaExcluir.value.ID)
+      await racaoStore.fetchItensPlano(planoSelecionado.value.ID)
+      await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+      ErrorHandler.success('Item removido!')
+      deleteItemDialog.value = false
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao remover item')
     }
-  })
-}
+  }
 
-function filterAnimaisDialog(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptionsDialog.value = [...animalOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      animalOptionsDialog.value = animalOri.value.filter(a =>
-        a.label.toLowerCase().includes(needle)
-      )
-    }
-  })
-}
-
-function openItemDialog(item = null) {
-  itemEditando.value = item
-  itemDialog.value = true
-}
-
-function confirmDeleteItem(item) {
-  itemParaExcluir.value = item
-  deleteItemDialog.value = true
-}
-
-async function deleteItem() {
-  try {
-    await racaoStore.deleteItemPlano(itemParaExcluir.value.ID)
+  async function onItemSaved() {
     await racaoStore.fetchItensPlano(planoSelecionado.value.ID)
     await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-    ErrorHandler.success('Item removido!')
-    deleteItemDialog.value = false
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao remover item')
   }
-}
 
-async function onItemSaved() {
-  await racaoStore.fetchItensPlano(planoSelecionado.value.ID)
-  await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-}
-
-function onItemCancelled() {
-  itemEditando.value = null
-}
-
-// Funções auxiliares
-function getCorCategoria(categoria) {
-  const cores = {
-    POTRO: 'purple',
-    JOVEM: 'blue',
-    ADULTO_MANUTENCAO: 'green',
-    ADULTO_TRABALHO_LEVE: 'teal',
-    ADULTO_TRABALHO_MODERADO: 'orange',
-    ADULTO_TRABALHO_INTENSO: 'red',
-    EGUA_GESTANTE: 'pink',
-    EGUA_LACTANTE: 'indigo',
-    REPRODUTOR: 'brown',
-    IDOSO: 'grey',
+  function onItemCancelled() {
+    itemEditando.value = null
   }
-  return cores[categoria] || 'grey'
-}
 
-function getCorStatus(status) {
-  const cores = {
-    ATIVO: 'positive',
-    INATIVO: 'grey',
-    SUSPENSO: 'warning',
-  }
-  return cores[status] || 'grey'
-}
-
-function formatarData(data) {
-  if (!data) return '-'
-  return new Date(data).toLocaleDateString('pt-BR')
-}
-
-// Watchers
-watch(
-  () => form.value.PESO_REFERENCIA,
-  () => {
-    if (form.value.CATEGORIA_NUTRICIONAL) {
-      onCategoriaChanged()
+  // Funções auxiliares
+  function getCorCategoria(categoria) {
+    const cores = {
+      POTRO: 'purple',
+      JOVEM: 'blue',
+      ADULTO_MANUTENCAO: 'green',
+      ADULTO_TRABALHO_LEVE: 'teal',
+      ADULTO_TRABALHO_MODERADO: 'orange',
+      ADULTO_TRABALHO_INTENSO: 'red',
+      EGUA_GESTANTE: 'pink',
+      EGUA_LACTANTE: 'indigo',
+      REPRODUTOR: 'brown',
+      IDOSO: 'grey',
     }
+    return cores[categoria] || 'grey'
   }
-)
 
-// Lifecycle
-onMounted(async () => {
-  await loadAnimalOptions()
-  await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
-})
+  function getCorStatus(status) {
+    const cores = {
+      ATIVO: 'positive',
+      INATIVO: 'grey',
+      SUSPENSO: 'warning',
+    }
+    return cores[status] || 'grey'
+  }
+
+  function formatarData(data) {
+    if (!data) return '-'
+    return new Date(data).toLocaleDateString('pt-BR')
+  }
+
+  // Watchers
+  watch(
+    () => form.value.PESO_REFERENCIA,
+    () => {
+      if (form.value.CATEGORIA_NUTRICIONAL) {
+        onCategoriaChanged()
+      }
+    }
+  )
+
+  // Lifecycle
+  onMounted(async () => {
+    await loadAnimalOptions()
+    await racaoStore.fetchPlanosAlimentares({ filtros: filtros.value })
+  })
 </script>
 
 <style scoped>
-.planos-alimentares-container {
-  width: 100%;
-}
+  .planos-alimentares-container {
+    width: 100%;
+  }
 
-.planos-table {
-  border-radius: 8px;
-}
+  .planos-table {
+    border-radius: 8px;
+  }
 
-.planos-table .q-table__top {
-  padding: 16px;
-}
+  .planos-table .q-table__top {
+    padding: 16px;
+  }
 </style>

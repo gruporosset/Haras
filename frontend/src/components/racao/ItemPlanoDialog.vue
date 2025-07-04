@@ -242,230 +242,232 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRacaoStore } from 'stores/racao'
-import { ErrorHandler } from 'src/utils/errorHandler'
+  import { ref, computed, watch } from 'vue'
+  import { useRacaoStore } from 'stores/racao'
+  import { ErrorHandler } from 'src/utils/errorHandler'
 
-// Props
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false,
-  },
-  planoInfo: {
-    type: Object,
-    default: null,
-  },
-  itemEdit: {
-    type: Object,
-    default: null,
-  },
-})
+  // Props
+  const props = defineProps({
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
+    planoInfo: {
+      type: Object,
+      default: null,
+    },
+    itemEdit: {
+      type: Object,
+      default: null,
+    },
+  })
 
-// Emits
-const emit = defineEmits(['update:modelValue', 'saved', 'cancelled'])
+  // Emits
+  const emit = defineEmits(['update:modelValue', 'saved', 'cancelled'])
 
-// Composables
-const racaoStore = useRacaoStore()
+  // Composables
+  const racaoStore = useRacaoStore()
 
-// Estado reativo
-const loading = ref(false)
-const produtoOptions = ref([])
-const produtoOptionsOriginal = ref([])
+  // Estado reativo
+  const loading = ref(false)
+  const produtoOptions = ref([])
+  const produtoOptionsOriginal = ref([])
 
-// Formulário
-const form = ref({
-  ID_PLANO: null,
-  ID_PRODUTO: null,
-  QUANTIDADE_DIARIA: null,
-  QUANTIDADE_POR_REFEICAO: null,
-  ORDEM_FORNECIMENTO: 1,
-  HORARIO_REFEICAO_1: '',
-  HORARIO_REFEICAO_2: '',
-  HORARIO_REFEICAO_3: '',
-  HORARIO_REFEICAO_4: '',
-  OBSERVACOES: '',
-})
+  // Formulário
+  const form = ref({
+    ID_PLANO: null,
+    ID_PRODUTO: null,
+    QUANTIDADE_DIARIA: null,
+    QUANTIDADE_POR_REFEICAO: null,
+    ORDEM_FORNECIMENTO: 1,
+    HORARIO_REFEICAO_1: '',
+    HORARIO_REFEICAO_2: '',
+    HORARIO_REFEICAO_3: '',
+    HORARIO_REFEICAO_4: '',
+    OBSERVACOES: '',
+  })
 
-// Computed
-const dialog = computed({
-  get: () => props.modelValue,
-  set: value => emit('update:modelValue', value),
-})
+  // Computed
+  const dialog = computed({
+    get: () => props.modelValue,
+    set: value => emit('update:modelValue', value),
+  })
 
-const numeroRefeicoes = computed(() => {
-  return props.planoInfo?.NUMERO_REFEICOES || 3
-})
+  const numeroRefeicoes = computed(() => {
+    return props.planoInfo?.NUMERO_REFEICOES || 3
+  })
 
-const produtoSelecionado = computed(() => {
-  if (!form.value.ID_PRODUTO?.value) return null
-  return produtoOptionsOriginal.value.find(
-    p => p.value === form.value.ID_PRODUTO.value
-  )
-})
+  const produtoSelecionado = computed(() => {
+    if (!form.value.ID_PRODUTO?.value) return null
+    return produtoOptionsOriginal.value.find(
+      p => p.value === form.value.ID_PRODUTO.value
+    )
+  })
 
-const unidadeSelecionada = computed(() => {
-  return produtoSelecionado.value?.unidade_medida || 'KG'
-})
+  const unidadeSelecionada = computed(() => {
+    return produtoSelecionado.value?.unidade_medida || 'KG'
+  })
 
-const custoEstimado = computed(() => {
-  if (
-    !form.value.QUANTIDADE_DIARIA ||
-    !produtoSelecionado.value?.preco_unitario
-  )
-    return 0
-  return form.value.QUANTIDADE_DIARIA * produtoSelecionado.value.preco_unitario
-})
-
-// Métodos
-async function initializeForm() {
-  if (props.itemEdit) {
-    // Editando item existente
-    form.value = { ...props.itemEdit }
-
-    // Converter ID_PRODUTO para objeto se necessário
+  const custoEstimado = computed(() => {
     if (
-      props.itemEdit.ID_PRODUTO &&
-      typeof props.itemEdit.ID_PRODUTO === 'number'
-    ) {
-      const produtoOption = produtoOptionsOriginal.value.find(
-        p => p.value === props.itemEdit.ID_PRODUTO
-      )
-      if (produtoOption) {
-        form.value.ID_PRODUTO = produtoOption
+      !form.value.QUANTIDADE_DIARIA ||
+      !produtoSelecionado.value?.preco_unitario
+    )
+      return 0
+    return (
+      form.value.QUANTIDADE_DIARIA * produtoSelecionado.value.preco_unitario
+    )
+  })
+
+  // Métodos
+  async function initializeForm() {
+    if (props.itemEdit) {
+      // Editando item existente
+      form.value = { ...props.itemEdit }
+
+      // Converter ID_PRODUTO para objeto se necessário
+      if (
+        props.itemEdit.ID_PRODUTO &&
+        typeof props.itemEdit.ID_PRODUTO === 'number'
+      ) {
+        const produtoOption = produtoOptionsOriginal.value.find(
+          p => p.value === props.itemEdit.ID_PRODUTO
+        )
+        if (produtoOption) {
+          form.value.ID_PRODUTO = produtoOption
+        }
+      }
+    } else {
+      // Novo item
+      form.value = {
+        ID_PLANO: props.planoInfo?.ID || null,
+        ID_PRODUTO: null,
+        QUANTIDADE_DIARIA: null,
+        QUANTIDADE_POR_REFEICAO: null,
+        ORDEM_FORNECIMENTO: 1,
+        HORARIO_REFEICAO_1: '',
+        HORARIO_REFEICAO_2: '',
+        HORARIO_REFEICAO_3: '',
+        HORARIO_REFEICAO_4: '',
+        OBSERVACOES: '',
       }
     }
-  } else {
-    // Novo item
-    form.value = {
-      ID_PLANO: props.planoInfo?.ID || null,
-      ID_PRODUTO: null,
-      QUANTIDADE_DIARIA: null,
-      QUANTIDADE_POR_REFEICAO: null,
-      ORDEM_FORNECIMENTO: 1,
-      HORARIO_REFEICAO_1: '',
-      HORARIO_REFEICAO_2: '',
-      HORARIO_REFEICAO_3: '',
-      HORARIO_REFEICAO_4: '',
-      OBSERVACOES: '',
-    }
   }
-}
 
-async function loadProdutoOptions() {
-  try {
-    const produtos = await racaoStore.autocompleProdutos('')
-    produtoOptionsOriginal.value = produtos.map(p => ({
-      value: p.value,
-      label: p.label,
-      estoque_atual: p.estoque_atual,
-      unidade_medida: p.unidade_medida,
-      tipo_alimento: p.tipo_alimento,
-      preco_unitario: p.preco_unitario || 0,
-    }))
-    produtoOptions.value = [...produtoOptionsOriginal.value]
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar produtos')
-  }
-}
-
-function filterProdutos(val, update) {
-  update(() => {
-    if (val === '') {
+  async function loadProdutoOptions() {
+    try {
+      const produtos = await racaoStore.autocompleProdutos('')
+      produtoOptionsOriginal.value = produtos.map(p => ({
+        value: p.value,
+        label: p.label,
+        estoque_atual: p.estoque_atual,
+        unidade_medida: p.unidade_medida,
+        tipo_alimento: p.tipo_alimento,
+        preco_unitario: p.preco_unitario || 0,
+      }))
       produtoOptions.value = [...produtoOptionsOriginal.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptions.value = produtoOptionsOriginal.value.filter(p =>
-        p.label.toLowerCase().includes(needle)
-      )
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar produtos')
     }
-  })
-}
-
-function onProdutoSelected(produto) {
-  if (produto?.value) {
-    form.value.ID_PRODUTO = produto
   }
-}
 
-function calcularPorRefeicao() {
-  if (form.value.QUANTIDADE_DIARIA && numeroRefeicoes.value) {
-    form.value.QUANTIDADE_POR_REFEICAO =
-      form.value.QUANTIDADE_DIARIA / numeroRefeicoes.value
-  }
-}
-
-function calcularDiaria() {
-  if (form.value.QUANTIDADE_POR_REFEICAO && numeroRefeicoes.value) {
-    form.value.QUANTIDADE_DIARIA =
-      form.value.QUANTIDADE_POR_REFEICAO * numeroRefeicoes.value
-  }
-}
-
-async function submitForm() {
-  try {
-    loading.value = true
-
-    // Preparar dados
-    const data = { ...form.value }
-    if (data.ID_PRODUTO?.value) {
-      data.ID_PRODUTO = data.ID_PRODUTO.value
-    }
-
-    // Remover HORARIO_REFEICAO_* se forem strings vazias
-    const horarios = [
-      'HORARIO_REFEICAO_1',
-      'HORARIO_REFEICAO_2',
-      'HORARIO_REFEICAO_3',
-      'HORARIO_REFEICAO_4',
-    ]
-    horarios.forEach(horario => {
-      if (data[horario] === '') {
-        delete data[horario]
+  function filterProdutos(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptions.value = [...produtoOptionsOriginal.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptions.value = produtoOptionsOriginal.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
       }
     })
+  }
 
-    if (props.itemEdit?.ID) {
-      // Atualizar item existente
-      await racaoStore.updateItemPlano(props.itemEdit.ID, data)
-      ErrorHandler.success('Item atualizado com sucesso!')
-    } else {
-      // Criar novo item
-      await racaoStore.createItemPlano(props.planoInfo.ID, data)
-      ErrorHandler.success('Item adicionado com sucesso!')
+  function onProdutoSelected(produto) {
+    if (produto?.value) {
+      form.value.ID_PRODUTO = produto
     }
+  }
 
-    emit('saved')
+  function calcularPorRefeicao() {
+    if (form.value.QUANTIDADE_DIARIA && numeroRefeicoes.value) {
+      form.value.QUANTIDADE_POR_REFEICAO =
+        form.value.QUANTIDADE_DIARIA / numeroRefeicoes.value
+    }
+  }
+
+  function calcularDiaria() {
+    if (form.value.QUANTIDADE_POR_REFEICAO && numeroRefeicoes.value) {
+      form.value.QUANTIDADE_DIARIA =
+        form.value.QUANTIDADE_POR_REFEICAO * numeroRefeicoes.value
+    }
+  }
+
+  async function submitForm() {
+    try {
+      loading.value = true
+
+      // Preparar dados
+      const data = { ...form.value }
+      if (data.ID_PRODUTO?.value) {
+        data.ID_PRODUTO = data.ID_PRODUTO.value
+      }
+
+      // Remover HORARIO_REFEICAO_* se forem strings vazias
+      const horarios = [
+        'HORARIO_REFEICAO_1',
+        'HORARIO_REFEICAO_2',
+        'HORARIO_REFEICAO_3',
+        'HORARIO_REFEICAO_4',
+      ]
+      horarios.forEach(horario => {
+        if (data[horario] === '') {
+          delete data[horario]
+        }
+      })
+
+      if (props.itemEdit?.ID) {
+        // Atualizar item existente
+        await racaoStore.updateItemPlano(props.itemEdit.ID, data)
+        ErrorHandler.success('Item atualizado com sucesso!')
+      } else {
+        // Criar novo item
+        await racaoStore.createItemPlano(props.planoInfo.ID, data)
+        ErrorHandler.success('Item adicionado com sucesso!')
+      }
+
+      emit('saved')
+      dialog.value = false
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao salvar item')
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function cancelar() {
+    emit('cancelled')
     dialog.value = false
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao salvar item')
-  } finally {
-    loading.value = false
   }
-}
 
-function cancelar() {
-  emit('cancelled')
-  dialog.value = false
-}
-
-// Watchers
-watch(
-  () => props.modelValue,
-  async newVal => {
-    if (newVal) {
-      await loadProdutoOptions()
-      await initializeForm()
+  // Watchers
+  watch(
+    () => props.modelValue,
+    async newVal => {
+      if (newVal) {
+        await loadProdutoOptions()
+        await initializeForm()
+      }
     }
-  }
-)
+  )
 
-watch(
-  () => numeroRefeicoes.value,
-  () => {
-    if (form.value.QUANTIDADE_DIARIA) {
-      calcularPorRefeicao()
+  watch(
+    () => numeroRefeicoes.value,
+    () => {
+      if (form.value.QUANTIDADE_DIARIA) {
+        calcularPorRefeicao()
+      }
     }
-  }
-)
+  )
 </script>

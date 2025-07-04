@@ -543,388 +543,388 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useQuasar } from 'quasar'
-import { useRacaoStore } from 'stores/racao'
-import { ErrorHandler } from 'src/utils/errorHandler'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { useQuasar } from 'quasar'
+  import { useRacaoStore } from 'stores/racao'
+  import { ErrorHandler } from 'src/utils/errorHandler'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
-// Composables
-const $q = useQuasar()
-const racaoStore = useRacaoStore()
+  // Composables
+  const $q = useQuasar()
+  const racaoStore = useRacaoStore()
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const viewData = ref(null)
-const tipoMovimentacao = ref('ENTRADA')
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const viewData = ref(null)
+  const tipoMovimentacao = ref('ENTRADA')
 
-// Filtros
-const filtros = ref({
-  produto_id: null,
-  tipo_movimentacao: null,
-  data_inicio: '',
-  data_fim: '',
-})
+  // Filtros
+  const filtros = ref({
+    produto_id: null,
+    tipo_movimentacao: null,
+    data_inicio: '',
+    data_fim: '',
+  })
 
-// Formulário
-const form = ref({})
+  // Formulário
+  const form = ref({})
 
-// Opções
-const produtosOri = ref([])
-const produtoOptions = ref([])
-const produtoOptionsDialog = ref([])
+  // Opções
+  const produtosOri = ref([])
+  const produtoOptions = ref([])
+  const produtoOptionsDialog = ref([])
 
-// Computed
-const unidadeSelecionada = computed(() => {
-  if (!form.value.ID_PRODUTO?.unidade_medida) return ''
-  return form.value.ID_PRODUTO.unidade_medida
-})
+  // Computed
+  const unidadeSelecionada = computed(() => {
+    if (!form.value.ID_PRODUTO?.unidade_medida) return ''
+    return form.value.ID_PRODUTO.unidade_medida
+  })
 
-const estoqueDisponivel = computed(() => {
-  if (!form.value.ID_PRODUTO?.estoque_atual) return 0
-  return form.value.ID_PRODUTO.estoque_atual
-})
+  const estoqueDisponivel = computed(() => {
+    if (!form.value.ID_PRODUTO?.estoque_atual) return 0
+    return form.value.ID_PRODUTO.estoque_atual
+  })
 
-const estatisticas = computed(() => {
-  const movs = racaoStore.movimentacoes
-  const entradas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'ENTRADA')
-  const saidas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'SAIDA')
-  const ajustes = movs.filter(m => m.TIPO_MOVIMENTACAO === 'AJUSTE')
+  const estatisticas = computed(() => {
+    const movs = racaoStore.movimentacoes
+    const entradas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'ENTRADA')
+    const saidas = movs.filter(m => m.TIPO_MOVIMENTACAO === 'SAIDA')
+    const ajustes = movs.filter(m => m.TIPO_MOVIMENTACAO === 'AJUSTE')
 
-  return {
-    totalEntradas: entradas.length,
-    totalSaidas: saidas.length,
-    totalAjustes: ajustes.length,
-    valorEntradas: entradas.reduce(
-      (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
-      0
-    ),
-    valorSaidas: saidas.reduce(
-      (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
-      0
-    ),
-    produtosMovimentados: new Set(movs.map(m => m.ID_PRODUTO)).size,
-    ultimoAjuste:
-      ajustes.length > 0
-        ? new Date(
-            Math.max(...ajustes.map(a => new Date(a.DATA_REGISTRO)))
-          ).toLocaleDateString('pt-BR')
-        : null,
-  }
-})
-
-// Colunas da tabela
-const columns = [
-  {
-    name: 'produto_nome',
-    label: 'Produto',
-    field: 'produto_nome',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'TIPO_MOVIMENTACAO',
-    label: 'Tipo',
-    field: 'TIPO_MOVIMENTACAO',
-    sortable: true,
-    align: 'center',
-  },
-  {
-    name: 'QUANTIDADE',
-    label: 'Quantidade',
-    field: 'QUANTIDADE',
-    sortable: true,
-    align: 'right',
-  },
-  {
-    name: 'saldo',
-    label: 'Saldo Anterior → Atual',
-    field: 'saldo',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'valor',
-    label: 'Valor',
-    field: 'valor',
-    sortable: false,
-    align: 'right',
-  },
-  {
-    name: 'DATA_REGISTRO',
-    label: 'Data/Hora',
-    field: 'DATA_REGISTRO',
-    sortable: true,
-    align: 'left',
-  },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
-]
-
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  racaoStore.pagination.page = page
-  racaoStore.pagination.rowsPerPage = rowsPerPage
-  racaoStore.pagination.sortBy = sortBy
-  racaoStore.pagination.descending = descending
-  await racaoStore.fetchMovimentacoes({ ...props, filtros: filtros.value })
-}
-
-async function onFilterChange() {
-  racaoStore.pagination.page = 1
-  await racaoStore.fetchMovimentacoes({ filtros: filtros.value })
-}
-
-function openDialog(tipo) {
-  tipoMovimentacao.value = tipo
-  initializeForm()
-  dialog.value = true
-}
-
-function initializeForm() {
-  form.value = {
-    ID_PRODUTO: null,
-    QUANTIDADE: null,
-    QUANTIDADE_NOVA: null,
-    NOTA_FISCAL: '',
-    FORNECEDOR: '',
-    PRECO_UNITARIO: null,
-    LOTE: '',
-    DATA_VALIDADE: '',
-    DATA_FABRICACAO: '',
-    MOTIVO: '',
-    OBSERVACOES: '',
-  }
-}
-
-async function submitForm() {
-  try {
-    const data = { ...form.value }
-    if (data.ID_PRODUTO?.value) {
-      data.ID_PRODUTO = data.ID_PRODUTO.value
+    return {
+      totalEntradas: entradas.length,
+      totalSaidas: saidas.length,
+      totalAjustes: ajustes.length,
+      valorEntradas: entradas.reduce(
+        (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
+        0
+      ),
+      valorSaidas: saidas.reduce(
+        (sum, m) => sum + (m.QUANTIDADE || 0) * (m.PRECO_UNITARIO || 0),
+        0
+      ),
+      produtosMovimentados: new Set(movs.map(m => m.ID_PRODUTO)).size,
+      ultimoAjuste:
+        ajustes.length > 0
+          ? new Date(
+              Math.max(...ajustes.map(a => new Date(a.DATA_REGISTRO)))
+            ).toLocaleDateString('pt-BR')
+          : null,
     }
+  })
 
-    switch (tipoMovimentacao.value) {
-      case 'ENTRADA':
-        await racaoStore.entradaEstoque(data)
-        $q.notify({
-          type: 'positive',
-          message: 'Entrada registrada com sucesso!',
-        })
-        break
+  // Colunas da tabela
+  const columns = [
+    {
+      name: 'produto_nome',
+      label: 'Produto',
+      field: 'produto_nome',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'TIPO_MOVIMENTACAO',
+      label: 'Tipo',
+      field: 'TIPO_MOVIMENTACAO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'QUANTIDADE',
+      label: 'Quantidade',
+      field: 'QUANTIDADE',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      name: 'saldo',
+      label: 'Saldo Anterior → Atual',
+      field: 'saldo',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'valor',
+      label: 'Valor',
+      field: 'valor',
+      sortable: false,
+      align: 'right',
+    },
+    {
+      name: 'DATA_REGISTRO',
+      label: 'Data/Hora',
+      field: 'DATA_REGISTRO',
+      sortable: true,
+      align: 'left',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-      case 'SAIDA':
-        await racaoStore.saidaEstoque(data)
-        $q.notify({
-          type: 'positive',
-          message: 'Saída registrada com sucesso!',
-        })
-        break
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    racaoStore.pagination.page = page
+    racaoStore.pagination.rowsPerPage = rowsPerPage
+    racaoStore.pagination.sortBy = sortBy
+    racaoStore.pagination.descending = descending
+    await racaoStore.fetchMovimentacoes({ ...props, filtros: filtros.value })
+  }
 
-      case 'AJUSTE':
-        await racaoStore.ajusteEstoque(data)
-        $q.notify({
-          type: 'positive',
-          message: 'Ajuste realizado com sucesso!',
-        })
-        break
-    }
-
-    dialog.value = false
+  async function onFilterChange() {
+    racaoStore.pagination.page = 1
     await racaoStore.fetchMovimentacoes({ filtros: filtros.value })
-  } catch (error) {
-    $q.notify({
-      type: 'negative',
-      message: error.message || 'Erro na movimentação',
+  }
+
+  function openDialog(tipo) {
+    tipoMovimentacao.value = tipo
+    initializeForm()
+    dialog.value = true
+  }
+
+  function initializeForm() {
+    form.value = {
+      ID_PRODUTO: null,
+      QUANTIDADE: null,
+      QUANTIDADE_NOVA: null,
+      NOTA_FISCAL: '',
+      FORNECEDOR: '',
+      PRECO_UNITARIO: null,
+      LOTE: '',
+      DATA_VALIDADE: '',
+      DATA_FABRICACAO: '',
+      MOTIVO: '',
+      OBSERVACOES: '',
+    }
+  }
+
+  async function submitForm() {
+    try {
+      const data = { ...form.value }
+      if (data.ID_PRODUTO?.value) {
+        data.ID_PRODUTO = data.ID_PRODUTO.value
+      }
+
+      switch (tipoMovimentacao.value) {
+        case 'ENTRADA':
+          await racaoStore.entradaEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Entrada registrada com sucesso!',
+          })
+          break
+
+        case 'SAIDA':
+          await racaoStore.saidaEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Saída registrada com sucesso!',
+          })
+          break
+
+        case 'AJUSTE':
+          await racaoStore.ajusteEstoque(data)
+          $q.notify({
+            type: 'positive',
+            message: 'Ajuste realizado com sucesso!',
+          })
+          break
+      }
+
+      dialog.value = false
+      await racaoStore.fetchMovimentacoes({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro na movimentação',
+      })
+    }
+  }
+
+  function viewMovimentacao(movimentacao) {
+    viewData.value = movimentacao
+    viewDialog.value = true
+  }
+
+  async function loadProdutoOptions() {
+    try {
+      const produtos = await racaoStore.autocompleProdutos('')
+      produtosOri.value = produtos.map(p => ({
+        value: p.value,
+        label: p.label,
+        estoque_atual: p.estoque_atual,
+        unidade_medida: p.unidade_medida,
+      }))
+      produtoOptions.value = [...produtosOri.value]
+      produtoOptionsDialog.value = [...produtosOri.value]
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar produtos')
+    }
+  }
+
+  function filterProdutos(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptions.value = [...produtosOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptions.value = produtosOri.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
+      }
     })
   }
-}
 
-function viewMovimentacao(movimentacao) {
-  viewData.value = movimentacao
-  viewDialog.value = true
-}
-
-async function loadProdutoOptions() {
-  try {
-    const produtos = await racaoStore.autocompleProdutos('')
-    produtosOri.value = produtos.map(p => ({
-      value: p.value,
-      label: p.label,
-      estoque_atual: p.estoque_atual,
-      unidade_medida: p.unidade_medida,
-    }))
-    produtoOptions.value = [...produtosOri.value]
-    produtoOptionsDialog.value = [...produtosOri.value]
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar produtos')
+  function filterProdutosDialog(val, update) {
+    update(() => {
+      if (val === '') {
+        produtoOptionsDialog.value = [...produtosOri.value]
+      } else {
+        const needle = val.toLowerCase()
+        produtoOptionsDialog.value = produtosOri.value.filter(p =>
+          p.label.toLowerCase().includes(needle)
+        )
+      }
+    })
   }
-}
 
-function filterProdutos(val, update) {
-  update(() => {
-    if (val === '') {
-      produtoOptions.value = [...produtosOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptions.value = produtosOri.value.filter(p =>
-        p.label.toLowerCase().includes(needle)
-      )
+  function onProdutoSelected(produto) {
+    if (produto?.value) {
+      form.value.ID_PRODUTO = {
+        value: produto.value,
+        label: produto.label,
+        estoque_atual: produto.estoque_atual || 0,
+        unidade_medida: produto.unidade_medida,
+      }
+
+      // Pré-preencher valores se for entrada
+      if (tipoMovimentacao.value === 'ENTRADA' && produto.preco_unitario) {
+        form.value.PRECO_UNITARIO = produto.preco_unitario
+      }
+
+      // Pré-preencher quantidade nova se for ajuste
+      if (tipoMovimentacao.value === 'AJUSTE') {
+        form.value.QUANTIDADE_NOVA = produto.estoque_atual || 0
+      }
     }
+  }
+
+  // Funções auxiliares
+  function getTipoLabel(tipo) {
+    const labels = {
+      ENTRADA: 'Entrada',
+      SAIDA: 'Saída',
+      AJUSTE: 'Ajuste',
+    }
+    return labels[tipo] || tipo
+  }
+
+  function getCorMovimentacao(tipo) {
+    const cores = {
+      ENTRADA: 'positive',
+      SAIDA: 'negative',
+      AJUSTE: 'warning',
+    }
+    return cores[tipo] || 'grey'
+  }
+
+  function getIconeMovimentacao(tipo) {
+    const icones = {
+      ENTRADA: 'add_box',
+      SAIDA: 'remove_circle',
+      AJUSTE: 'tune',
+    }
+    return icones[tipo] || 'help'
+  }
+
+  function getTituloDialog() {
+    const titulos = {
+      ENTRADA: 'Nova Entrada de Estoque',
+      SAIDA: 'Nova Saída de Estoque',
+      AJUSTE: 'Ajustar Estoque',
+    }
+    return titulos[tipoMovimentacao.value] || 'Movimentação'
+  }
+
+  function getLabelBotao() {
+    const labels = {
+      ENTRADA: 'Registrar Entrada',
+      SAIDA: 'Registrar Saída',
+      AJUSTE: 'Confirmar Ajuste',
+    }
+    return labels[tipoMovimentacao.value] || 'Confirmar'
+  }
+
+  function getCorBotao() {
+    const cores = {
+      ENTRADA: 'positive',
+      SAIDA: 'negative',
+      AJUSTE: 'warning',
+    }
+    return cores[tipoMovimentacao.value] || 'primary'
+  }
+
+  function getSaldoIcon(row) {
+    const anterior = row.QUANTIDADE_ANTERIOR || 0
+    const atual = row.QUANTIDADE_ATUAL || 0
+
+    if (atual > anterior) return 'trending_up'
+    if (atual < anterior) return 'trending_down'
+    return 'remove'
+  }
+
+  function getSaldoColor(row) {
+    const anterior = row.QUANTIDADE_ANTERIOR || 0
+    const atual = row.QUANTIDADE_ATUAL || 0
+
+    if (atual > anterior) return 'positive'
+    if (atual < anterior) return 'negative'
+    return 'grey'
+  }
+
+  function getDiferencaClass() {
+    const atual = estoqueDisponivel.value
+    const nova = form.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - atual
+
+    if (diferenca > 0) return 'text-positive'
+    if (diferenca < 0) return 'text-negative'
+    return 'text-grey-6'
+  }
+
+  function getDiferencaTexto() {
+    const atual = estoqueDisponivel.value
+    const nova = form.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - atual
+
+    if (diferenca === 0) return 'Sem alteração'
+    if (diferenca > 0)
+      return `+${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
+    return `${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
+  }
+
+  function formatarDataHora(data) {
+    if (!data) return '-'
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
+  // Lifecycle
+  onMounted(async () => {
+    await loadProdutoOptions()
+    await racaoStore.fetchMovimentacoes({ filtros: filtros.value })
   })
-}
-
-function filterProdutosDialog(val, update) {
-  update(() => {
-    if (val === '') {
-      produtoOptionsDialog.value = [...produtosOri.value]
-    } else {
-      const needle = val.toLowerCase()
-      produtoOptionsDialog.value = produtosOri.value.filter(p =>
-        p.label.toLowerCase().includes(needle)
-      )
-    }
-  })
-}
-
-function onProdutoSelected(produto) {
-  if (produto?.value) {
-    form.value.ID_PRODUTO = {
-      value: produto.value,
-      label: produto.label,
-      estoque_atual: produto.estoque_atual || 0,
-      unidade_medida: produto.unidade_medida,
-    }
-
-    // Pré-preencher valores se for entrada
-    if (tipoMovimentacao.value === 'ENTRADA' && produto.preco_unitario) {
-      form.value.PRECO_UNITARIO = produto.preco_unitario
-    }
-
-    // Pré-preencher quantidade nova se for ajuste
-    if (tipoMovimentacao.value === 'AJUSTE') {
-      form.value.QUANTIDADE_NOVA = produto.estoque_atual || 0
-    }
-  }
-}
-
-// Funções auxiliares
-function getTipoLabel(tipo) {
-  const labels = {
-    ENTRADA: 'Entrada',
-    SAIDA: 'Saída',
-    AJUSTE: 'Ajuste',
-  }
-  return labels[tipo] || tipo
-}
-
-function getCorMovimentacao(tipo) {
-  const cores = {
-    ENTRADA: 'positive',
-    SAIDA: 'negative',
-    AJUSTE: 'warning',
-  }
-  return cores[tipo] || 'grey'
-}
-
-function getIconeMovimentacao(tipo) {
-  const icones = {
-    ENTRADA: 'add_box',
-    SAIDA: 'remove_circle',
-    AJUSTE: 'tune',
-  }
-  return icones[tipo] || 'help'
-}
-
-function getTituloDialog() {
-  const titulos = {
-    ENTRADA: 'Nova Entrada de Estoque',
-    SAIDA: 'Nova Saída de Estoque',
-    AJUSTE: 'Ajustar Estoque',
-  }
-  return titulos[tipoMovimentacao.value] || 'Movimentação'
-}
-
-function getLabelBotao() {
-  const labels = {
-    ENTRADA: 'Registrar Entrada',
-    SAIDA: 'Registrar Saída',
-    AJUSTE: 'Confirmar Ajuste',
-  }
-  return labels[tipoMovimentacao.value] || 'Confirmar'
-}
-
-function getCorBotao() {
-  const cores = {
-    ENTRADA: 'positive',
-    SAIDA: 'negative',
-    AJUSTE: 'warning',
-  }
-  return cores[tipoMovimentacao.value] || 'primary'
-}
-
-function getSaldoIcon(row) {
-  const anterior = row.QUANTIDADE_ANTERIOR || 0
-  const atual = row.QUANTIDADE_ATUAL || 0
-
-  if (atual > anterior) return 'trending_up'
-  if (atual < anterior) return 'trending_down'
-  return 'remove'
-}
-
-function getSaldoColor(row) {
-  const anterior = row.QUANTIDADE_ANTERIOR || 0
-  const atual = row.QUANTIDADE_ATUAL || 0
-
-  if (atual > anterior) return 'positive'
-  if (atual < anterior) return 'negative'
-  return 'grey'
-}
-
-function getDiferencaClass() {
-  const atual = estoqueDisponivel.value
-  const nova = form.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - atual
-
-  if (diferenca > 0) return 'text-positive'
-  if (diferenca < 0) return 'text-negative'
-  return 'text-grey-6'
-}
-
-function getDiferencaTexto() {
-  const atual = estoqueDisponivel.value
-  const nova = form.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - atual
-
-  if (diferenca === 0) return 'Sem alteração'
-  if (diferenca > 0)
-    return `+${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
-  return `${diferenca.toLocaleString('pt-BR')} ${unidadeSelecionada.value}`
-}
-
-function formatarDataHora(data) {
-  if (!data) return '-'
-  return new Date(data).toLocaleString('pt-BR')
-}
-
-// Lifecycle
-onMounted(async () => {
-  await loadProdutoOptions()
-  await racaoStore.fetchMovimentacoes({ filtros: filtros.value })
-})
 </script>
 
 <style scoped>
-.movimentacao-racao-container {
-  width: 100%;
-}
+  .movimentacao-racao-container {
+    width: 100%;
+  }
 
-.movimentacoes-table {
-  border-radius: 8px;
-}
+  .movimentacoes-table {
+    border-radius: 8px;
+  }
 
-.movimentacoes-table .q-table__top {
-  padding: 16px;
-}
+  .movimentacoes-table .q-table__top {
+    padding: 16px;
+  }
 </style>

@@ -1,6 +1,9 @@
 <template>
   <div class="map-container">
-    <div v-if="!terrenos.length" class="text-center q-pa-md">
+    <div
+      v-if="!terrenos.length"
+      class="text-center q-pa-md"
+    >
       Nenhum terreno encontrado para exibir no mapa.
     </div>
     <l-map
@@ -24,8 +27,10 @@
       >
         <l-popup>
           <div>
-            <strong>{{ terreno.NOME }}</strong><br>
-            Status: {{ terreno.STATUS_TERRENO }}<br>
+            <strong>{{ terreno.NOME }}</strong>
+            <br />
+            Status: {{ terreno.STATUS_TERRENO }}
+            <br />
             Área: {{ terreno.AREA_HECTARES }} ha
           </div>
         </l-popup>
@@ -35,55 +40,53 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import {
-  LMap,
-  LTileLayer,
-  LMarker,
-  LPopup
-} from '@vue-leaflet/vue-leaflet'
-import 'leaflet/dist/leaflet.css'
+  import { ref, computed, onMounted } from 'vue'
+  import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+  import 'leaflet/dist/leaflet.css'
 
-const props = defineProps({
-  terrenos: {
-    type: Array,
-    required: true,
-    default: () => []
+  const props = defineProps({
+    terrenos: {
+      type: Array,
+      required: true,
+      default: () => [],
+    },
+  })
+
+  const zoom = ref(13)
+  const map = ref(null)
+
+  const mapCenter = computed(() => {
+    if (!props.terrenos?.length) return [-15.0, -47.0] // Centro do Brasil
+    const avgLat =
+      props.terrenos.reduce((sum, t) => sum + t.LATITUDE, 0) /
+      props.terrenos.length
+    const avgLng =
+      props.terrenos.reduce((sum, t) => sum + t.LONGITUDE, 0) /
+      props.terrenos.length
+    return [avgLat, avgLng]
+  })
+
+  function onMapReady() {
+    // Ajustar acessibilidade
+    const mapElement = map.value?.leafletObject?.getContainer()
+    if (mapElement) {
+      mapElement.setAttribute('role', 'region')
+      mapElement.setAttribute('aria-describedby', 'map-description')
+    }
   }
-})
 
-const zoom = ref(13)
-const map = ref(null)
-
-const mapCenter = computed(() => {
-  if (!props.terrenos?.length) return [-15.0, -47.0] // Centro do Brasil
-  const avgLat = props.terrenos.reduce((sum, t) => sum + t.LATITUDE, 0) / props.terrenos.length
-  const avgLng = props.terrenos.reduce((sum, t) => sum + t.LONGITUDE, 0) / props.terrenos.length
-  return [avgLat, avgLng]
-})
-
-function onMapReady() {
-  // Ajustar acessibilidade
-  const mapElement = map.value?.leafletObject?.getContainer()
-  if (mapElement) {
-    mapElement.setAttribute('role', 'region')
-    mapElement.setAttribute('aria-describedby', 'map-description')
-  }
-}
-
-// Corrigir ícones após montagem
-onMounted(() => {
-})
+  // Corrigir ícones após montagem
+  onMounted(() => {})
 </script>
 
 <style>
-.map-container {
-  position: relative;
-  height: 500px;
-  z-index: 0; /* Importante para o Quasar */
-}
+  .map-container {
+    position: relative;
+    height: 500px;
+    z-index: 0; /* Importante para o Quasar */
+  }
 
-.leaflet-container {
-  background: #f8f8f8;
-}
+  .leaflet-container {
+    background: #f8f8f8;
+  }
 </style>

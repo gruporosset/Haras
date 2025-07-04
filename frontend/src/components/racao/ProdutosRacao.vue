@@ -595,7 +595,7 @@
           <q-btn
             label="Editar"
             color="primary"
-            @click="openDialog(viewData), (viewDialog = false)"
+            @click="(openDialog(viewData), (viewDialog = false))"
           />
         </q-card-actions>
       </q-card>
@@ -835,350 +835,356 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRacaoStore } from 'stores/racao'
-import { ErrorHandler } from 'src/utils/errorHandler'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import { ref, onMounted } from 'vue'
+  import { useRacaoStore } from 'stores/racao'
+  import { ErrorHandler } from 'src/utils/errorHandler'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
-// Emits
-// const emit = defineEmits(['show-relatorios'])
+  // Emits
+  // const emit = defineEmits(['show-relatorios'])
 
-// Composables
-const racaoStore = useRacaoStore()
+  // Composables
+  const racaoStore = useRacaoStore()
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const deleteDialog = ref(false)
-const movimentacaoDialog = ref(false)
-const viewData = ref(null)
-const recordToDelete = ref(null)
-const tipoMovimentacao = ref('ENTRADA')
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const deleteDialog = ref(false)
+  const movimentacaoDialog = ref(false)
+  const viewData = ref(null)
+  const recordToDelete = ref(null)
+  const tipoMovimentacao = ref('ENTRADA')
 
-// Filtros
-const filtros = ref({
-  nome: '',
-  tipo_alimento: null,
-  estoque_baixo: false,
-  ativo: '',
-})
+  // Filtros
+  const filtros = ref({
+    nome: '',
+    tipo_alimento: null,
+    estoque_baixo: false,
+    ativo: '',
+  })
 
-// Formulários
-const form = ref({})
-const movimentacaoForm = ref({})
+  // Formulários
+  const form = ref({})
+  const movimentacaoForm = ref({})
 
-// Alertas de estoque
-const alertasEstoque = ref([])
+  // Alertas de estoque
+  const alertasEstoque = ref([])
 
-// Colunas da tabela
-const columns = [
-  { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
-  {
-    name: 'TIPO_ALIMENTO',
-    label: 'Tipo',
-    field: 'TIPO_ALIMENTO',
-    sortable: true,
-    align: 'center',
-  },
-  {
-    name: 'estoque',
-    label: 'Estoque',
-    field: 'ESTOQUE_ATUAL',
-    sortable: true,
-    align: 'left',
-  },
-  {
-    name: 'composicao',
-    label: 'Composição',
-    field: 'composicao',
-    sortable: false,
-    align: 'left',
-  },
-  {
-    name: 'status_estoque',
-    label: 'Status',
-    field: 'status_estoque',
-    sortable: false,
-    align: 'center',
-  },
-  {
-    name: 'valor_estoque',
-    label: 'Valor',
-    field: 'valor_total_estoque',
-    sortable: true,
-    align: 'right',
-  },
-  {
-    name: 'ATIVO',
-    label: 'Ativo',
-    field: 'ATIVO',
-    sortable: true,
-    align: 'center',
-  },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
-]
+  // Colunas da tabela
+  const columns = [
+    {
+      name: 'NOME',
+      label: 'Nome',
+      field: 'NOME',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'TIPO_ALIMENTO',
+      label: 'Tipo',
+      field: 'TIPO_ALIMENTO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'estoque',
+      label: 'Estoque',
+      field: 'ESTOQUE_ATUAL',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'composicao',
+      label: 'Composição',
+      field: 'composicao',
+      sortable: false,
+      align: 'left',
+    },
+    {
+      name: 'status_estoque',
+      label: 'Status',
+      field: 'status_estoque',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'valor_estoque',
+      label: 'Valor',
+      field: 'valor_total_estoque',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      name: 'ATIVO',
+      label: 'Ativo',
+      field: 'ATIVO',
+      sortable: true,
+      align: 'center',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  racaoStore.pagination.page = page
-  racaoStore.pagination.rowsPerPage = rowsPerPage
-  racaoStore.pagination.sortBy = sortBy
-  racaoStore.pagination.descending = descending
-  await racaoStore.fetchProdutos({ ...props, filtros: filtros.value })
-}
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    racaoStore.pagination.page = page
+    racaoStore.pagination.rowsPerPage = rowsPerPage
+    racaoStore.pagination.sortBy = sortBy
+    racaoStore.pagination.descending = descending
+    await racaoStore.fetchProdutos({ ...props, filtros: filtros.value })
+  }
 
-async function onFilterChange() {
-  racaoStore.pagination.page = 1
-  await racaoStore.fetchProdutos({ filtros: filtros.value })
-}
+  async function onFilterChange() {
+    racaoStore.pagination.page = 1
+    await racaoStore.fetchProdutos({ filtros: filtros.value })
+  }
 
-function openDialog(record) {
-  initializeForm(record)
-  dialog.value = true
-}
+  function openDialog(record) {
+    initializeForm(record)
+    dialog.value = true
+  }
 
-function initializeForm(record) {
-  if (record) {
-    form.value = { ...record }
-  } else {
-    form.value = {
-      NOME: '',
-      TIPO_ALIMENTO: null,
-      MARCA: '',
-      FABRICANTE: '',
-      PROTEINA_BRUTA: null,
-      FIBRA_BRUTA: null,
-      ENERGIA_DIGESTIVEL: null,
-      CALCIO: null,
-      FOSFORO: null,
-      MAGNESIO: null,
-      POTASSIO: null,
-      SODIO: null,
-      ESTOQUE_ATUAL: 0,
-      ESTOQUE_MINIMO: 0,
-      ESTOQUE_MAXIMO: null,
-      UNIDADE_MEDIDA: 'KG',
-      PRECO_UNITARIO: null,
-      FORNECEDOR_PRINCIPAL: '',
-      CODIGO_FORNECEDOR: '',
-      LOTE_ATUAL: '',
+  function initializeForm(record) {
+    if (record) {
+      form.value = { ...record }
+    } else {
+      form.value = {
+        NOME: '',
+        TIPO_ALIMENTO: null,
+        MARCA: '',
+        FABRICANTE: '',
+        PROTEINA_BRUTA: null,
+        FIBRA_BRUTA: null,
+        ENERGIA_DIGESTIVEL: null,
+        CALCIO: null,
+        FOSFORO: null,
+        MAGNESIO: null,
+        POTASSIO: null,
+        SODIO: null,
+        ESTOQUE_ATUAL: 0,
+        ESTOQUE_MINIMO: 0,
+        ESTOQUE_MAXIMO: null,
+        UNIDADE_MEDIDA: 'KG',
+        PRECO_UNITARIO: null,
+        FORNECEDOR_PRINCIPAL: '',
+        CODIGO_FORNECEDOR: '',
+        LOTE_ATUAL: '',
+        DATA_FABRICACAO: '',
+        DATA_VALIDADE: '',
+        REGISTRO_MINISTERIO: '',
+        LOCAL_ARMAZENAMENTO: '',
+        CONDICOES_ARMAZENAMENTO: '',
+        OBSERVACOES: '',
+      }
+    }
+  }
+
+  async function submitForm() {
+    try {
+      if (form.value.ID) {
+        await racaoStore.updateProduto(form.value.ID, form.value)
+        ErrorHandler.success('Produto atualizado com sucesso!')
+      } else {
+        await racaoStore.createProduto(form.value)
+        ErrorHandler.success('Produto criado com sucesso!')
+      }
+
+      dialog.value = false
+      await racaoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao salvar produto')
+    }
+  }
+
+  function viewProduto(produto) {
+    if (typeof produto === 'number') {
+      viewData.value = racaoStore.produtos.find(p => p.ID === produto)
+    } else {
+      viewData.value = produto
+    }
+    viewDialog.value = true
+  }
+
+  function confirmDelete(record) {
+    recordToDelete.value = record
+    deleteDialog.value = true
+  }
+
+  async function deleteProduto() {
+    try {
+      await racaoStore.deleteProduto(recordToDelete.value.ID)
+      ErrorHandler.success('Produto excluído com sucesso!')
+      deleteDialog.value = false
+      await racaoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao excluir produto')
+    }
+  }
+
+  function openMovimentacaoDialog(produto, tipo) {
+    form.value = produto
+    tipoMovimentacao.value = tipo
+    initializeMovimentacaoForm()
+    movimentacaoDialog.value = true
+  }
+
+  function initializeMovimentacaoForm() {
+    movimentacaoForm.value = {
+      ID_PRODUTO: form.value.ID,
+      QUANTIDADE: null,
+      QUANTIDADE_NOVA: form.value.ESTOQUE_ATUAL,
+      NOTA_FISCAL: '',
+      FORNECEDOR: form.value.FORNECEDOR_PRINCIPAL || '',
+      PRECO_UNITARIO: form.value.PRECO_UNITARIO || null,
+      LOTE: '',
       DATA_FABRICACAO: '',
       DATA_VALIDADE: '',
-      REGISTRO_MINISTERIO: '',
-      LOCAL_ARMAZENAMENTO: '',
-      CONDICOES_ARMAZENAMENTO: '',
+      MOTIVO: '',
       OBSERVACOES: '',
     }
   }
-}
 
-async function submitForm() {
-  try {
-    if (form.value.ID) {
-      await racaoStore.updateProduto(form.value.ID, form.value)
-      ErrorHandler.success('Produto atualizado com sucesso!')
-    } else {
-      await racaoStore.createProduto(form.value)
-      ErrorHandler.success('Produto criado com sucesso!')
+  async function submitMovimentacao() {
+    try {
+      switch (tipoMovimentacao.value) {
+        case 'ENTRADA':
+          await racaoStore.entradaEstoque(movimentacaoForm.value)
+          ErrorHandler.success('Entrada registrada com sucesso!')
+          break
+
+        case 'SAIDA':
+          await racaoStore.saidaEstoque(movimentacaoForm.value)
+          ErrorHandler.success('Saída registrada com sucesso!')
+          break
+
+        case 'AJUSTE':
+          await racaoStore.ajusteEstoque(movimentacaoForm.value)
+          ErrorHandler.success('Ajuste de estoque realizado com sucesso!')
+          break
+      }
+
+      movimentacaoDialog.value = false
+      await racaoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao registrar movimentação')
     }
-
-    dialog.value = false
-    await racaoStore.fetchProdutos({ filtros: filtros.value })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao salvar produto')
   }
-}
 
-function viewProduto(produto) {
-  if (typeof produto === 'number') {
-    viewData.value = racaoStore.produtos.find(p => p.ID === produto)
-  } else {
-    viewData.value = produto
-  }
-  viewDialog.value = true
-}
-
-function confirmDelete(record) {
-  recordToDelete.value = record
-  deleteDialog.value = true
-}
-
-async function deleteProduto() {
-  try {
-    await racaoStore.deleteProduto(recordToDelete.value.ID)
-    ErrorHandler.success('Produto excluído com sucesso!')
-    deleteDialog.value = false
-    await racaoStore.fetchProdutos({ filtros: filtros.value })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao excluir produto')
-  }
-}
-
-function openMovimentacaoDialog(produto, tipo) {
-  form.value = produto
-  tipoMovimentacao.value = tipo
-  initializeMovimentacaoForm()
-  movimentacaoDialog.value = true
-}
-
-function initializeMovimentacaoForm() {
-  movimentacaoForm.value = {
-    ID_PRODUTO: form.value.ID,
-    QUANTIDADE: null,
-    QUANTIDADE_NOVA: form.value.ESTOQUE_ATUAL,
-    NOTA_FISCAL: '',
-    FORNECEDOR: form.value.FORNECEDOR_PRINCIPAL || '',
-    PRECO_UNITARIO: form.value.PRECO_UNITARIO || null,
-    LOTE: '',
-    DATA_FABRICACAO: '',
-    DATA_VALIDADE: '',
-    MOTIVO: '',
-    OBSERVACOES: '',
-  }
-}
-
-async function submitMovimentacao() {
-  try {
-    switch (tipoMovimentacao.value) {
-      case 'ENTRADA':
-        await racaoStore.entradaEstoque(movimentacaoForm.value)
-        ErrorHandler.success('Entrada registrada com sucesso!')
-        break
-
-      case 'SAIDA':
-        await racaoStore.saidaEstoque(movimentacaoForm.value)
-        ErrorHandler.success('Saída registrada com sucesso!')
-        break
-
-      case 'AJUSTE':
-        await racaoStore.ajusteEstoque(movimentacaoForm.value)
-        ErrorHandler.success('Ajuste de estoque realizado com sucesso!')
-        break
+  async function loadAlertas() {
+    try {
+      await racaoStore.getAlertasEstoque()
+      alertasEstoque.value = racaoStore.alertasEstoque
+      console.log('Alertas de estoque carregados:', alertasEstoque.value)
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar alertas de estoque')
     }
+  }
 
-    movimentacaoDialog.value = false
+  // Funções auxiliares
+  function getCorTipo(tipo) {
+    const cores = {
+      CONCENTRADO: 'primary',
+      VOLUMOSO: 'green',
+      SUPLEMENTO: 'orange',
+      PREMIX: 'purple',
+      SAL_MINERAL: 'brown',
+    }
+    return cores[tipo] || 'grey'
+  }
+
+  function getPercentualEstoque(produto) {
+    const atual = produto.ESTOQUE_ATUAL || 0
+    const minimo = produto.ESTOQUE_MINIMO || 0
+    const maximo = produto.ESTOQUE_MAXIMO || minimo * 3
+
+    if (maximo <= minimo) return 0
+    return Math.min(atual / maximo, 1)
+  }
+
+  function getCorEstoque(produto) {
+    const atual = produto.ESTOQUE_ATUAL || 0
+    const minimo = produto.ESTOQUE_MINIMO || 0
+
+    if (atual <= 0) return 'red'
+    if (atual <= minimo) return 'orange'
+    return 'green'
+  }
+
+  function getStatusEstoqueLabel(status) {
+    const labels = {
+      SEM_ESTOQUE: 'Sem Estoque',
+      ESTOQUE_BAIXO: 'Estoque Baixo',
+      VENCIMENTO_PROXIMO: 'Vencimento Próximo',
+      VENCIDO: 'Vencido',
+      OK: 'OK',
+    }
+    return labels[status] || status
+  }
+
+  function getTituloMovimentacao(tipo) {
+    const titulos = {
+      ENTRADA: 'Entrada de Estoque',
+      SAIDA: 'Saída de Estoque',
+      AJUSTE: 'Ajustar Estoque',
+    }
+    return titulos[tipo] || 'Movimentação'
+  }
+
+  function getLabelBotaoMovimentacao() {
+    const labels = {
+      ENTRADA: 'Registrar Entrada',
+      SAIDA: 'Registrar Saída',
+      AJUSTE: 'Confirmar Ajuste',
+    }
+    return labels[tipoMovimentacao.value] || 'Confirmar'
+  }
+
+  function getCorBotaoMovimentacao() {
+    const cores = {
+      ENTRADA: 'positive',
+      SAIDA: 'negative',
+      AJUSTE: 'warning',
+    }
+    return cores[tipoMovimentacao.value] || 'primary'
+  }
+
+  function getDiferencaClass() {
+    const diferenca =
+      (movimentacaoForm.value.QUANTIDADE_NOVA || 0) -
+      (form.value.ESTOQUE_ATUAL || 0)
+    if (diferenca > 0) return 'text-positive'
+    if (diferenca < 0) return 'text-negative'
+    return 'text-grey-6'
+  }
+
+  function getDiferencaTexto() {
+    const estoque = form.value.ESTOQUE_ATUAL || 0
+    const nova = movimentacaoForm.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - estoque
+
+    if (diferenca === 0) return 'Sem alteração'
+    if (diferenca > 0)
+      return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
+    return `${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
+  }
+
+  // Lifecycle
+  onMounted(async () => {
     await racaoStore.fetchProdutos({ filtros: filtros.value })
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao registrar movimentação')
-  }
-}
-
-async function loadAlertas() {
-  try {
-    await racaoStore.getAlertasEstoque()
-    alertasEstoque.value = racaoStore.alertasEstoque
-    console.log('Alertas de estoque carregados:', alertasEstoque.value)
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar alertas de estoque')
-  }
-}
-
-// Funções auxiliares
-function getCorTipo(tipo) {
-  const cores = {
-    CONCENTRADO: 'primary',
-    VOLUMOSO: 'green',
-    SUPLEMENTO: 'orange',
-    PREMIX: 'purple',
-    SAL_MINERAL: 'brown',
-  }
-  return cores[tipo] || 'grey'
-}
-
-function getPercentualEstoque(produto) {
-  const atual = produto.ESTOQUE_ATUAL || 0
-  const minimo = produto.ESTOQUE_MINIMO || 0
-  const maximo = produto.ESTOQUE_MAXIMO || minimo * 3
-
-  if (maximo <= minimo) return 0
-  return Math.min(atual / maximo, 1)
-}
-
-function getCorEstoque(produto) {
-  const atual = produto.ESTOQUE_ATUAL || 0
-  const minimo = produto.ESTOQUE_MINIMO || 0
-
-  if (atual <= 0) return 'red'
-  if (atual <= minimo) return 'orange'
-  return 'green'
-}
-
-function getStatusEstoqueLabel(status) {
-  const labels = {
-    SEM_ESTOQUE: 'Sem Estoque',
-    ESTOQUE_BAIXO: 'Estoque Baixo',
-    VENCIMENTO_PROXIMO: 'Vencimento Próximo',
-    VENCIDO: 'Vencido',
-    OK: 'OK',
-  }
-  return labels[status] || status
-}
-
-function getTituloMovimentacao(tipo) {
-  const titulos = {
-    ENTRADA: 'Entrada de Estoque',
-    SAIDA: 'Saída de Estoque',
-    AJUSTE: 'Ajustar Estoque',
-  }
-  return titulos[tipo] || 'Movimentação'
-}
-
-function getLabelBotaoMovimentacao() {
-  const labels = {
-    ENTRADA: 'Registrar Entrada',
-    SAIDA: 'Registrar Saída',
-    AJUSTE: 'Confirmar Ajuste',
-  }
-  return labels[tipoMovimentacao.value] || 'Confirmar'
-}
-
-function getCorBotaoMovimentacao() {
-  const cores = {
-    ENTRADA: 'positive',
-    SAIDA: 'negative',
-    AJUSTE: 'warning',
-  }
-  return cores[tipoMovimentacao.value] || 'primary'
-}
-
-function getDiferencaClass() {
-  const diferenca =
-    (movimentacaoForm.value.QUANTIDADE_NOVA || 0) -
-    (form.value.ESTOQUE_ATUAL || 0)
-  if (diferenca > 0) return 'text-positive'
-  if (diferenca < 0) return 'text-negative'
-  return 'text-grey-6'
-}
-
-function getDiferencaTexto() {
-  const estoque = form.value.ESTOQUE_ATUAL || 0
-  const nova = movimentacaoForm.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - estoque
-
-  if (diferenca === 0) return 'Sem alteração'
-  if (diferenca > 0)
-    return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
-  return `${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
-}
-
-// Lifecycle
-onMounted(async () => {
-  await racaoStore.fetchProdutos({ filtros: filtros.value })
-  await loadAlertas()
-})
+    await loadAlertas()
+  })
 </script>
 
 <style scoped>
-.produtos-racao-container {
-  width: 100%;
-}
+  .produtos-racao-container {
+    width: 100%;
+  }
 
-.produtos-table {
-  border-radius: 8px;
-}
+  .produtos-table {
+    border-radius: 8px;
+  }
 
-.produtos-table .q-table__top {
-  padding: 16px;
-}
+  .produtos-table .q-table__top {
+    padding: 16px;
+  }
 </style>

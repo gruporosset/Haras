@@ -27,7 +27,7 @@
             @update:model-value="onFilterChange"
             class="col-12 col-md-2"
           />
-      
+
           <q-select
             v-model="animalStore.filters.status"
             :options="statusOptions"
@@ -74,16 +74,19 @@
         >
           <template v-slot:body-cell-foto="props">
             <q-td :props="props">
-              <q-avatar size="40px" @click="$emit('ver-foto', props.row)">
-                <img 
-                  v-if="props.row.FOTO_PRINCIPAL" 
+              <q-avatar
+                size="40px"
+                @click="$emit('ver-foto', props.row)"
+              >
+                <img
+                  v-if="props.row.FOTO_PRINCIPAL"
                   :src="`http://localhost:8000${props.row.FOTO_PRINCIPAL}`"
                   class="cursor-pointer"
                 />
-                <q-icon 
-                  v-else 
-                  name="pets" 
-                  size="24px" 
+                <q-icon
+                  v-else
+                  name="pets"
+                  size="24px"
                   color="grey-5"
                   class="cursor-pointer"
                 />
@@ -102,7 +105,7 @@
 
           <template v-slot:body-cell-SEXO="props">
             <q-td :props="props">
-              <q-chip 
+              <q-chip
                 :color="props.row.SEXO === 'M' ? 'blue' : 'pink'"
                 text-color="white"
                 size="sm"
@@ -120,7 +123,7 @@
 
           <template v-slot:body-cell-STATUS_ANIMAL="props">
             <q-td :props="props">
-              <q-chip 
+              <q-chip
                 :color="getStatusColor(props.row.STATUS_ANIMAL)"
                 text-color="white"
                 size="sm"
@@ -132,9 +135,9 @@
 
           <template v-slot:body-cell-genealogia="props">
             <q-td :props="props">
-              <q-btn 
-                flat 
-                dense 
+              <q-btn
+                flat
+                dense
                 icon="account_tree"
                 @click="$emit('ver-genealogia', props.row)"
                 :disable="!props.row.ID_PAI && !props.row.ID_MAE"
@@ -147,9 +150,9 @@
           <template v-slot:body-cell-acoes="props">
             <q-td :props="props">
               <q-btn-group flat>
-                <q-btn 
-                  flat 
-                  dense 
+                <q-btn
+                  flat
+                  dense
                   icon="visibility"
                   @click="$emit('visualizar', props.row)"
                   color="primary"
@@ -157,9 +160,9 @@
                   <q-tooltip>Visualizar</q-tooltip>
                 </q-btn>
 
-                <q-btn 
-                  flat 
-                  dense 
+                <q-btn
+                  flat
+                  dense
                   icon="edit"
                   @click="$emit('editar', props.row)"
                   color="orange"
@@ -167,9 +170,9 @@
                   <q-tooltip>Editar</q-tooltip>
                 </q-btn>
 
-                <q-btn 
-                  flat 
-                  dense 
+                <q-btn
+                  flat
+                  dense
                   icon="photo_camera"
                   @click="$emit('upload-foto', props.row)"
                   color="green"
@@ -177,9 +180,9 @@
                   <q-tooltip>Adicionar Foto</q-tooltip>
                 </q-btn>
 
-                <q-btn 
-                  flat 
-                  dense 
+                <q-btn
+                  flat
+                  dense
                   icon="delete"
                   @click="$emit('excluir', props.row)"
                   color="negative"
@@ -192,7 +195,10 @@
 
           <template v-slot:no-data>
             <div class="full-width row flex-center text-grey q-gutter-sm">
-              <q-icon size="2em" name="pets" />
+              <q-icon
+                size="2em"
+                name="pets"
+              />
               <span>Nenhum animal encontrado</span>
             </div>
           </template>
@@ -203,88 +209,129 @@
 </template>
 
 <script setup>
-import { useAnimalStore } from 'stores/animal'
-import { formatDate } from 'src/utils/dateUtils'
+  import { useAnimalStore } from 'stores/animal'
+  import { formatDate } from 'src/utils/dateUtils'
 
-// Emits
-defineEmits([
-  'novo-animal',
-  'visualizar', 
-  'editar',
-  'excluir',
-  'upload-foto',
-  'ver-foto',
-  'ver-genealogia'
-])
+  // Emits
+  defineEmits([
+    'novo-animal',
+    'visualizar',
+    'editar',
+    'excluir',
+    'upload-foto',
+    'ver-foto',
+    'ver-genealogia',
+  ])
 
-// Store
-const animalStore = useAnimalStore()
+  // Store
+  const animalStore = useAnimalStore()
 
-// Opções para filtros
-const sexoOptions = [
-  { label: 'Macho', value: 'M' },
-  { label: 'Fêmea', value: 'F' }
-]
+  // Opções para filtros
+  const sexoOptions = [
+    { label: 'Macho', value: 'M' },
+    { label: 'Fêmea', value: 'F' },
+  ]
 
-const statusOptions = [
-  { label: 'Ativo', value: 'ATIVO' },
-  { label: 'Vendido', value: 'VENDIDO' },
-  { label: 'Morto', value: 'MORTO' },
-  { label: 'Emprestado', value: 'EMPRESTADO' },
-  { label: 'Aposentado', value: 'APOSENTADO' }
-]
+  const statusOptions = [
+    { label: 'Ativo', value: 'ATIVO' },
+    { label: 'Vendido', value: 'VENDIDO' },
+    { label: 'Morto', value: 'MORTO' },
+    { label: 'Emprestado', value: 'EMPRESTADO' },
+    { label: 'Aposentado', value: 'APOSENTADO' },
+  ]
 
-// Colunas da tabela
-const columns = [
-  { name: 'foto', label: 'Foto', field: 'foto', align: 'center' },
-  { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
-  { name: 'NUMERO_REGISTRO', label: 'Registro', field: 'NUMERO_REGISTRO', sortable: true, align: 'left' },
-  { name: 'SEXO', label: 'Sexo', field: 'SEXO', sortable: true, align: 'center' },
-  { name: 'DATA_NASCIMENTO', label: 'Nascimento', field: 'DATA_NASCIMENTO', sortable: true, align: 'left' },
-  { name: 'STATUS_ANIMAL', label: 'Status', field: 'STATUS_ANIMAL', sortable: true, align: 'center' },
-  { name: 'PROPRIETARIO', label: 'Proprietário', field: 'PROPRIETARIO', sortable: true, align: 'left' },
-  { name: 'genealogia', label: 'Genealogia', field: 'genealogia', align: 'center' },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
-]
+  // Colunas da tabela
+  const columns = [
+    { name: 'foto', label: 'Foto', field: 'foto', align: 'center' },
+    {
+      name: 'NOME',
+      label: 'Nome',
+      field: 'NOME',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'NUMERO_REGISTRO',
+      label: 'Registro',
+      field: 'NUMERO_REGISTRO',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'SEXO',
+      label: 'Sexo',
+      field: 'SEXO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'DATA_NASCIMENTO',
+      label: 'Nascimento',
+      field: 'DATA_NASCIMENTO',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'STATUS_ANIMAL',
+      label: 'Status',
+      field: 'STATUS_ANIMAL',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'PROPRIETARIO',
+      label: 'Proprietário',
+      field: 'PROPRIETARIO',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'genealogia',
+      label: 'Genealogia',
+      field: 'genealogia',
+      align: 'center',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-// Métodos
-function onFilterChange() {
-  fetchAnimais()
-}
-
-async function fetchAnimais() {
-  try {
-    await animalStore.fetchAnimais()
-  } catch (error) {
-    console.error('Erro ao carregar animais:', error)
+  // Métodos
+  function onFilterChange() {
+    fetchAnimais()
   }
-}
 
-function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  animalStore.setPagination({ page, rowsPerPage, sortBy, descending })
-  fetchAnimais()
-}
-
-function getStatusColor(status) {
-  const colors = {
-    'ATIVO': 'green',
-    'VENDIDO': 'blue',
-    'MORTO': 'red',
-    'EMPRESTADO': 'orange',
-    'APOSENTADO': 'grey'
+  async function fetchAnimais() {
+    try {
+      await animalStore.fetchAnimais()
+    } catch (error) {
+      console.error('Erro ao carregar animais:', error)
+    }
   }
-  return colors[status] || 'grey'
-}
 
-// Expor métodos
-defineExpose({
-  fetchAnimais
-})
+  function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    animalStore.setPagination({ page, rowsPerPage, sortBy, descending })
+    fetchAnimais()
+  }
+
+  function getStatusColor(status) {
+    const colors = {
+      ATIVO: 'green',
+      VENDIDO: 'blue',
+      MORTO: 'red',
+      EMPRESTADO: 'orange',
+      APOSENTADO: 'grey',
+    }
+    return colors[status] || 'grey'
+  }
+
+  // Expor métodos
+  defineExpose({
+    fetchAnimais,
+  })
 </script>
 
 <style scoped>
-.cursor-pointer {
-  cursor: pointer;
-}
+  .cursor-pointer {
+    cursor: pointer;
+  }
 </style>

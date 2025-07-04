@@ -2,11 +2,16 @@
   <q-card>
     <q-card-section>
       <div class="text-h6">Aplicação Rápida</div>
-      <div class="text-caption">Para registros simples de ferrageamento/casqueamento</div>
+      <div class="text-caption">
+        Para registros simples de ferrageamento/casqueamento
+      </div>
     </q-card-section>
-    
+
     <q-card-section>
-      <q-form @submit="aplicarRapido" class="q-gutter-md">
+      <q-form
+        @submit="aplicarRapido"
+        class="q-gutter-md"
+      >
         <div class="row q-gutter-md">
           <div class="col-md-6 col-12">
             <q-select
@@ -88,7 +93,11 @@
         />
 
         <div class="text-right">
-          <q-btn type="submit" color="primary" :loading="loadingAplicacao">
+          <q-btn
+            type="submit"
+            color="primary"
+            :loading="loadingAplicacao"
+          >
             Registrar Aplicação
           </q-btn>
         </div>
@@ -98,85 +107,93 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useFerrageamentoStore } from 'stores/ferrageamento'
-import { useAnimalStore } from 'stores/animal'
-import { ErrorHandler } from 'src/utils/errorHandler'
+  import { ref, onMounted } from 'vue'
+  import { useFerrageamentoStore } from 'stores/ferrageamento'
+  import { useAnimalStore } from 'stores/animal'
+  import { ErrorHandler } from 'src/utils/errorHandler'
 
-// Emits
-const emit = defineEmits(['aplicacao-registrada'])
+  // Emits
+  const emit = defineEmits(['aplicacao-registrada'])
 
-// Stores
-const ferrageamentoStore = useFerrageamentoStore()
-const animalStore = useAnimalStore()
+  // Stores
+  const ferrageamentoStore = useFerrageamentoStore()
+  const animalStore = useAnimalStore()
 
-// Estado reativo
-const loadingAplicacao = ref(false)
-const animalOptions = ref([])
+  // Estado reativo
+  const loadingAplicacao = ref(false)
+  const animalOptions = ref([])
 
-// Formulário de aplicação rápida
-const aplicacaoRapida = ref({
-  ID_ANIMAL: null,
-  TIPO_REGISTRO: 'FERRAGEAMENTO',
-  MEMBRO_TRATADO: 'TODOS',
-  FERRADOR_RESPONSAVEL: '',
-  STATUS_CASCO: 'BOM',
-  CUSTO: null,
-  OBSERVACOES: ''
-})
-
-// Métodos
-async function loadAnimais() {
-  try {
-    await animalStore.fetchAnimais()
-    animalOptions.value = animalStore.animais.map(a => ({ 
-      value: a.ID, 
-      label: a.NOME 
-    }))
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao carregar animais')
-  }
-}
-
-function filterAnimais(val, update) {
-  update(() => {
-    if (val === '') {
-      animalOptions.value = animalStore.animais.map(a => ({ value: a.ID, label: a.NOME }))
-    } else {
-      const needle = val.toLowerCase()
-      const allAnimais = animalStore.animais.map(a => ({ value: a.ID, label: a.NOME }))
-      animalOptions.value = allAnimais.filter(v => v.label.toLowerCase().indexOf(needle) > -1)
-    }
+  // Formulário de aplicação rápida
+  const aplicacaoRapida = ref({
+    ID_ANIMAL: null,
+    TIPO_REGISTRO: 'FERRAGEAMENTO',
+    MEMBRO_TRATADO: 'TODOS',
+    FERRADOR_RESPONSAVEL: '',
+    STATUS_CASCO: 'BOM',
+    CUSTO: null,
+    OBSERVACOES: '',
   })
-}
 
-async function aplicarRapido() {
-  loadingAplicacao.value = true
-  try {
-    await ferrageamentoStore.aplicacaoRapida(aplicacaoRapida.value)
-    ErrorHandler.success('Aplicação registrada com sucesso!')
-    
-    // Limpar formulário
-    aplicacaoRapida.value = {
-      ID_ANIMAL: null,
-      TIPO_REGISTRO: 'FERRAGEAMENTO',
-      MEMBRO_TRATADO: 'TODOS',
-      FERRADOR_RESPONSAVEL: '',
-      STATUS_CASCO: 'BOM',
-      CUSTO: null,
-      OBSERVACOES: ''
+  // Métodos
+  async function loadAnimais() {
+    try {
+      await animalStore.fetchAnimais()
+      animalOptions.value = animalStore.animais.map(a => ({
+        value: a.ID,
+        label: a.NOME,
+      }))
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao carregar animais')
     }
-    
-    emit('aplicacao-registrada')
-  } catch (error) {
-    ErrorHandler.handle(error, 'Erro ao registrar aplicação')
-  } finally {
-    loadingAplicacao.value = false
   }
-}
 
-// Lifecycle
-onMounted(() => {
-  loadAnimais()
-})
+  function filterAnimais(val, update) {
+    update(() => {
+      if (val === '') {
+        animalOptions.value = animalStore.animais.map(a => ({
+          value: a.ID,
+          label: a.NOME,
+        }))
+      } else {
+        const needle = val.toLowerCase()
+        const allAnimais = animalStore.animais.map(a => ({
+          value: a.ID,
+          label: a.NOME,
+        }))
+        animalOptions.value = allAnimais.filter(
+          v => v.label.toLowerCase().indexOf(needle) > -1
+        )
+      }
+    })
+  }
+
+  async function aplicarRapido() {
+    loadingAplicacao.value = true
+    try {
+      await ferrageamentoStore.aplicacaoRapida(aplicacaoRapida.value)
+      ErrorHandler.success('Aplicação registrada com sucesso!')
+
+      // Limpar formulário
+      aplicacaoRapida.value = {
+        ID_ANIMAL: null,
+        TIPO_REGISTRO: 'FERRAGEAMENTO',
+        MEMBRO_TRATADO: 'TODOS',
+        FERRADOR_RESPONSAVEL: '',
+        STATUS_CASCO: 'BOM',
+        CUSTO: null,
+        OBSERVACOES: '',
+      }
+
+      emit('aplicacao-registrada')
+    } catch (error) {
+      ErrorHandler.handle(error, 'Erro ao registrar aplicação')
+    } finally {
+      loadingAplicacao.value = false
+    }
+  }
+
+  // Lifecycle
+  onMounted(() => {
+    loadAnimais()
+  })
 </script>

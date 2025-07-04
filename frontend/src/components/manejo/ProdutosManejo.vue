@@ -1,7 +1,10 @@
 <template>
   <div class="produtos-manejo-container">
     <!-- HEADER COM FILTROS -->
-    <q-card flat class="q-mb-md">
+    <q-card
+      flat
+      class="q-mb-md"
+    >
       <q-card-section>
         <div class="row q-gutter-md items-end">
           <div class="col-md-3 col-12">
@@ -18,7 +21,7 @@
               </template>
             </q-input>
           </div>
-          
+
           <div class="col-md-2 col-12">
             <q-select
               v-model="filtros.tipo_produto"
@@ -29,7 +32,7 @@
               @update:model-value="onFilterChange"
             />
           </div>
-          
+
           <div class="col-md-2 col-12">
             <q-toggle
               v-model="filtros.estoque_baixo"
@@ -37,14 +40,14 @@
               @update:model-value="onFilterChange"
             />
           </div>
-          
+
           <div class="col-md-2 col-12">
             <q-select
               v-model="filtros.ativo"
               :options="[
                 { label: 'Ativos', value: 'S' },
                 { label: 'Inativos', value: 'N' },
-                { label: 'Todos', value: '' }
+                { label: 'Todos', value: '' },
               ]"
               label="Status"
               clearable
@@ -53,7 +56,7 @@
             />
           </div>
         </div>
-          
+
         <div class="row q-gutter-md items-end q-mt-sm">
           <div class="col-auto">
             <q-btn
@@ -68,14 +71,17 @@
     </q-card>
 
     <!-- ALERTAS DE ESTOQUE -->
-    <q-card 
-      v-if="alertasEstoque.length > 0" 
-      flat 
+    <q-card
+      v-if="alertasEstoque.length > 0"
+      flat
       class="bg-orange-1 q-mb-md"
     >
       <q-card-section>
         <div class="text-h6 text-orange-8 q-mb-sm">
-          <q-icon name="warning" class="q-mr-sm" />
+          <q-icon
+            name="warning"
+            class="q-mr-sm"
+          />
           Alertas de Estoque ({{ alertasEstoque.length }})
         </div>
         <div class="row q-gutter-sm">
@@ -88,7 +94,8 @@
             @click="viewProduto(alerta.produto_id)"
             clickable
           >
-            {{ alerta.nome }} - {{ alerta.estoque_atual }} {{ alerta.unidade_medida }}
+            {{ alerta.nome }} - {{ alerta.estoque_atual }}
+            {{ alerta.unidade_medida }}
           </q-chip>
           <q-btn
             v-if="alertasEstoque.length > 5"
@@ -206,7 +213,10 @@
     </q-table>
 
     <!-- DIALOG FORMULÁRIO -->
-    <q-dialog v-model="dialog" persistent>
+    <q-dialog
+      v-model="dialog"
+      persistent
+    >
       <q-card style="min-width: 600px">
         <q-card-section>
           <div class="text-h6">
@@ -215,7 +225,10 @@
         </q-card-section>
 
         <q-card-section>
-          <q-form @submit="submitForm" class="q-gutter-md">
+          <q-form
+            @submit="submitForm"
+            class="q-gutter-md"
+          >
             <!-- Linha 1: Nome, Tipo, Unidade -->
             <div class="row q-gutter-md">
               <q-input
@@ -267,10 +280,17 @@
                 step="0.01"
                 min="0"
                 readonly
-                :hint="form.ID ? 'Use os botões ao lado para ajustar o estoque' : 'Será definido após criação'"
+                :hint="
+                  form.ID
+                    ? 'Use os botões ao lado para ajustar o estoque'
+                    : 'Será definido após criação'
+                "
                 class="col-auto"
               >
-                <template v-slot:append v-if="form.ID">
+                <template
+                  v-slot:append
+                  v-if="form.ID"
+                >
                   <q-btn-group flat>
                     <q-btn
                       icon="add_box"
@@ -308,7 +328,6 @@
             </div>
 
             <div class="row q-gutter-md">
-
               <q-input
                 v-model.number="form.ESTOQUE_MINIMO"
                 label="Estoque Mínimo *"
@@ -374,9 +393,9 @@
                 class="col-3"
               />
               <calendario-component
-                  v-model="form.DATA_VALIDADE"
-                  label="Data de Validade"
-                  class="col-3"
+                v-model="form.DATA_VALIDADE"
+                label="Data de Validade"
+                class="col-3"
               />
               <q-input
                 v-model="form.LOCAL_ARMAZENAMENTO"
@@ -415,7 +434,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="dialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="dialog = false"
+          />
           <q-btn
             label="Salvar"
             color="primary"
@@ -438,18 +462,26 @@
             <q-item>
               <q-item-section>
                 <q-item-label caption>Tipo</q-item-label>
-                <q-item-label>{{ manejoStore.getTipoLabel(viewData?.TIPO_PRODUTO) }}</q-item-label>
+                <q-item-label>
+                  {{ manejoStore.getTipoLabel(viewData?.TIPO_PRODUTO) }}
+                </q-item-label>
               </q-item-section>
             </q-item>
-            
+
             <q-item>
               <q-item-section>
                 <q-item-label caption>Estoque Atual</q-item-label>
-                <q-item-label>{{ viewData?.ESTOQUE_ATUAL || 0 }} {{ viewData?.UNIDADE_MEDIDA }}</q-item-label>
+                <q-item-label>
+                  {{ viewData?.ESTOQUE_ATUAL || 0 }}
+                  {{ viewData?.UNIDADE_MEDIDA }}
+                </q-item-label>
               </q-item-section>
               <q-item-section>
                 <q-item-label caption>Estoque Mínimo</q-item-label>
-                <q-item-label>{{ viewData?.ESTOQUE_MINIMO || 0 }} {{ viewData?.UNIDADE_MEDIDA }}</q-item-label>
+                <q-item-label>
+                  {{ viewData?.ESTOQUE_MINIMO || 0 }}
+                  {{ viewData?.UNIDADE_MEDIDA }}
+                </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -470,14 +502,19 @@
             <q-item v-if="viewData?.DOSE_RECOMENDADA">
               <q-item-section>
                 <q-item-label caption>Dose Recomendada (por HA)</q-item-label>
-                <q-item-label>{{ viewData.DOSE_RECOMENDADA }} {{ viewData.UNIDADE_MEDIDA }}/HA</q-item-label>
+                <q-item-label>
+                  {{ viewData.DOSE_RECOMENDADA }}
+                  {{ viewData.UNIDADE_MEDIDA }}/HA
+                </q-item-label>
               </q-item-section>
             </q-item>
 
             <q-item v-if="viewData?.PERIODO_CARENCIA">
               <q-item-section>
                 <q-item-label caption>Período de Carência</q-item-label>
-                <q-item-label>{{ viewData.PERIODO_CARENCIA }} dias</q-item-label>
+                <q-item-label>
+                  {{ viewData.PERIODO_CARENCIA }} dias
+                </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -491,25 +528,34 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Fechar" color="grey" @click="viewDialog = false" />
+          <q-btn
+            flat
+            label="Fechar"
+            color="grey"
+            @click="viewDialog = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
 
     <!-- DIALOG MOVIMENTAÇÃO DE ESTOQUE -->
-    <q-dialog v-model="movimentacaoDialog" persistent>
+    <q-dialog
+      v-model="movimentacaoDialog"
+      persistent
+    >
       <q-card style="min-width: 500px">
         <q-card-section>
           <div class="text-h6">
             {{ getTituloMovimentacao(tipoMovimentacao) }}
           </div>
-          <div class="text-subtitle2 text-grey-6">
-            Produto: {{ form.NOME }}
-          </div>
+          <div class="text-subtitle2 text-grey-6">Produto: {{ form.NOME }}</div>
         </q-card-section>
 
         <q-card-section>
-          <q-form @submit="submitMovimentacao" class="q-gutter-md">
+          <q-form
+            @submit="submitMovimentacao"
+            class="q-gutter-md"
+          >
             <!-- ENTRADA -->
             <template v-if="tipoMovimentacao === 'ENTRADA'">
               <div class="row q-gutter-md">
@@ -545,7 +591,9 @@
                   step="0.01"
                   min="0"
                   prefix="R$"
-                  :rules="[val => val >= 0 || 'Preço deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Preço deve ser maior ou igual a 0',
+                  ]"
                   class="col-3"
                 />
                 <q-input
@@ -568,7 +616,6 @@
                   label="Data de Validade"
                   class="col-5"
                 />
-
               </div>
             </template>
 
@@ -585,7 +632,9 @@
                   :suffix="form.UNIDADE_MEDIDA"
                   :rules="[
                     val => val > 0 || 'Quantidade deve ser maior que 0',
-                    val => val <= form.ESTOQUE_ATUAL || `Máximo disponível: ${form.ESTOQUE_ATUAL}`
+                    val =>
+                      val <= form.ESTOQUE_ATUAL ||
+                      `Máximo disponível: ${form.ESTOQUE_ATUAL}`,
                   ]"
                   class="col-5"
                 />
@@ -599,7 +648,8 @@
               </div>
 
               <div class="text-caption text-grey-6 q-mt-sm">
-                Estoque atual: {{ form.ESTOQUE_ATUAL }} {{ form.UNIDADE_MEDIDA }}
+                Estoque atual: {{ form.ESTOQUE_ATUAL }}
+                {{ form.UNIDADE_MEDIDA }}
               </div>
             </template>
 
@@ -613,7 +663,9 @@
                   step="0.01"
                   min="0"
                   :suffix="form.UNIDADE_MEDIDA"
-                  :rules="[val => val >= 0 || 'Quantidade deve ser maior ou igual a 0']"
+                  :rules="[
+                    val => val >= 0 || 'Quantidade deve ser maior ou igual a 0',
+                  ]"
                   class="col-5"
                 />
                 <q-input
@@ -627,9 +679,13 @@
 
               <div class="q-mt-sm">
                 <div class="text-caption text-grey-6">
-                  Estoque atual: {{ form.ESTOQUE_ATUAL }} {{ form.UNIDADE_MEDIDA }}
+                  Estoque atual: {{ form.ESTOQUE_ATUAL }}
+                  {{ form.UNIDADE_MEDIDA }}
                 </div>
-                <div class="text-caption" :class="getDiferencaClass()">
+                <div
+                  class="text-caption"
+                  :class="getDiferencaClass()"
+                >
                   {{ getDiferencaTexto() }}
                 </div>
               </div>
@@ -646,7 +702,12 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="movimentacaoDialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="movimentacaoDialog = false"
+          />
           <q-btn
             :label="getLabelBotaoMovimentacao()"
             :color="getCorBotaoMovimentacao()"
@@ -658,16 +719,26 @@
     </q-dialog>
 
     <!-- DIALOG CONFIRMAÇÃO DELETE -->
-    <q-dialog v-model="deleteDialog" persistent>
+    <q-dialog
+      v-model="deleteDialog"
+      persistent
+    >
       <q-card>
         <q-card-section>
           <div class="text-h6">Confirmar Exclusão</div>
         </q-card-section>
         <q-card-section>
-          Tem certeza que deseja excluir o produto <strong>{{ recordToDelete?.NOME }}</strong>?
+          Tem certeza que deseja excluir o produto
+          <strong>{{ recordToDelete?.NOME }}</strong>
+          ?
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="grey" @click="deleteDialog = false" />
+          <q-btn
+            flat
+            label="Cancelar"
+            color="grey"
+            @click="deleteDialog = false"
+          />
           <q-btn
             label="Excluir"
             color="negative"
@@ -681,321 +752,377 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useQuasar } from 'quasar'
-import { useManejoStore } from 'stores/manejo'
-import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { useQuasar } from 'quasar'
+  import { useManejoStore } from 'stores/manejo'
+  import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
 
+  // Composables
+  const $q = useQuasar()
+  const manejoStore = useManejoStore()
 
-// Composables
-const $q = useQuasar()
-const manejoStore = useManejoStore()
+  // Estado reativo
+  const dialog = ref(false)
+  const viewDialog = ref(false)
+  const deleteDialog = ref(false)
+  const movimentacaoDialog = ref(false)
+  const viewData = ref(null)
+  const recordToDelete = ref(null)
+  const tipoMovimentacao = ref('ENTRADA') // ENTRADA, SAIDA, AJUSTE
 
-// Estado reativo
-const dialog = ref(false)
-const viewDialog = ref(false)
-const deleteDialog = ref(false)
-const movimentacaoDialog = ref(false)
-const viewData = ref(null)
-const recordToDelete = ref(null)
-const tipoMovimentacao = ref('ENTRADA') // ENTRADA, SAIDA, AJUSTE
+  // Filtros
+  const filtros = ref({
+    nome: '',
+    tipo_produto: null,
+    estoque_baixo: false,
+    ativo: null,
+  })
 
-// Filtros
-const filtros = ref({
-  nome: '',
-  tipo_produto: null,
-  estoque_baixo: false,
-  ativo: null
-})
+  // Formulários
+  const form = ref({})
+  const movimentacaoForm = ref({})
+  const requiresReceita = computed({
+    get: () => form.value.REQUER_RECEITUARIO === 'S',
+    set: val => (form.value.REQUER_RECEITUARIO = val ? 'S' : 'N'),
+  })
 
-// Formulários
-const form = ref({})
-const movimentacaoForm = ref({})
-const requiresReceita = computed({
-  get: () => form.value.REQUER_RECEITUARIO === 'S',
-  set: (val) => form.value.REQUER_RECEITUARIO = val ? 'S' : 'N'
-})
+  // Alertas de estoque
+  const alertasEstoque = ref([])
 
-// Alertas de estoque
-const alertasEstoque = ref([])
+  // Colunas da tabela
+  const columns = [
+    {
+      name: 'NOME',
+      label: 'Nome',
+      field: 'NOME',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'TIPO_PRODUTO',
+      label: 'Tipo',
+      field: 'TIPO_PRODUTO',
+      sortable: true,
+      align: 'center',
+    },
+    {
+      name: 'estoque',
+      label: 'Estoque',
+      field: 'ESTOQUE_ATUAL',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'status_estoque',
+      label: 'Status',
+      field: 'status_estoque',
+      sortable: false,
+      align: 'center',
+    },
+    {
+      name: 'FABRICANTE',
+      label: 'Fabricante',
+      field: 'FABRICANTE',
+      sortable: true,
+      align: 'left',
+    },
+    {
+      name: 'ATIVO',
+      label: 'Ativo',
+      field: 'ATIVO',
+      sortable: true,
+      align: 'center',
+    },
+    { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
+  ]
 
-// Colunas da tabela
-const columns = [
-  { name: 'NOME', label: 'Nome', field: 'NOME', sortable: true, align: 'left' },
-  { name: 'TIPO_PRODUTO', label: 'Tipo', field: 'TIPO_PRODUTO', sortable: true, align: 'center' },
-  { name: 'estoque', label: 'Estoque', field: 'ESTOQUE_ATUAL', sortable: true, align: 'left' },
-  { name: 'status_estoque', label: 'Status', field: 'status_estoque', sortable: false, align: 'center' },
-  { name: 'FABRICANTE', label: 'Fabricante', field: 'FABRICANTE', sortable: true, align: 'left' },
-  { name: 'ATIVO', label: 'Ativo', field: 'ATIVO', sortable: true, align: 'center' },
-  { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' }
-]
-
-// Métodos
-async function onRequest(props) {
-  const { page, rowsPerPage, sortBy, descending } = props.pagination
-  manejoStore.setPagination({ page, rowsPerPage, sortBy, descending })
-  await manejoStore.fetchProdutos({ ...props, filtros: filtros.value })
-}
-
-async function onFilterChange() {
-  await manejoStore.fetchProdutos({ filtros: filtros.value })
-}
-
-function openDialog(record) {
-  initializeForm(record)
-  dialog.value = true
-}
-
-function initializeForm(record) {
-  if (record) {
-    form.value = { ...record }
-  } else {
-    form.value = {
-      NOME: '',
-      TIPO_PRODUTO: null,
-      PRINCIPIO_ATIVO: '',
-      CONCENTRACAO: '',
-      UNIDADE_MEDIDA: '',
-      FABRICANTE: '',
-      REGISTRO_MINISTERIO: '',
-      ESTOQUE_ATUAL: 0,
-      ESTOQUE_MINIMO: 0,
-      ESTOQUE_MAXIMO: null,
-      PRECO_UNITARIO: null,
-      FORNECEDOR_PRINCIPAL: '',
-      CODIGO_FORNECEDOR: '',
-      LOTE_ATUAL: '',
-      DATA_VALIDADE: '',
-      DOSE_RECOMENDADA: null,
-      PERIODO_CARENCIA: null,
-      REQUER_RECEITUARIO: 'N',
-      LOCAL_ARMAZENAMENTO: '',
-      CONDICOES_ARMAZENAMENTO: '',
-      OBSERVACOES: ''
-    }
+  // Métodos
+  async function onRequest(props) {
+    const { page, rowsPerPage, sortBy, descending } = props.pagination
+    manejoStore.setPagination({ page, rowsPerPage, sortBy, descending })
+    await manejoStore.fetchProdutos({ ...props, filtros: filtros.value })
   }
-}
 
-async function submitForm() {
-  try {
-    if (form.value.ID) {
-      await manejoStore.updateProduto(form.value.ID, form.value)
-      $q.notify({ type: 'positive', message: 'Produto atualizado com sucesso!' })
+  async function onFilterChange() {
+    await manejoStore.fetchProdutos({ filtros: filtros.value })
+  }
+
+  function openDialog(record) {
+    initializeForm(record)
+    dialog.value = true
+  }
+
+  function initializeForm(record) {
+    if (record) {
+      form.value = { ...record }
     } else {
-      await manejoStore.createProduto(form.value)
-      $q.notify({ type: 'positive', message: 'Produto criado com sucesso!' })
+      form.value = {
+        NOME: '',
+        TIPO_PRODUTO: null,
+        PRINCIPIO_ATIVO: '',
+        CONCENTRACAO: '',
+        UNIDADE_MEDIDA: '',
+        FABRICANTE: '',
+        REGISTRO_MINISTERIO: '',
+        ESTOQUE_ATUAL: 0,
+        ESTOQUE_MINIMO: 0,
+        ESTOQUE_MAXIMO: null,
+        PRECO_UNITARIO: null,
+        FORNECEDOR_PRINCIPAL: '',
+        CODIGO_FORNECEDOR: '',
+        LOTE_ATUAL: '',
+        DATA_VALIDADE: '',
+        DOSE_RECOMENDADA: null,
+        PERIODO_CARENCIA: null,
+        REQUER_RECEITUARIO: 'N',
+        LOCAL_ARMAZENAMENTO: '',
+        CONDICOES_ARMAZENAMENTO: '',
+        OBSERVACOES: '',
+      }
     }
-    
-    dialog.value = false
-    await manejoStore.fetchProdutos({ filtros: filtros.value })
-    
-  } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro ao salvar produto' })
   }
-}
 
-function viewProduto(produto) {
-  if (typeof produto === 'number') {
-    viewData.value = manejoStore.produtos.find(p => p.ID === produto)
-  } else {
-    viewData.value = produto
-  }
-  viewDialog.value = true
-}
+  async function submitForm() {
+    try {
+      if (form.value.ID) {
+        await manejoStore.updateProduto(form.value.ID, form.value)
+        $q.notify({
+          type: 'positive',
+          message: 'Produto atualizado com sucesso!',
+        })
+      } else {
+        await manejoStore.createProduto(form.value)
+        $q.notify({ type: 'positive', message: 'Produto criado com sucesso!' })
+      }
 
-function confirmDelete(record) {
-  recordToDelete.value = record
-  deleteDialog.value = true
-}
-
-async function deleteProduto() {
-  try {
-    await manejoStore.deleteProduto(recordToDelete.value.ID)
-    $q.notify({ type: 'positive', message: 'Produto excluído com sucesso!' })
-    deleteDialog.value = false
-    await manejoStore.fetchProdutos({ filtros: filtros.value })
-  } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro ao excluir produto' })
-  }
-}
-
-async function loadAlertas() {
-  try {
-    alertasEstoque.value = await manejoStore.getAlertasEstoque()
-  } catch (error) {
-    console.error('Erro ao carregar alertas:', error)
-  }
-}
-
-function showAllAlertas() {
-  // Implementar modal com todos os alertas
-  $q.notify({ type: 'info', message: 'Funcionalidade em desenvolvimento' })
-}
-
-// Helpers
-function getCorTipo(tipo) {
-  const cores = {
-    'FERTILIZANTE': 'green',
-    'DEFENSIVO': 'red',
-    'CORRETIVO': 'blue',
-    'SEMENTE': 'orange'
-  }
-  return cores[tipo] || 'grey'
-}
-
-function getCorEstoque(produto) {
-  if (!produto.ESTOQUE_ATUAL || produto.ESTOQUE_ATUAL === 0) return 'red'
-  if (produto.ESTOQUE_ATUAL <= produto.ESTOQUE_MINIMO) return 'orange'
-  return 'green'
-}
-
-function getPercentualEstoque(produto) {
-  if (!produto.ESTOQUE_MAXIMO) return 1
-  return Math.min(produto.ESTOQUE_ATUAL / produto.ESTOQUE_MAXIMO, 1)
-}
-
-function getCorStatusEstoque(status) {
-  const cores = {
-    'SEM_ESTOQUE': 'red',
-    'ESTOQUE_BAIXO': 'orange',
-    'VENCIMENTO_PROXIMO': 'purple',
-    'OK': 'green'
-  }
-  return cores[status] || 'grey'
-}
-
-function getStatusEstoqueLabel(status) {
-  const labels = {
-    'SEM_ESTOQUE': 'Sem Estoque',
-    'ESTOQUE_BAIXO': 'Estoque Baixo',
-    'VENCIMENTO_PROXIMO': 'Venc. Próximo',
-    'OK': 'OK'
-  }
-  return labels[status] || 'N/A'
-}
-
-function getCorAlerta(status) {
-  return getCorStatusEstoque(status)
-}
-
-// Funções para movimentação de estoque
-function openMovimentacaoDialog(tipo) {
-  tipoMovimentacao.value = tipo
-  initializeMovimentacaoForm()
-  movimentacaoDialog.value = true
-}
-
-function initializeMovimentacaoForm() {
-  movimentacaoForm.value = {
-    ID_PRODUTO: form.value.ID,
-    QUANTIDADE: null,
-    QUANTIDADE_NOVA: form.value.ESTOQUE_ATUAL || 0,
-    NOTA_FISCAL: '',
-    FORNECEDOR: '',
-    PRECO_UNITARIO: form.value.PRECO_UNITARIO || null,
-    LOTE: '',
-    DATA_VALIDADE: '',
-    DATA_FABRICACAO: '',
-    MOTIVO: '',
-    OBSERVACOES: ''
-  }
-}
-
-async function submitMovimentacao() {
-  try {
-    
-    switch (tipoMovimentacao.value) {
-      case 'ENTRADA':
-        await manejoStore.entradaEstoque(movimentacaoForm.value)
-        $q.notify({ type: 'positive', message: 'Entrada registrada com sucesso!' })
-        break
-        
-      case 'SAIDA':
-        await manejoStore.saidaEstoque(movimentacaoForm.value)
-        $q.notify({ type: 'positive', message: 'Saída registrada com sucesso!' })
-        break
-        
-      case 'AJUSTE':
-        await manejoStore.ajusteEstoque(movimentacaoForm.value)
-        $q.notify({ type: 'positive', message: 'Ajuste realizado com sucesso!' })
-        break
+      dialog.value = false
+      await manejoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro ao salvar produto',
+      })
     }
-    
-    movimentacaoDialog.value = false
-    
-    // Atualizar o produto no formulário
-    const produtoAtualizado = await manejoStore.getProdutoById(form.value.ID)
-    form.value.ESTOQUE_ATUAL = produtoAtualizado.ESTOQUE_ATUAL
-    
-    // Recarregar lista de produtos
+  }
+
+  function viewProduto(produto) {
+    if (typeof produto === 'number') {
+      viewData.value = manejoStore.produtos.find(p => p.ID === produto)
+    } else {
+      viewData.value = produto
+    }
+    viewDialog.value = true
+  }
+
+  function confirmDelete(record) {
+    recordToDelete.value = record
+    deleteDialog.value = true
+  }
+
+  async function deleteProduto() {
+    try {
+      await manejoStore.deleteProduto(recordToDelete.value.ID)
+      $q.notify({ type: 'positive', message: 'Produto excluído com sucesso!' })
+      deleteDialog.value = false
+      await manejoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro ao excluir produto',
+      })
+    }
+  }
+
+  async function loadAlertas() {
+    try {
+      alertasEstoque.value = await manejoStore.getAlertasEstoque()
+    } catch (error) {
+      console.error('Erro ao carregar alertas:', error)
+    }
+  }
+
+  function showAllAlertas() {
+    // Implementar modal com todos os alertas
+    $q.notify({ type: 'info', message: 'Funcionalidade em desenvolvimento' })
+  }
+
+  // Helpers
+  function getCorTipo(tipo) {
+    const cores = {
+      FERTILIZANTE: 'green',
+      DEFENSIVO: 'red',
+      CORRETIVO: 'blue',
+      SEMENTE: 'orange',
+    }
+    return cores[tipo] || 'grey'
+  }
+
+  function getCorEstoque(produto) {
+    if (!produto.ESTOQUE_ATUAL || produto.ESTOQUE_ATUAL === 0) return 'red'
+    if (produto.ESTOQUE_ATUAL <= produto.ESTOQUE_MINIMO) return 'orange'
+    return 'green'
+  }
+
+  function getPercentualEstoque(produto) {
+    if (!produto.ESTOQUE_MAXIMO) return 1
+    return Math.min(produto.ESTOQUE_ATUAL / produto.ESTOQUE_MAXIMO, 1)
+  }
+
+  function getCorStatusEstoque(status) {
+    const cores = {
+      SEM_ESTOQUE: 'red',
+      ESTOQUE_BAIXO: 'orange',
+      VENCIMENTO_PROXIMO: 'purple',
+      OK: 'green',
+    }
+    return cores[status] || 'grey'
+  }
+
+  function getStatusEstoqueLabel(status) {
+    const labels = {
+      SEM_ESTOQUE: 'Sem Estoque',
+      ESTOQUE_BAIXO: 'Estoque Baixo',
+      VENCIMENTO_PROXIMO: 'Venc. Próximo',
+      OK: 'OK',
+    }
+    return labels[status] || 'N/A'
+  }
+
+  function getCorAlerta(status) {
+    return getCorStatusEstoque(status)
+  }
+
+  // Funções para movimentação de estoque
+  function openMovimentacaoDialog(tipo) {
+    tipoMovimentacao.value = tipo
+    initializeMovimentacaoForm()
+    movimentacaoDialog.value = true
+  }
+
+  function initializeMovimentacaoForm() {
+    movimentacaoForm.value = {
+      ID_PRODUTO: form.value.ID,
+      QUANTIDADE: null,
+      QUANTIDADE_NOVA: form.value.ESTOQUE_ATUAL || 0,
+      NOTA_FISCAL: '',
+      FORNECEDOR: '',
+      PRECO_UNITARIO: form.value.PRECO_UNITARIO || null,
+      LOTE: '',
+      DATA_VALIDADE: '',
+      DATA_FABRICACAO: '',
+      MOTIVO: '',
+      OBSERVACOES: '',
+    }
+  }
+
+  async function submitMovimentacao() {
+    try {
+      switch (tipoMovimentacao.value) {
+        case 'ENTRADA':
+          await manejoStore.entradaEstoque(movimentacaoForm.value)
+          $q.notify({
+            type: 'positive',
+            message: 'Entrada registrada com sucesso!',
+          })
+          break
+
+        case 'SAIDA':
+          await manejoStore.saidaEstoque(movimentacaoForm.value)
+          $q.notify({
+            type: 'positive',
+            message: 'Saída registrada com sucesso!',
+          })
+          break
+
+        case 'AJUSTE':
+          await manejoStore.ajusteEstoque(movimentacaoForm.value)
+          $q.notify({
+            type: 'positive',
+            message: 'Ajuste realizado com sucesso!',
+          })
+          break
+      }
+
+      movimentacaoDialog.value = false
+
+      // Atualizar o produto no formulário
+      const produtoAtualizado = await manejoStore.getProdutoById(form.value.ID)
+      form.value.ESTOQUE_ATUAL = produtoAtualizado.ESTOQUE_ATUAL
+
+      // Recarregar lista de produtos
+      await manejoStore.fetchProdutos({ filtros: filtros.value })
+    } catch (error) {
+      $q.notify({
+        type: 'negative',
+        message: error.message || 'Erro na movimentação',
+      })
+    }
+  }
+
+  function getTituloMovimentacao(tipo) {
+    const titulos = {
+      ENTRADA: 'Entrada de Estoque',
+      SAIDA: 'Saída de Estoque',
+      AJUSTE: 'Ajustar Estoque',
+    }
+    return titulos[tipo] || 'Movimentação'
+  }
+
+  function getLabelBotaoMovimentacao() {
+    const labels = {
+      ENTRADA: 'Registrar Entrada',
+      SAIDA: 'Registrar Saída',
+      AJUSTE: 'Confirmar Ajuste',
+    }
+    return labels[tipoMovimentacao.value] || 'Confirmar'
+  }
+
+  function getCorBotaoMovimentacao() {
+    const cores = {
+      ENTRADA: 'positive',
+      SAIDA: 'negative',
+      AJUSTE: 'warning',
+    }
+    return cores[tipoMovimentacao.value] || 'primary'
+  }
+
+  function getDiferencaClass() {
+    const diferenca =
+      (movimentacaoForm.value.QUANTIDADE_NOVA || 0) -
+      (form.value.ESTOQUE_ATUAL || 0)
+    if (diferenca > 0) return 'text-positive'
+    if (diferenca < 0) return 'text-negative'
+    return 'text-grey-6'
+  }
+
+  function getDiferencaTexto() {
+    const estoque = form.value.ESTOQUE_ATUAL || 0
+    const nova = movimentacaoForm.value.QUANTIDADE_NOVA || 0
+    const diferenca = nova - estoque
+
+    if (diferenca === 0) return 'Sem alteração'
+    if (diferenca > 0)
+      return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
+    return `${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
+  }
+
+  // Lifecycle
+  onMounted(async () => {
     await manejoStore.fetchProdutos({ filtros: filtros.value })
-    
-  } catch (error) {
-    $q.notify({ type: 'negative', message: error.message || 'Erro na movimentação' })
-  }
-}
-
-function getTituloMovimentacao(tipo) {
-  const titulos = {
-    'ENTRADA': 'Entrada de Estoque',
-    'SAIDA': 'Saída de Estoque',
-    'AJUSTE': 'Ajustar Estoque'
-  }
-  return titulos[tipo] || 'Movimentação'
-}
-
-function getLabelBotaoMovimentacao() {
-  const labels = {
-    'ENTRADA': 'Registrar Entrada',
-    'SAIDA': 'Registrar Saída',
-    'AJUSTE': 'Confirmar Ajuste'
-  }
-  return labels[tipoMovimentacao.value] || 'Confirmar'
-}
-
-function getCorBotaoMovimentacao() {
-  const cores = {
-    'ENTRADA': 'positive',
-    'SAIDA': 'negative',
-    'AJUSTE': 'warning'
-  }
-  return cores[tipoMovimentacao.value] || 'primary'
-}
-
-function getDiferencaClass() {
-  const diferenca = (movimentacaoForm.value.QUANTIDADE_NOVA || 0) - (form.value.ESTOQUE_ATUAL || 0)
-  if (diferenca > 0) return 'text-positive'
-  if (diferenca < 0) return 'text-negative'
-  return 'text-grey-6'
-}
-
-function getDiferencaTexto() {
-  const estoque = form.value.ESTOQUE_ATUAL || 0
-  const nova = movimentacaoForm.value.QUANTIDADE_NOVA || 0
-  const diferenca = nova - estoque
-  
-  if (diferenca === 0) return 'Sem alteração'
-  if (diferenca > 0) return `+${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
-  return `${diferenca.toLocaleString('pt-BR')} ${form.value.UNIDADE_MEDIDA}`
-}
-
-// Lifecycle
-onMounted(async () => {
-  await manejoStore.fetchProdutos({ filtros: filtros.value })
-  await loadAlertas()
-})
+    await loadAlertas()
+  })
 </script>
 
 <style scoped>
-.produtos-manejo-container {
-  width: 100%;
-}
+  .produtos-manejo-container {
+    width: 100%;
+  }
 
-.produtos-table {
-  border-radius: 8px;
-}
+  .produtos-table {
+    border-radius: 8px;
+  }
 
-.produtos-table .q-table__top {
-  padding: 16px;
-}
+  .produtos-table .q-table__top {
+    padding: 16px;
+  }
 </style>
