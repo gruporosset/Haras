@@ -1,8 +1,8 @@
 // frontend/src/stores/saude.js
 import { defineStore } from 'pinia'
-import api from '../boot/api'
-
+import api from 'src/boot/api'
 import { ErrorHandler } from 'src/utils/errorHandler'
+import { prepareFormData } from 'src/utils/dateUtils'
 
 export const useSaudeStore = defineStore('saude', {
   state: () => ({
@@ -27,10 +27,10 @@ export const useSaudeStore = defineStore('saude', {
       data_fim: '',
     },
 
-    // Dados específicos de saúde
+    // Dados específicos de saúde - RENOMEADOS para evitar conflito com métodos
     proximasAplicacoes: [],
     estatisticasGerais: null,
-    consumoPorTipo: [],
+    dadosConsumoPorTipo: [], // RENOMEADO
     calendarioSaude: [],
     historicoAnimal: null,
   }),
@@ -96,23 +96,56 @@ export const useSaudeStore = defineStore('saude', {
           offset: (this.pagination.page - 1) * this.pagination.rowsPerPage,
           ...params,
         }
+        // Converter objetos select para valores
+        if (queryParams.animal_id?.value) {
+          queryParams.animal_id = queryParams.animal_id.value
+        }
+        if (queryParams.tipo_registro?.value) {
+          queryParams.tipo_registro = queryParams.tipo_registro.value
+        }
 
         const response = await api.get('/api/saude/', {
           params: queryParams,
         })
 
-        this.registros = response.data
+        this.registros = response.data.registros || []
+
+        // Atualizar paginação se veio do response
+        if (response.data.total !== undefined) {
+          this.pagination.rowsNumber = response.data.total
+        }
+
         return response.data
       } catch (error) {
         ErrorHandler.handle(error, 'Erro ao buscar registros de saúde')
-        return []
+        return { registros: [], total: 0 }
       } finally {
         this.loading = false
       }
     },
 
-    async createRegistro(dados) {
+    // MÉTODO DE COMPATIBILIDADE com o frontend existente
+    async listarRegistros(params = {}) {
+      // Converter parâmetros do frontend para o novo formato
+      const newParams = {
+        ...params,
+        page: params.page || 1,
+        limit: params.limit || 50,
+      }
+
+      // Remover offset se existe (usar page em vez de offset)
+      delete newParams.offset
+
+      return await this.fetchRegistros(newParams)
+    },
+
+    async createRegistro(formData) {
       try {
+        const dados = prepareFormData(formData, [
+          'DATA_OCORRENCIA',
+          'PROXIMA_APLICACAO',
+        ])
+
         const response = await api.post('/api/saude/', dados)
         return response.data
       } catch (error) {
@@ -120,8 +153,13 @@ export const useSaudeStore = defineStore('saude', {
       }
     },
 
-    async updateRegistro(id, dados) {
+    async updateRegistro(id, formData) {
       try {
+        const dados = prepareFormData(formData, [
+          'DATA_OCORRENCIA',
+          'PROXIMA_APLICACAO',
+        ])
+
         const response = await api.put(`/api/saude/${id}`, dados)
         return response.data
       } catch (error) {
@@ -198,10 +236,117 @@ export const useSaudeStore = defineStore('saude', {
             params: { meses_periodo: mesesPeriodo },
           }
         )
-        this.consumoPorTipo = response.data
+        this.dadosConsumoPorTipo = response.data // ATUALIZADO
         return response.data
       } catch (error) {
         ErrorHandler.handle(error, 'Erro ao buscar consumo por tipo')
+        return []
+      }
+    },
+
+    // MÉTODO DE COMPATIBILIDADE
+    async consumoPorTipo(mesesPeriodo = 6) {
+      return await this.fetchConsumoPorTipo(mesesPeriodo)
+    },
+
+    // MÉTODO DE COMPATIBILIDADE para estatísticas de veterinários
+    async estatisticasVeterinarios() {
+      try {
+        // Buscar dados dos registros para calcular estatísticas de veterinários
+        const response = await api.get('/api/saude/', {
+          params: { limit: 1000 }, // Buscar mais registros para estatísticas
+        })
+
+        const registros = response.data.registros || []
+
+        // Calcular estatísticas por veterinário
+        const vetStats = {}
+        registros.forEach(registro => {
+          const vet = registro.VETERINARIO_RESPONSAVEL
+          if (vet) {
+            if (!vetStats[vet]) {
+              vetStats[vet] = {
+                veterinario: vet,
+                total_aplicacoes: 0,
+                animais_atendidos: new Set(),
+                tipos_diferentes: new Set(),
+                ultimo_atendimento: null,
+              }
+            }
+
+            vetStats[vet].total_aplicacoes++
+            vetStats[vet].animais_atendidos.add(registro.ID_ANIMAL)
+            vetStats[vet].tipos_diferentes.add(registro.TIPO_REGISTRO)
+
+            const dataAtendimento = new Date(registro.DATA_OCORRENCIA)
+            if (
+              !vetStats[vet].ultimo_atendimento ||
+              dataAtendimento > new Date(vetStats[vet].ultimo_atendimento)
+            ) {
+              vetStats[vet].ultimo_atendimento = registro.DATA_OCORRENCIA
+            }
+          }
+        })
+
+        // Converter para array e formatar
+        const resultado = Object.values(vetStats).map(stat => ({
+          veterinario: stat.veterinario,
+          total_aplicacoes: stat.total_aplicacoes,
+          animais_atendidos: stat.animais_atendidos.size,
+          tipos_diferentes: stat.tipos_diferentes.size,
+          ultimo_atendimento: stat.ultimo_atendimento,
+        }))
+
+        return resultado.sort((a, b) => b.total_aplicacoes - a.total_aplicacoes)
+      } catch (error) {
+        ErrorHandler.handle(
+          error,
+          'Erro ao buscar estatísticas de veterinários'
+        )
+        return []
+      }
+    },
+
+    // MÉTODO DE COMPATIBILIDADE para aplicações mensais
+    async aplicacoesMensais(meses = 6) {
+      try {
+        // Como a API não existe ainda, vamos calcular localmente
+        const dataLimite = new Date()
+        dataLimite.setMonth(dataLimite.getMonth() - meses)
+
+        const response = await api.get('/api/saude/', {
+          params: {
+            limit: 1000,
+            data_inicio: dataLimite.toISOString().split('T')[0],
+          },
+        })
+
+        const registros = response.data.registros || []
+
+        // Agrupar por mês
+        const aplicacoesPorMes = {}
+        registros.forEach(registro => {
+          const data = new Date(registro.DATA_OCORRENCIA)
+          const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`
+
+          if (!aplicacoesPorMes[chave]) {
+            aplicacoesPorMes[chave] = {
+              periodo: chave,
+              total: 0,
+            }
+          }
+
+          aplicacoesPorMes[chave].total++
+        })
+
+        // Converter para array ordenado
+        const resultado = Object.values(aplicacoesPorMes).sort((a, b) =>
+          a.periodo.localeCompare(b.periodo)
+        )
+
+        return resultado
+      } catch (error) {
+        ErrorHandler.handle(error, 'Erro ao buscar aplicações mensais')
         return []
       }
     },

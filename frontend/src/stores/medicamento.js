@@ -54,29 +54,32 @@ export const useMedicamentoStore = defineStore('medicamento', {
       { value: 'AJUSTE', label: 'Ajuste' },
     ],
 
-    medicamentosAtivos: (state) => state.medicamentos.filter((m) => m.ATIVO === 'S'),
+    medicamentosAtivos: state =>
+      state.medicamentos.filter(m => m.ATIVO === 'S'),
 
-    medicamentosComEstoque: (state) => {
-      return state.medicamentos.filter((m) => m.ATIVO === 'S' && m.ESTOQUE_ATUAL > 0)
-    },
-
-    alertasEstoque: (state) => {
+    medicamentosComEstoque: state => {
       return state.medicamentos.filter(
-        (m) =>
-          m.ATIVO === 'S' &&
-          (m.status_estoque === 'ESTOQUE_BAIXO' ||
-            m.status_estoque === 'VENCENDO' ||
-            m.status_estoque === 'VENCIDO'),
+        m => m.ATIVO === 'S' && m.ESTOQUE_ATUAL > 0
       )
     },
 
-    totalValorEstoque: (state) => {
+    alertasEstoque: state => {
+      return state.medicamentos.filter(
+        m =>
+          m.ATIVO === 'S' &&
+          (m.status_estoque === 'ESTOQUE_BAIXO' ||
+            m.status_estoque === 'VENCENDO' ||
+            m.status_estoque === 'VENCIDO')
+      )
+    },
+
+    totalValorEstoque: state => {
       return state.medicamentos
-        .filter((m) => m.ATIVO === 'S')
+        .filter(m => m.ATIVO === 'S')
         .reduce((total, m) => total + (m.valor_estoque || 0), 0)
     },
 
-    estatisticasGerais: (state) => {
+    estatisticasGerais: state => {
       const ativos = state.medicamentosAtivos
       const comEstoque = state.medicamentosComEstoque
       const alertas = state.alertasEstoque
@@ -108,7 +111,9 @@ export const useMedicamentoStore = defineStore('medicamento', {
           queryParams.forma_farmaceutica = queryParams.forma_farmaceutica.value
         }
 
-        const response = await api.get('/api/medicamentos', { params: queryParams })
+        const response = await api.get('/api/medicamentos', {
+          params: queryParams,
+        })
         this.medicamentos = response.data.medicamentos
         this.pagination = {
           ...this.pagination,
@@ -137,7 +142,10 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     async updateMedicamento(id, medicamentoData) {
       try {
-        const response = await api.put(`/api/medicamentos/${id}`, medicamentoData)
+        const response = await api.put(
+          `/api/medicamentos/${id}`,
+          medicamentoData
+        )
         await this.fetchMedicamentos()
         return response.data
       } catch (error) {
@@ -166,7 +174,10 @@ export const useMedicamentoStore = defineStore('medicamento', {
     // === ESTOQUE ===
     async entradaEstoque(entradaData) {
       try {
-        const response = await api.post('/api/medicamentos/entrada-estoque', entradaData)
+        const response = await api.post(
+          '/api/medicamentos/entrada-estoque',
+          entradaData
+        )
         await this.fetchMedicamentos()
         return response.data
       } catch (error) {
@@ -176,7 +187,10 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     async aplicarMedicamento(aplicacaoData) {
       try {
-        const response = await api.post('/api/medicamentos/aplicar-medicamento', aplicacaoData)
+        const response = await api.post(
+          '/api/medicamentos/aplicar-medicamento',
+          aplicacaoData
+        )
         await this.fetchMedicamentos()
         return response.data
       } catch (error) {
@@ -206,9 +220,12 @@ export const useMedicamentoStore = defineStore('medicamento', {
           queryParams.tipo = queryParams.tipo.value
         }
 
-        const response = await api.get('/api/medicamentos/movimentacoes/lista', {
-          params: queryParams,
-        })
+        const response = await api.get(
+          '/api/medicamentos/movimentacoes/lista',
+          {
+            params: queryParams,
+          }
+        )
 
         this.movimentacoes = response.data.movimentacoes
         this.pagination = {
@@ -229,9 +246,12 @@ export const useMedicamentoStore = defineStore('medicamento', {
     // === RELATÓRIOS ===
     async fetchEstoqueBaixo(diasVencimento = 30) {
       try {
-        const response = await api.get('/api/medicamentos/relatorio/estoque-baixo', {
-          params: { dias_vencimento: diasVencimento },
-        })
+        const response = await api.get(
+          '/api/medicamentos/relatorio/estoque-baixo',
+          {
+            params: { dias_vencimento: diasVencimento },
+          }
+        )
         this.estoqueBaixo = response.data
         return response.data
       } catch (error) {
@@ -241,13 +261,18 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     async fetchPrevisaoConsumo(diasAnalise = 90) {
       try {
-        const response = await api.get('/api/medicamentos/relatorio/previsao-consumo', {
-          params: { dias_analise: diasAnalise },
-        })
+        const response = await api.get(
+          '/api/medicamentos/relatorio/previsao-consumo',
+          {
+            params: { dias_analise: diasAnalise },
+          }
+        )
         this.previsaoConsumo = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        )
       }
     },
 
@@ -257,13 +282,19 @@ export const useMedicamentoStore = defineStore('medicamento', {
         if (dataInicio) params.data_inicio = dataInicio
         if (dataFim) params.data_fim = dataFim
 
-        const response = await api.get('/api/medicamentos/relatorio/movimentacao-periodo', {
-          params,
-        })
+        const response = await api.get(
+          '/api/medicamentos/relatorio/movimentacao-periodo',
+          {
+            params,
+          }
+        )
         this.movimentacaoPeriodo = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar movimentação do período'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar movimentação do período'
+        )
       }
     },
 
@@ -273,22 +304,30 @@ export const useMedicamentoStore = defineStore('medicamento', {
         if (dataInicio) params.data_inicio = dataInicio
         if (dataFim) params.data_fim = dataFim
 
-        const response = await api.get(`/api/medicamentos/relatorio/consumo-animal/${animalId}`, {
-          params,
-        })
+        const response = await api.get(
+          `/api/medicamentos/relatorio/consumo-animal/${animalId}`,
+          {
+            params,
+          }
+        )
         this.consumoPorAnimal = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar consumo por animal'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar consumo por animal'
+        )
       }
     },
 
     // === AUTOCOMPLETE ===
     async autocompleteMedicamentos(termo) {
       try {
-        const response = await api.get('/api/medicamentos/autocomplete', {
-          params: { termo, limit: 20 },
-        })
+        const response = await api.get(
+          '/api/medicamentos/search/autocomplete',
+          {
+            params: { termo, limit: 1000 },
+          }
+        )
         return response.data
       } catch (error) {
         console.error('Erro no autocomplete:', error)
@@ -300,7 +339,7 @@ export const useMedicamentoStore = defineStore('medicamento', {
     async loadMedicamentoOptions() {
       await this.fetchMedicamentos({ limit: 100 })
 
-      return this.medicamentosAtivos.map((med) => ({
+      return this.medicamentosAtivos.map(med => ({
         value: med.ID,
         label: `${med.NOME} (${med.ESTOQUE_ATUAL} ${med.UNIDADE_MEDIDA})`,
         estoque: med.ESTOQUE_ATUAL,
@@ -404,7 +443,7 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     // === VALIDAÇÕES ===
     validarEstoque(medicamentoId, quantidadeNecessaria) {
-      const medicamento = this.medicamentos.find((m) => m.ID === medicamentoId)
+      const medicamento = this.medicamentos.find(m => m.ID === medicamentoId)
       if (!medicamento) {
         return { valido: false, erro: 'Medicamento não encontrado' }
       }
@@ -421,13 +460,13 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     // === CÁLCULOS ===
     calcularValorAplicacao(medicamentoId, quantidade) {
-      const medicamento = this.medicamentos.find((m) => m.ID === medicamentoId)
+      const medicamento = this.medicamentos.find(m => m.ID === medicamentoId)
       if (!medicamento || !medicamento.PRECO_UNITARIO) return null
       return (medicamento.PRECO_UNITARIO * quantidade).toFixed(2)
     },
 
     calcularDiasEstoque(medicamentoId, consumoMedio) {
-      const medicamento = this.medicamentos.find((m) => m.ID === medicamentoId)
+      const medicamento = this.medicamentos.find(m => m.ID === medicamentoId)
       if (!medicamento || !consumoMedio || consumoMedio <= 0) return null
       return Math.floor(medicamento.ESTOQUE_ATUAL / consumoMedio)
     },
@@ -438,21 +477,26 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
       const termoLower = termo.toLowerCase()
       return this.medicamentosComEstoque.filter(
-        (med) =>
+        med =>
           med.NOME.toLowerCase().includes(termoLower) ||
-          (med.PRINCIPIO_ATIVO && med.PRINCIPIO_ATIVO.toLowerCase().includes(termoLower)) ||
-          (med.FABRICANTE && med.FABRICANTE.toLowerCase().includes(termoLower)),
+          (med.PRINCIPIO_ATIVO &&
+            med.PRINCIPIO_ATIVO.toLowerCase().includes(termoLower)) ||
+          (med.FABRICANTE && med.FABRICANTE.toLowerCase().includes(termoLower))
       )
     },
 
     getMedicamentosByForma(forma) {
-      return this.medicamentosComEstoque.filter((med) => med.FORMA_FARMACEUTICA === forma)
+      return this.medicamentosComEstoque.filter(
+        med => med.FORMA_FARMACEUTICA === forma
+      )
     },
 
     getMedicamentosVencendo(dias = 30) {
       return this.medicamentos.filter(
-        (med) =>
-          med.ATIVO === 'S' && med.status_estoque === 'VENCENDO' && med.dias_vencimento <= dias,
+        med =>
+          med.ATIVO === 'S' &&
+          med.status_estoque === 'VENCENDO' &&
+          med.dias_vencimento <= dias
       )
     },
   },

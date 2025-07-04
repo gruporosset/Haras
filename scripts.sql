@@ -489,10 +489,6 @@ create table ferrageamento_animais (
           or proxima_avaliacao >= data_ocorrencia )
 );
 
--- ========================================
--- MÓDULO DE RAÇÃO E SUPLEMENTOS
--- ========================================
-
 -- Tabela principal de produtos de nutrição
 create table produtos_racao (
    id                      number
@@ -1127,18 +1123,15 @@ begin
 end;
 
 -- Trigger para calcular automaticamente a próxima avaliação
+
 create or replace trigger trg_calcular_proxima_casco before
-   insert or update on saude_animais
+   insert or update on ferrageamento_animais
    for each row
-   when ( new.tipo_registro in ( 'FERRAGEAMENTO',
-                                 'CASQUEAMENTO',
-                                 'FERRAGEAMENTO_CORRETIVO',
-                                 'CASQUEAMENTO_TERAPEUTICO' ) )
 begin
     -- Calcular próxima avaliação se não foi informada
    if :new.proxima_avaliacao is null then
       :new.proxima_avaliacao := calcular_proxima_data_casco(
-         :new.tipo_registro,
+         :new.tipo_ferrageamento,
          :new.data_ocorrencia,
          'GERAL' -- Modalidade padrão, pode ser personalizada no futuro
       );
@@ -1358,7 +1351,7 @@ create or replace view vw_ferrageamento_resumo as
           a.nome as animal_nome,
           a.numero_registro,
           sa.id as registro_id,
-          sa.tipo_registro,
+          sa.tipo_ferrageamento,
           sa.data_ocorrencia,
           sa.tipo_ferradura,
           sa.membro_tratado,
@@ -1389,12 +1382,8 @@ create or replace view vw_ferrageamento_resumo as
                 'EM_DIA'
           end as status_vencimento
      from animais a
-     join saude_animais sa
+     join ferrageamento_animais sa
    on a.id = sa.id_animal
-    where sa.tipo_registro in ( 'FERRAGEAMENTO',
-                                'CASQUEAMENTO',
-                                'FERRAGEAMENTO_CORRETIVO',
-                                'CASQUEAMENTO_TERAPEUTICO' )
     order by a.nome,
              sa.data_ocorrencia desc;
 

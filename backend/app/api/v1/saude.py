@@ -1,3 +1,4 @@
+# backend/app/api/v1/saude.py
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -123,7 +124,7 @@ async def create_registro_saude(
     return response_data
 
 
-@router.get("/", response_model=List[SaudeResponse])
+@router.get("/", response_model=dict)
 async def get_registros_saude(
     db: Session = Depends(get_db),
     animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
@@ -133,10 +134,10 @@ async def get_registros_saude(
     veterinario: Optional[str] = Query(None, description="Filtrar por veterinário"),
     data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
-    limit: int = Query(50, le=100),
-    offset: int = Query(0, ge=0),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, le=1000),
 ):
-    """Listar registros de saúde"""
+    """Listar registros de saúde com paginação"""
     query = (
         db.query(SaudeAnimais, Animal.NOME)
         .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
@@ -159,26 +160,31 @@ async def get_registros_saude(
         try:
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
             query = query.filter(SaudeAnimais.DATA_OCORRENCIA >= data_inicio_dt)
-        except ValueError as e:
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Formato de data inválido. Use YYYY-MM-DD",
-            ) from e
+            )
 
     if data_fim:
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             query = query.filter(SaudeAnimais.DATA_OCORRENCIA <= data_fim_dt)
-        except ValueError as e:
+        except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Formato de data inválido. Use YYYY-MM-DD",
-            ) from e
+            )
 
+    # Contar total para paginação
+    total = query.count()
+
+    # Aplicar paginação
+    offset = (page - 1) * limit
     registros = query.offset(offset).limit(limit).all()
 
-    # Preparar resposta
-    result = []
+    # Preparar resposta com nomes dos animais e medicamentos
+    enriched_registros = []
     for registro, animal_nome in registros:
         response_data = SaudeResponse.model_validate(registro)
         response_data.animal_nome = animal_nome
@@ -193,15 +199,22 @@ async def get_registros_saude(
             if medicamento:
                 response_data.medicamento_nome = medicamento.NOME
 
-        result.append(response_data)
+        enriched_registros.append(response_data)
 
-    return result
+    # Retornar no formato esperado pelo frontend
+    return {
+        "registros": enriched_registros,
+        "total": total,
+        "page": page,
+        "limit": limit,
+    }
 
 
 @router.get("/{registro_id}", response_model=SaudeResponse)
 async def get_registro_saude(
     registro_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Obter registro específico de saúde"""
     registro = (
@@ -238,6 +251,7 @@ async def update_registro_saude(
     registro_id: int,
     dados: SaudeUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Atualizar registro de saúde"""
     registro = db.query(SaudeAnimais).filter(SaudeAnimais.ID == registro_id).first()
@@ -270,6 +284,7 @@ async def update_registro_saude(
 async def delete_registro_saude(
     registro_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Excluir registro de saúde"""
     registro = db.query(SaudeAnimais).filter(SaudeAnimais.ID == registro_id).first()
@@ -373,6 +388,7 @@ async def aplicacao_rapida(
 @router.get("/proximas-aplicacoes/", response_model=List[ProximasAplicacoes])
 async def get_proximas_aplicacoes(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     dias_antecedencia: int = Query(30, description="Dias de antecedência"),
 ):
     """Obter próximas aplicações programadas"""
@@ -412,6 +428,7 @@ async def get_proximas_aplicacoes(
 @router.get("/estatisticas/geral", response_model=EstatisticasSaude)
 async def get_estatisticas_saude(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     ano: Optional[int] = Query(None, description="Ano para estatísticas"),
     mes: Optional[int] = Query(None, description="Mês para estatísticas"),
 ):
@@ -497,6 +514,7 @@ async def get_estatisticas_saude(
 async def get_historico_saude(
     animal_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     meses: int = Query(12, description="Período em meses para análise"),
 ):
     """Histórico completo de saúde do animal"""
@@ -545,6 +563,7 @@ async def get_historico_saude(
 @router.get("/calendario/", response_model=List[CalendarioSaude])
 async def get_calendario_saude(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     data_inicio: str = Query(..., description="Data início (YYYY-MM-DD)"),
     data_fim: str = Query(..., description="Data fim (YYYY-MM-DD)"),
 ):
@@ -552,11 +571,11 @@ async def get_calendario_saude(
     try:
         inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
         fim = datetime.strptime(data_fim, "%Y-%m-%d")
-    except ValueError as e:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Formato de data inválido. Use YYYY-MM-DD",
-        ) from e
+        )
 
     # Buscar aplicações no período
     aplicacoes = (
@@ -600,6 +619,7 @@ async def get_calendario_saude(
 @router.get("/relatorio/consumo-por-tipo", response_model=List[ConsumoPorTipo])
 async def get_consumo_por_tipo(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     meses_periodo: int = Query(6, description="Período em meses para análise"),
 ):
     """Relatório de consumo por tipo de registro"""
@@ -633,6 +653,7 @@ async def get_consumo_por_tipo(
 @router.get("/medicamentos/autocomplete", response_model=List[MedicamentoAutocomplete])
 async def get_medicamentos_autocomplete(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     query: str = Query(..., min_length=2, description="Termo de busca"),
 ):
     """Autocomplete para medicamentos ativos"""

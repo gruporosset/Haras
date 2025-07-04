@@ -185,8 +185,8 @@
                     v-if="proximasAplicacoes.length"
                   >
                     <q-item
-                      v-for="aplicacao in proximasAplicacoes"
-                      :key="aplicacao.animal_id + aplicacao.data_aplicacao"
+                      v-for="(aplicacao, index) in proximasAplicacoes"
+                      :key="`aplicacao-${index}`"
                     >
                       <q-item-section avatar>
                         <q-avatar
@@ -202,7 +202,9 @@
                           {{ getLabelEvento(aplicacao) }}
                         </q-item-label>
                         <q-item-label caption>
-                          {{ formatDateForDisplay(aplicacao.data_aplicacao) }}
+                          {{
+                            formatDateForDisplay(aplicacao.proxima_aplicacao)
+                          }}
                         </q-item-label>
                       </q-item-section>
                       <q-item-section side>
@@ -654,6 +656,7 @@
   import { useQuasar } from 'quasar'
   import { useSaudeStore } from 'stores/saude'
   import { useAnimalStore } from 'stores/animal'
+  import { useMedicamentoStore } from 'src/stores/medicamento'
   import CalendarioComponent from 'components/widgets/CalendarioComponent.vue'
   import Chart from 'chart.js/auto'
   import { ErrorHandler } from 'src/utils/errorHandler'
@@ -662,6 +665,7 @@
   const $q = useQuasar()
   const saudeStore = useSaudeStore()
   const animalStore = useAnimalStore()
+  const medicamentoStore = useMedicamentoStore()
 
   // Refs
   const activeTab = ref('registros')
@@ -786,6 +790,13 @@
       field: 'status_aplicacao',
       align: 'center',
     },
+    {
+      name: 'PROXIMA_APLICACAO',
+      label: 'Próxima Aplicação',
+      field: 'PROXIMA_APLICACAO',
+      align: 'left',
+      sortable: true,
+    },
     { name: 'acoes', label: 'Ações', field: 'acoes', align: 'center' },
   ]
 
@@ -829,11 +840,12 @@
   const carregarMedicamentos = async () => {
     try {
       // Carregar todos os medicamentos ativos com estoque > 0 uma única vez
-      const response = await saudeStore.autocompleteMedicamentos('')
+      const response = await medicamentoStore.autocompleteMedicamentos('')
+      console.log(response)
       medicamentosEstoque.value = response.map(med => ({
         value: med.value,
-        label: `${med.nome} - Estoque: ${med.estoque} ${med.unidade}`,
-        nome: med.nome,
+        label: `${med.label} - Estoque: ${med.estoque} ${med.unidade}`,
+        nome: med.label,
         estoque: med.estoque,
         unidade: med.unidade,
       }))
@@ -862,7 +874,7 @@
 
   const carregarProximasAplicacoes = async () => {
     try {
-      proximasAplicacoes.value = await saudeStore.getProximasAplicacoes()
+      proximasAplicacoes.value = await saudeStore.fetchProximasAplicacoes()
     } catch (error) {
       ErrorHandler.handle(error, 'Erro ao carregar próximas aplicações')
     }
@@ -1020,13 +1032,13 @@
     loading.value = true
     try {
       if (editandoRegistro.value) {
-        await saudeStore.atualizarRegistro(
+        await saudeStore.updateRegistro(
           formRegistro.value.ID,
           formRegistro.value
         )
         ErrorHandler.success('Registro atualizado com sucesso!')
       } else {
-        await saudeStore.criarRegistro(formRegistro.value)
+        await saudeStore.createRegistro(formRegistro.value)
 
         ErrorHandler.success('Registro criado com sucesso!')
       }
@@ -1053,7 +1065,7 @@
       persistent: true,
     }).onOk(async () => {
       try {
-        await saudeStore.excluirRegistro(registro.ID)
+        await saudeStore.deleteRegistro(registro.ID)
         ErrorHandler.success('Registro excluído com sucesso!')
         buscarRegistros()
       } catch (error) {
