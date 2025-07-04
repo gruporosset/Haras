@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import api from '../boot/api'
 import { prepareFormData } from 'src/utils/dateUtils'
+import { ErrorHandler } from 'src/utils/errorHandler'
 
 export const useFerrageamentoStore = defineStore('ferrageamento', {
   state: () => ({
@@ -61,32 +62,34 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       { value: 'PROBLEMA', label: 'Problema' },
     ],
 
-    ferrageamentosVencidos: (state) => {
+    ferrageamentosVencidos: state => {
       return state.ferrageamentos.filter(
-        (f) => f.status_vencimento === 'VENCIDO' || f.status_vencimento === 'VENCE_SEMANA',
+        f =>
+          f.status_vencimento === 'VENCIDO' ||
+          f.status_vencimento === 'VENCE_SEMANA'
       )
     },
 
-    ferrageamentosEmDia: (state) => {
-      return state.ferrageamentos.filter((f) => f.status_vencimento === 'EM_DIA')
+    ferrageamentosEmDia: state => {
+      return state.ferrageamentos.filter(f => f.status_vencimento === 'EM_DIA')
     },
 
-    custoTotalMes: (state) => {
+    custoTotalMes: state => {
       const agora = new Date()
       const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1)
 
       return state.ferrageamentos
-        .filter((f) => {
+        .filter(f => {
           const dataOcorrencia = new Date(f.DATA_OCORRENCIA)
           return dataOcorrencia >= inicioMes && f.CUSTO
         })
         .reduce((total, f) => total + (f.CUSTO || 0), 0)
     },
 
-    ferradoresMaisAtivos: (state) => {
+    ferradoresMaisAtivos: state => {
       const contadorFerradores = {}
 
-      state.ferrageamentos.forEach((f) => {
+      state.ferrageamentos.forEach(f => {
         if (f.FERRADOR_RESPONSAVEL) {
           if (!contadorFerradores[f.FERRADOR_RESPONSAVEL]) {
             contadorFerradores[f.FERRADOR_RESPONSAVEL] = {
@@ -99,17 +102,19 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
           contadorFerradores[f.FERRADOR_RESPONSAVEL].custo += f.CUSTO || 0
         }
       })
-
       return Object.values(contadorFerradores)
         .sort((a, b) => b.total - a.total)
         .slice(0, 5)
     },
 
-    estatisticasGerais: (state) => {
+    estatisticasGerais: state => {
       const total = state.ferrageamentos.length
       const vencidos = state.ferrageamentosVencidos.length
       const emDia = state.ferrageamentosEmDia.length
-      const custoTotal = state.ferrageamentos.reduce((sum, f) => sum + (f.CUSTO || 0), 0)
+      const custoTotal = state.ferrageamentos.reduce(
+        (sum, f) => sum + (f.CUSTO || 0),
+        0
+      )
 
       return {
         totalRegistros: total,
@@ -141,7 +146,9 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
           queryParams.tipo_registro = queryParams.tipo_registro.value
         }
 
-        const response = await api.get('/api/ferrageamento', { params: queryParams })
+        const response = await api.get('/api/ferrageamento', {
+          params: queryParams,
+        })
         this.ferrageamentos = response.data.ferrageamentos
         this.pagination = {
           ...this.pagination,
@@ -152,7 +159,10 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
 
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar registros de ferrageamento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar registros de ferrageamento'
+        )
       } finally {
         this.loading = false
       }
@@ -160,23 +170,35 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
 
     async createFerrageamento(ferrageamentoData) {
       try {
-        const dados = prepareFormData(ferrageamentoData, ['DATA_OCORRENCIA', 'PROXIMA_AVALIACAO'])
+        const dados = prepareFormData(ferrageamentoData, [
+          'DATA_OCORRENCIA',
+          'PROXIMA_AVALIACAO',
+        ])
         const response = await api.post('/api/ferrageamento', dados)
         await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar registro de ferrageamento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao criar registro de ferrageamento'
+        )
       }
     },
 
     async updateFerrageamento(id, ferrageamentoData) {
       try {
-        const dados = prepareFormData(ferrageamentoData, ['DATA_OCORRENCIA', 'PROXIMA_AVALIACAO'])
+        const dados = prepareFormData(ferrageamentoData, [
+          'DATA_OCORRENCIA',
+          'PROXIMA_AVALIACAO',
+        ])
         const response = await api.put(`/api/ferrageamento/${id}`, dados)
         await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar registro de ferrageamento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao atualizar registro de ferrageamento'
+        )
       }
     },
 
@@ -185,7 +207,10 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
         await api.delete(`/api/ferrageamento/${id}`)
         await this.fetchFerrageamentos()
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir registro de ferrageamento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao excluir registro de ferrageamento'
+        )
       }
     },
 
@@ -194,14 +219,20 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
         const response = await api.get(`/api/ferrageamento/${id}`)
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar registro de ferrageamento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar registro de ferrageamento'
+        )
       }
     },
 
     // === APLICAÇÃO RÁPIDA ===
     async aplicacaoRapida(dadosAplicacao) {
       try {
-        const response = await api.post('/api/ferrageamento/aplicacao-rapida', dadosAplicacao)
+        const response = await api.post(
+          '/api/ferrageamento/aplicacao-rapida',
+          dadosAplicacao
+        )
         await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
@@ -212,26 +243,32 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
     // === ALERTAS E RELATÓRIOS ===
     async fetchAlertasVencimento(diasAntecedencia = 15) {
       try {
-        const response = await api.get('/api/ferrageamento/alertas/vencimentos', {
-          params: { dias_antecedencia: diasAntecedencia },
-        })
+        const response = await api.get(
+          '/api/ferrageamento/alertas/vencimentos',
+          {
+            params: { dias_antecedencia: diasAntecedencia },
+          }
+        )
         this.alertasVencimento = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao buscar alertas de vencimento:', error)
+        ErrorHandler.handle(error, 'Erro ao buscar alertas de vencimento')
         return []
       }
     },
 
     async fetchEstatisticasAnimais(mesesPeriodo = 12) {
       try {
-        const response = await api.get('/api/ferrageamento/estatisticas/animais', {
-          params: { meses_periodo: mesesPeriodo },
-        })
+        const response = await api.get(
+          '/api/ferrageamento/estatisticas/animais',
+          {
+            params: { meses_periodo: mesesPeriodo },
+          }
+        )
         this.estatisticasAnimais = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao buscar estatísticas de animais:', error)
+        ErrorHandler.handle(error, 'Erro ao buscar estatísticas de animais')
         return []
       }
     },
@@ -333,6 +370,15 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       return membros[membro] || membro
     },
 
+    // == GRAFICOS ==
+    async getCustosEvolucaoMensal(meses) {
+      console.log(meses)
+      const response = await api.get(
+        `/api/ferrageamento/grafico/custos-evolucao?meses=${meses}`
+      )
+      return response.data
+    },
+
     // === VALIDAÇÕES ===
     validarProximaData(dataOcorrencia, proximaAvaliacao) {
       if (!proximaAvaliacao) return { valido: true }
@@ -385,7 +431,7 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
           this.fetchEstatisticasAnimais(6),
         ])
       } catch (error) {
-        console.error('Erro ao carregar dashboard:', error)
+        ErrorHandler.handle(error, 'Erro ao carregar dashboard')
       }
     },
   },

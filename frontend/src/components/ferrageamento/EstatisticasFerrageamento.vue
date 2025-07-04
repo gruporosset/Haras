@@ -11,8 +11,12 @@
               <q-item-section>
                 <q-item-label>{{ stat.animal_nome }}</q-item-label>
                 <q-item-label caption>
-                  {{ stat.total_registros }} registros - 
-                  Último: {{ formatDate(stat.ultimo_registro) }}
+                  {{ stat.total_casqueamento }} registros de casqueamento - 
+                  Último: {{ formatDateForDisplay(stat.ultimo_casqueamento) }}
+                </q-item-label>
+                <q-item-label caption>
+                  {{ stat.total_ferrageamento }} registros de ferrageamento - 
+                  Último: {{ formatDateForDisplay(stat.ultimo_ferrageamento) }}
                 </q-item-label>
                 <q-item-label caption>
                   Custo total: R$ {{ stat.custo_total?.toFixed(2) || '0,00' }}
@@ -51,15 +55,15 @@
               <q-item-section>
                 <q-item-label>{{ ferrador.nome }}</q-item-label>
                 <q-item-label caption>
-                  {{ ferrador.total_servicos }} serviços
+                  {{ ferrador.total }} serviços
                 </q-item-label>
                 <q-item-label caption>
-                  Faturamento: R$ {{ ferrador.faturamento_total?.toFixed(2) || '0,00' }}
+                  Faturamento: R$ {{ ferrador.custo?.toFixed(2) || '0,00' }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
                 <q-avatar color="primary" text-color="white">
-                  {{ ferrador.total_servicos }}
+                  {{ ferrador.total }}
                 </q-avatar>
               </q-item-section>
             </q-item>
@@ -103,34 +107,30 @@
 
     <!-- Gráfico de Custos -->
     <div class="col-12">
-      <q-card>
-        <q-card-section>
-          <div class="text-h6">Evolução de Custos</div>
-          <div v-if="dadosGrafico.length > 0" class="q-mt-md">
-            <!-- Aqui seria implementado um gráfico de linha -->
-            <div class="text-center q-pa-md">
-              <q-icon name="show_chart" size="4rem" color="grey" />
-              <div class="text-body2 text-grey">
-                Gráfico de evolução mensal de custos
-              </div>
-            </div>
-          </div>
-          <div v-else class="text-center q-pa-xl">
-            <q-icon name="show_chart" size="4rem" color="grey" />
-            <div class="text-h6 text-grey q-mt-md">
-              Sem dados para o período selecionado
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
+        <q-card>
+            <q-card-section>
+                <div class="text-h6">Evolução de Custos</div>
+                <div v-if="dadosGrafico.length > 0" class="q-mt-md">
+                    <canvas ref="chartCanvas" style="height: 400px;"></canvas>
+                </div>
+                <div v-else class="text-center q-pa-xl">
+                    <q-icon name="show_chart" size="4rem" color="grey" />
+                    <div class="text-h6 text-grey q-mt-md">
+                    Sem dados para o período selecionado
+                    </div>
+                </div>
+            </q-card-section>
+        </q-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useFerrageamentoStore } from 'stores/ferrageamento'
-import { formatDate } from 'src/utils/dateUtils'
+import { formatDateForDisplay } from 'src/utils/dateUtils'
+import { Chart, registerables } from 'chart.js'
+import { ErrorHandler } from 'src/utils/errorHandler'
 
 // Store
 const ferrageamentoStore = useFerrageamentoStore()
@@ -138,6 +138,11 @@ const ferrageamentoStore = useFerrageamentoStore()
 // Estado reativo
 const periodoSelecionado = ref(6)
 const dadosGrafico = ref([])
+const chartCanvas = ref(null)
+const chartInstance = ref(null)
+
+// Registrar Chart.js
+Chart.register(...registerables)
 
 // Opções
 const opcoesPerido = [
@@ -151,20 +156,45 @@ const opcoesPerido = [
 async function atualizarEstatisticas() {
   try {
     await ferrageamentoStore.fetchEstatisticasAnimais(periodoSelecionado.value)
-    // Remove chamadas para métodos que não existem
     await carregarDadosGrafico()
   } catch (error) {
-    console.error('Erro ao atualizar estatísticas:', error)
+    ErrorHandler.handle(error,'Erro ao atualizar estatísticas')
   }
 }
 
 async function carregarDadosGrafico() {
   try {
-    // Simular dados até implementar no store
-    dadosGrafico.value = []
+    dadosGrafico.value = await ferrageamentoStore.getCustosEvolucaoMensal(periodoSelecionado.value)
+    await nextTick()
+    criarGrafico()
   } catch {
     dadosGrafico.value = []
   }
+}
+
+function criarGrafico() {
+  if (chartInstance.value) {
+    chartInstance.value.destroy()
+  }
+
+  const ctx = chartCanvas.value.getContext('2d')
+  chartInstance.value = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dadosGrafico.value.map(d => d.mes),
+      datasets: [{
+        label: 'Custos (R$)',
+        data: dadosGrafico.value.map(d => d.custo_total),
+        borderColor: '#1976d2',
+        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  })
 }
 
 function getStatusColor(status) {

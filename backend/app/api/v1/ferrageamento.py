@@ -18,7 +18,7 @@ from app.schemas.ferrageamento import (
     TipoFerrageamentoEnum,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, desc, extract, func
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/ferrageamento", tags=["Ferrageamento"])
@@ -634,3 +634,74 @@ async def get_relatorio(
     )
 
     return relatorio
+
+
+@router.get("/grafico/custos-evolucao")
+async def get_custos_evolucao(
+    meses: int = Query(6, ge=1, le=24),
+    db: Session = Depends(get_db),
+):
+    """Evolução mensal de custos de ferrageamento"""
+    data_limite = datetime.now() - timedelta(days=30 * meses)
+
+    resultados = (
+        db.query(
+            extract("year", SaudeAnimais.DATA_OCORRENCIA).label("ano"),
+            extract("month", SaudeAnimais.DATA_OCORRENCIA).label("mes"),
+            func.sum(SaudeAnimais.CUSTO).label("custo_total"),
+            func.count(SaudeAnimais.ID).label("total_registros"),
+        )
+        .filter(
+            SaudeAnimais.TIPO_REGISTRO.in_(
+                [
+                    "FERRAGEAMENTO",
+                    "CASQUEAMENTO",
+                    "FERRAGEAMENTO_CORRETIVO",
+                    "CASQUEAMENTO_TERAPEUTICO",
+                ]
+            ),
+            SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+        )
+        .group_by(
+            extract("year", SaudeAnimais.DATA_OCORRENCIA),
+            extract("month", SaudeAnimais.DATA_OCORRENCIA),
+        )
+        .order_by("ano", "mes")
+        .all()
+    )
+
+    meses_nomes = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+    ]
+
+    dados = []
+    for r in resultados:
+        ano_atual = datetime.now().year
+        mes_label = (
+            f"{meses_nomes[int(r.mes)-1]}/{r.ano}"
+            if r.ano != ano_atual
+            else meses_nomes[int(r.mes) - 1]
+        )
+
+        dados.append(
+            {
+                "mes": mes_label,
+                "custo_total": float(r.custo_total or 0),
+                "total_registros": r.total_registros,
+                "ano": r.ano,
+                "mes_num": r.mes,
+            }
+        )
+
+    return dados
