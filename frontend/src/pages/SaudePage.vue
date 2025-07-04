@@ -178,7 +178,6 @@
                   class="q-pa-md"
                 >
                   <div class="text-h6 q-mb-md">Próximos Eventos</div>
-
                   <q-list
                     bordered
                     separator
@@ -193,7 +192,7 @@
                           :color="getPrioridadeColor(aplicacao.prioridade)"
                           text-color="white"
                         >
-                          {{ aplicacao.dias_restantes }}
+                          {{ aplicacao.dias_vencimento }}
                         </q-avatar>
                       </q-item-section>
                       <q-item-section>

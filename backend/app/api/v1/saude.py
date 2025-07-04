@@ -411,14 +411,12 @@ async def get_proximas_aplicacoes(
 
     proximas = []
     for saude, animal_nome in registros:
-        dias_restantes = (saude.PROXIMA_APLICACAO - datetime.now()).days
-
-        print(saude.__dict__)
+        dias_vencimento = (saude.PROXIMA_APLICACAO - datetime.now()).days
 
         # Determinar prioridade
-        if dias_restantes <= 3:
+        if dias_vencimento <= 3:
             prioridade = "URGENTE"
-        elif dias_restantes <= 7:
+        elif dias_vencimento <= 7:
             prioridade = "NORMAL"
         else:
             prioridade = "BAIXA"
@@ -441,11 +439,14 @@ async def get_proximas_aplicacoes(
                 animal_id=saude.ID_ANIMAL,
                 animal_nome=animal_nome,
                 tipo_registro=saude.TIPO_REGISTRO,
-                data_aplicacao=saude.PROXIMA_APLICACAO,
-                descricao=saude.DESCRICAO
-                or f"{saude.TIPO_REGISTRO} - "
-                f"{saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
-                dias_restantes=dias_restantes,
+                proxima_aplicacao=saude.PROXIMA_APLICACAO,
+                descricao=(
+                    f"{saude.DESCRICAO} - "
+                    f"{saude.MEDICAMENTO_APLICADO or 'Medicamento Não especificado'}"
+                    if saude.DESCRICAO
+                    else saude.MEDICAMENTO_APLICADO or "Medicamento Não especificado"
+                ),
+                dias_vencimento=dias_vencimento,
                 medicamento_nome=medicamento_nome,
                 veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
                 prioridade=prioridade,

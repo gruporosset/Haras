@@ -191,8 +191,10 @@ export const useSaudeStore = defineStore('saude', {
     },
 
     // === APLICAÇÃO RÁPIDA ===
-    async aplicacaoRapida(dados) {
+    async aplicacaoRapida(formData) {
       try {
+        const dados = prepareFormData(formData)
+
         const response = await api.post('/api/saude/aplicacao-rapida', dados)
         return response.data
       } catch (error) {

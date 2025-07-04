@@ -124,7 +124,11 @@ class ProximasAplicacoes(BaseModel):
     animal_nome: str
     tipo_registro: str
     proxima_aplicacao: datetime
+    descricao: str
     dias_vencimento: int
+    medicamento_nome: Optional[str] = None
+    veterinario_responsavel: Optional[str] = None
+    prioridade: str  # URGENTE, NORMAL, BAIXA
 
     @field_serializer("proxima_aplicacao")
     def serialize_dt(self, dt: datetime | None, _info):
