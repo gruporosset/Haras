@@ -247,25 +247,7 @@ create table saude_animais (
    id_medicamento          number
       references medicamentos ( id ),
    quantidade_aplicada     number(10,2),
-   unidade_aplicada        varchar2(20),
-   tipo_ferradura          varchar2(100),  -- Tipo de ferradura aplicada
-   membro_tratado          varchar2(50),   -- AD, AE, PD, PE, TODOS
-   problema_detectado      varchar2(500),  -- Problemas encontrados no casco
-   tecnica_aplicada        varchar2(200),  -- Técnica utilizada
-   ferrador_responsavel    varchar2(200), -- Nome do ferrador terceirizado
-   status_casco            varchar2(100),  -- Estado geral do casco
-   proxima_avaliacao       date,            -- Data sugerida para próxima avaliação
-   constraint chk_membro_tratado
-      check ( membro_tratado in ( 'AD',
-                                  'AE',
-                                  'PD',
-                                  'PE',
-                                  'TODOS' ) ),
-   constraint chk_status_casco
-      check ( status_casco in ( 'BOM',
-                                'REGULAR',
-                                'RUIM',
-                                'PROBLEMA' ) )
+   unidade_aplicada        varchar2(20)
 );
 
 alter table saude_animais
@@ -462,6 +444,49 @@ create table analises_solo (
    id_usuario_cadastro number
       references usuarios ( id ),
    data_cadastro       date default sysdate
+);
+
+create table ferrageamento_animais (
+   id                   number
+      generated always as identity
+   primary key,
+   id_animal            number not null
+      references animais ( id ),
+   tipo_ferrageamento   varchar2(30) not null check ( tipo_ferrageamento in ( 'FERRAGEAMENTO',
+                                                                            'CASQUEAMENTO',
+                                                                            'FERRAGEAMENTO_CORRETIVO',
+                                                                            'CASQUEAMENTO_TERAPEUTICO' ) ),
+   data_ocorrencia      date not null,
+   descricao            varchar2(1000),
+   
+   -- Campos específicos de ferrageamento
+   tipo_ferradura       varchar2(100),  -- Tipo de ferradura aplicada
+   membro_tratado       varchar2(50) check ( membro_tratado in ( 'AD',
+                                                           'AE',
+                                                           'PD',
+                                                           'PE',
+                                                           'TODOS' ) ),
+   problema_detectado   varchar2(500),  -- Problemas encontrados no casco
+   tecnica_aplicada     varchar2(200),  -- Técnica utilizada
+   ferrador_responsavel varchar2(200),  -- Nome do ferrador
+   status_casco         varchar2(100) check ( status_casco in ( 'BOM',
+                                                        'REGULAR',
+                                                        'RUIM',
+                                                        'PROBLEMA' ) ),
+   proxima_avaliacao    date,           -- Data sugerida para próxima avaliação
+   
+   -- Campos financeiros e administrativos
+   custo                number(10,2),
+   observacoes          clob,
+   id_usuario_registro  number
+      references usuarios ( id ),
+   data_registro        date default sysdate,
+   
+   -- Constraints de validação
+   constraint chk_data_ocorrencia_ferrageamento check ( data_ocorrencia <= sysdate ),
+   constraint chk_proxima_avaliacao_ferrageamento
+      check ( proxima_avaliacao is null
+          or proxima_avaliacao >= data_ocorrencia )
 );
 
 -- ========================================
@@ -746,6 +771,29 @@ comment on column planos_alimentares.percentual_peso_vivo is
    'Quantidade diária como percentual do peso vivo';
 comment on column fornecimento_racao_animal.peso_animal_referencia is
    'Peso do animal no momento do fornecimento';
+comment on table ferrageamento_animais is
+   'Registros específicos de ferrageamento e casqueamento dos animais';
+comment on column ferrageamento_animais.tipo_ferrageamento is
+   'Tipo: FERRAGEAMENTO, CASQUEAMENTO, FERRAGEAMENTO_CORRETIVO, CASQUEAMENTO_TERAPEUTICO';
+comment on column ferrageamento_animais.tipo_ferradura is
+   'Tipo de ferradura utilizada na aplicação';
+comment on column ferrageamento_animais.membro_tratado is
+   'Membro(s) tratado(s): AD (Anterior Direito), AE (Anterior Esquerdo), PD (Posterior Direito), PE (Posterior Esquerdo), TODOS'
+   ;
+comment on column ferrageamento_animais.problema_detectado is
+   'Problemas identificados no casco durante a avaliação';
+comment on column ferrageamento_animais.tecnica_aplicada is
+   'Técnica específica de ferrageamento aplicada';
+comment on column ferrageamento_animais.ferrador_responsavel is
+   'Nome do profissional ferrador responsável';
+comment on column ferrageamento_animais.status_casco is
+   'Condição geral do casco: BOM, REGULAR, RUIM, PROBLEMA';
+comment on column ferrageamento_animais.proxima_avaliacao is
+   'Data recomendada para próxima avaliação do ferrageamento';
+comment on table saude_animais is
+   'Registros de saúde dos animais (vacinas, medicamentos, consultas, exames, etc.)';
+comment on column saude_animais.tipo_registro is
+   'Tipo de registro de saúde: VACINA, VERMIFUGO, MEDICAMENTO, EXAME, CONSULTA, CIRURGIA, TRATAMENTO';
 -- ========================================
 -- Indexes
 -- ========================================
@@ -895,6 +943,25 @@ create index idx_fornecimento_produto on
    fornecimento_racao_animal (
       id_produto,
       data_fornecimento
+   );
+
+create index idx_ferrageamento_animal on
+   ferrageamento_animais (
+      id_animal,
+      data_ocorrencia
+   );
+create index idx_ferrageamento_tipo on
+   ferrageamento_animais (
+      tipo_ferrageamento,
+      data_ocorrencia
+   );
+create index idx_ferrageamento_ferrador on
+   ferrageamento_animais (
+      ferrador_responsavel
+   );
+create index idx_ferrageamento_data_registro on
+   ferrageamento_animais (
+      data_registro
    );
 
 -- ========================================

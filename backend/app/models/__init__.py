@@ -1,7 +1,11 @@
 # backend/app/models/__init__.py
 from .animal import Animal
 from .crescimento import HistoricoCrescimento
-from .ferrageamento import FerrageamentoMixin, FerrageamentoResumo
+from .ferrageamento import (  # NOVO MODELO
+    FerrageamentoAnimais,
+    FerrageamentoMixin,
+    FerrageamentoResumo,
+)
 from .manejo import (
     AnalisesSolo,
     ManejoTerrenos,
@@ -35,14 +39,15 @@ __all__ = [
     "Medicamento",
     "MovimentacaoMedicamento",
     "SaudeAnimais",
+    "FerrageamentoAnimais",
+    "FerrageamentoMixin",
+    "FerrageamentoResumo",
     "MovimentacaoAnimais",
     "Reproducao",
     "ProdutoManejo",
     "MovimentacaoProdutoManejo",
     "AnalisesSolo",
     "ManejoTerrenos",
-    "FerrageamentoResumo",
-    "FerrageamentoMixin",
     "ProdutoRacao",
     "MovimentacaoProdutoRacao",
     "PlanoAlimentar",

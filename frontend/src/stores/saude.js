@@ -1,405 +1,444 @@
+// frontend/src/stores/saude.js
 import { defineStore } from 'pinia'
-import api from 'boot/api'
-import { prepareFormData } from 'src/utils/dateUtils'
+import api from '../boot/api'
+
+import { ErrorHandler } from 'src/utils/errorHandler'
 
 export const useSaudeStore = defineStore('saude', {
   state: () => ({
+    // Dados principais
     registros: [],
-    proximasAplicacoes: [],
-    estatisticas: {},
     loading: false,
+
+    // Paginação e filtros
+    pagination: {
+      page: 1,
+      rowsPerPage: 50,
+      rowsNumber: 0,
+      sortBy: 'DATA_OCORRENCIA',
+      descending: true,
+    },
+
+    filters: {
+      animal_id: null,
+      tipo_registro: null, // APENAS TIPOS DE SAÚDE
+      veterinario: '',
+      data_inicio: '',
+      data_fim: '',
+    },
+
+    // Dados específicos de saúde
+    proximasAplicacoes: [],
+    estatisticasGerais: null,
+    consumoPorTipo: [],
+    calendarioSaude: [],
+    historicoAnimal: null,
   }),
 
   getters: {
-    registrosPorAnimal: (state) => (animalId) => {
-      return state.registros.filter((registro) => registro.ID_ANIMAL === animalId)
+    // Getter para tipos de saúde (SEM ferrageamento)
+    tiposRegistro: () => [
+      { value: 'VACINA', label: 'Vacina' },
+      { value: 'VERMIFUGO', label: 'Vermífugo' },
+      { value: 'MEDICAMENTO', label: 'Medicamento' },
+      { value: 'EXAME', label: 'Exame' },
+      { value: 'CONSULTA', label: 'Consulta' },
+      { value: 'CIRURGIA', label: 'Cirurgia' },
+      { value: 'TRATAMENTO', label: 'Tratamento' },
+    ],
+
+    // Getter para registros por status
+    registrosPorStatus: state => {
+      return state.registros.reduce((acc, item) => {
+        const status = item.status_aplicacao || 'APLICADO'
+        if (!acc[status]) acc[status] = []
+        acc[status].push(item)
+        return acc
+      }, {})
     },
 
-    registrosPorTipo: (state) => (tipo) => {
-      return state.registros.filter((registro) => registro.TIPO_REGISTRO === tipo)
+    // Getter para próximas aplicações por prioridade
+    aplicacoesPorPrioridade: state => {
+      const aplicacoes = {
+        atrasadas: state.proximasAplicacoes.filter(a => a.dias_vencimento < 0),
+        urgentes: state.proximasAplicacoes.filter(
+          a => a.dias_vencimento >= 0 && a.dias_vencimento <= 7
+        ),
+        proximas: state.proximasAplicacoes.filter(
+          a => a.dias_vencimento > 7 && a.dias_vencimento <= 30
+        ),
+      }
+      return aplicacoes
     },
 
-    proximasVacinas: (state) => {
-      return state.proximasAplicacoes.filter((app) => app.tipo_registro === 'VACINA')
-    },
+    // Getter para estatísticas resumidas
+    estatisticasResumo: state => {
+      if (!state.estatisticasGerais) return null
 
-    aplicacoesPendentes: (state) => {
-      return state.proximasAplicacoes.filter((app) => app.dias_restantes <= 7)
-    },
-
-    totalRegistros: (state) => state.registros.length,
-
-    custoTotal: (state) => {
-      return state.registros.reduce((total, registro) => {
-        return total + (registro.CUSTO || 0)
-      }, 0)
+      return {
+        totalRegistros: state.estatisticasGerais.total_registros,
+        registrosMes: state.estatisticasGerais.registros_mes_atual,
+        custoMes: state.estatisticasGerais.custo_total_mes,
+        proximasAplicacoes: state.estatisticasGerais.proximas_aplicacoes,
+        animaisEmTratamento: state.estatisticasGerais.animais_em_tratamento,
+      }
     },
   },
 
   actions: {
-    // === CRUD REGISTROS ===
-
-    async listarRegistros(params = {}) {
-      // Converter objetos select para valores
-      if (params.animal_id?.value) {
-        params.animal_id = params.animal_id.value
-      }
-
-      if (params.tipo_registro?.value) {
-        params.tipo_registro = params.tipo_registro.value
-      }
-
+    // === CRUD BÁSICO ===
+    async fetchRegistros(params = {}) {
       this.loading = true
       try {
-        const response = await api.get('/api/saude/', { params })
-        this.registros = response.data.registros || []
+        const queryParams = {
+          ...this.filters,
+          limit: this.pagination.rowsPerPage,
+          offset: (this.pagination.page - 1) * this.pagination.rowsPerPage,
+          ...params,
+        }
+
+        const response = await api.get('/api/saude/', {
+          params: queryParams,
+        })
+
+        this.registros = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao listar registros de saúde:', error)
-        throw error
+        ErrorHandler.handle(error, 'Erro ao buscar registros de saúde')
+        return []
       } finally {
         this.loading = false
       }
     },
 
-    async obterRegistro(id) {
+    async createRegistro(dados) {
       try {
-        const response = await api.get(`/api/saude/${id}`)
-        return response.data
-      } catch (error) {
-        console.error('Erro ao obter registro de saúde:', error)
-        throw error
-      }
-    },
-
-    async criarRegistro(dadosRegistro) {
-      try {
-        // Preparar dados para envio
-        const dados = prepareFormData(dadosRegistro)
-
         const response = await api.post('/api/saude/', dados)
-
-        // Atualizar lista local
-        await this.listarRegistros()
-
         return response.data
       } catch (error) {
-        console.error('Erro ao criar registro de saúde:', error)
-        throw error
+        throw error.response?.data?.detail || 'Erro ao criar registro de saúde'
       }
     },
 
-    async atualizarRegistro(id, dadosRegistro) {
+    async updateRegistro(id, dados) {
       try {
-        // Preparar dados para envio
-        const dados = prepareFormData(dadosRegistro, ['DATA_OCORRENCIA', 'PROXIMA_APLICACAO'])
-
         const response = await api.put(`/api/saude/${id}`, dados)
-
-        // Atualizar lista local
-        await this.listarRegistros()
-
         return response.data
       } catch (error) {
-        console.error('Erro ao atualizar registro de saúde:', error)
-        throw error
+        throw error.response?.data?.detail || 'Erro ao atualizar registro'
       }
     },
 
-    async excluirRegistro(id) {
+    async deleteRegistro(id) {
       try {
         await api.delete(`/api/saude/${id}`)
 
         // Remover da lista local
-        this.registros = this.registros.filter((registro) => registro.ID !== id)
-
-        return true
+        const index = this.registros.findIndex(r => r.ID === id)
+        if (index !== -1) {
+          this.registros.splice(index, 1)
+        }
       } catch (error) {
-        console.error('Erro ao excluir registro de saúde:', error)
-        throw error
+        throw error.response?.data?.detail || 'Erro ao excluir registro'
+      }
+    },
+
+    async getRegistro(id) {
+      try {
+        const response = await api.get(`/api/saude/${id}`)
+        return response.data
+      } catch (error) {
+        throw error.response?.data?.detail || 'Erro ao buscar registro'
       }
     },
 
     // === APLICAÇÃO RÁPIDA ===
-
-    async aplicacaoRapida(dadosAplicacao) {
+    async aplicacaoRapida(dados) {
       try {
-        const dados = prepareFormData(dadosAplicacao)
-
         const response = await api.post('/api/saude/aplicacao-rapida', dados)
-
-        // Atualizar lista local
-        await this.listarRegistros()
-
         return response.data
       } catch (error) {
-        console.error('Erro na aplicação rápida:', error)
-        throw error
+        throw error.response?.data?.detail || 'Erro na aplicação rápida'
       }
     },
 
-    // === AUTOCOMPLETE MEDICAMENTOS ===
-
-    async autocompleteMedicamentos(termo) {
+    // === PRÓXIMAS APLICAÇÕES ===
+    async fetchProximasAplicacoes(diasAntecedencia = 30) {
       try {
-        const response = await api.get('/api/saude/autocomplete/medicamentos', {
-          params: { termo: termo || ' ', limit: 50 },
+        const response = await api.get('/api/saude/proximas-aplicacoes/', {
+          params: { dias_antecedencia: diasAntecedencia },
         })
-        return response.data
-      } catch (error) {
-        console.error('Erro ao buscar medicamentos:', error)
-        return []
-      }
-    },
-
-    // === ESTATÍSTICAS E RELATÓRIOS ===
-
-    async estatisticasPorAnimal(animalId) {
-      try {
-        const response = await api.get(`/api/saude/estatisticas/animal/${animalId}`)
-        return response.data
-      } catch (error) {
-        console.error('Erro ao obter estatísticas do animal:', error)
-        throw error
-      }
-    },
-
-    async getProximasAplicacoes(params = {}) {
-      try {
-        const response = await api.get('/api/saude/proximas-aplicacoes', { params })
         this.proximasAplicacoes = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao obter próximas aplicações:', error)
+        ErrorHandler.handle(error, 'Erro ao buscar próximas aplicações')
         return []
       }
     },
 
-    async calendarioSaude(mes, ano) {
+    // === ESTATÍSTICAS ===
+    async fetchEstatisticasGerais(params = {}) {
       try {
-        const response = await api.get('/api/saude/calendario', {
-          params: { mes, ano },
+        const response = await api.get('/api/saude/estatisticas/geral', {
+          params,
         })
+        this.estatisticasGerais = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao obter calendário de saúde:', error)
+        ErrorHandler.handle(error, 'Erro ao buscar estatísticas gerais')
+        return null
+      }
+    },
+
+    async fetchConsumoPorTipo(mesesPeriodo = 6) {
+      try {
+        const response = await api.get(
+          '/api/saude/relatorio/consumo-por-tipo',
+          {
+            params: { meses_periodo: mesesPeriodo },
+          }
+        )
+        this.consumoPorTipo = response.data
+        return response.data
+      } catch (error) {
+        ErrorHandler.handle(error, 'Erro ao buscar consumo por tipo')
         return []
       }
     },
 
-    async aplicacoesMensais(meses = 6) {
+    // === HISTÓRICO E CALENDÁRIO ===
+    async fetchHistoricoAnimal(animalId, meses = 12) {
       try {
-        const response = await api.get('/api/saude/relatorio/aplicacoes-mensais', {
+        const response = await api.get(`/api/saude/historico/${animalId}`, {
           params: { meses },
         })
+        this.historicoAnimal = response.data
         return response.data
       } catch (error) {
-        console.error('Erro ao obter aplicações mensais:', error)
+        ErrorHandler.handle(error, 'Erro ao buscar histórico do animal')
+        return null
+      }
+    },
+
+    async fetchCalendarioSaude(dataInicio, dataFim) {
+      try {
+        const response = await api.get('/api/saude/calendario/', {
+          params: {
+            data_inicio: dataInicio,
+            data_fim: dataFim,
+          },
+        })
+        this.calendarioSaude = response.data
+        return response.data
+      } catch (error) {
+        ErrorHandler.handle(error, 'Erro ao buscar calendário de saúde')
         return []
       }
     },
 
-    async consumoPorTipo(params = {}) {
+    // === MEDICAMENTOS ===
+    async autocompleteMedicamentos(termo) {
       try {
-        const response = await api.get('/api/saude/relatorio/consumo-por-tipo', { params })
-        return response.data
+        if (!termo || termo.length < 2) return []
+
+        const response = await api.get('/api/saude/medicamentos/autocomplete', {
+          params: { query: termo },
+        })
+
+        return response.data.map(med => ({
+          value: med.id,
+          label: `${med.nome} - Estoque: ${med.estoque_atual} ${med.unidade_medida}`,
+          nome: med.nome,
+          estoque: med.estoque_atual,
+          unidade: med.unidade_medida,
+        }))
       } catch (error) {
-        console.error('Erro ao obter consumo por tipo:', error)
+        console.error('Erro no autocomplete de medicamentos:', error)
         return []
       }
     },
 
-    async historicoAnimal(animalId, params = {}) {
-      try {
-        const response = await api.get(`/api/saude/historico/${animalId}`, { params })
-        return response.data
-      } catch (error) {
-        console.error('Erro ao obter histórico do animal:', error)
-        throw error
+    // === FILTROS E PAGINAÇÃO ===
+    setFilters(newFilters) {
+      this.filters = { ...this.filters, ...newFilters }
+    },
+
+    clearFilters() {
+      this.filters = {
+        animal_id: null,
+        tipo_registro: null,
+        veterinario: '',
+        data_inicio: '',
+        data_fim: '',
       }
     },
 
-    async estatisticasVeterinarios(params = {}) {
-      try {
-        const response = await api.get('/api/saude/estatisticas/veterinarios-estatisticas', {
-          params,
-        })
-        return response.data
-      } catch (error) {
-        console.error('Erro ao obter estatísticas de veterinários:', error)
-        return []
-      }
+    setPagination(newPagination) {
+      this.pagination = { ...this.pagination, ...newPagination }
     },
 
-    // === RELATÓRIOS ===
-
-    async relatorioSaude(params = {}) {
-      try {
-        const response = await api.get('/api/saude/relatorio', {
-          params,
-          responseType: 'blob',
-        })
-
-        // Criar link para download
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `relatorio_saude_${new Date().getTime()}.pdf`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
-
-        return true
-      } catch (error) {
-        console.error('Erro ao gerar relatório de saúde:', error)
-        throw error
+    // === MÉTODOS AUXILIARES ===
+    getTipoLabel(tipo) {
+      const tipos = {
+        VACINA: 'Vacina',
+        VERMIFUGO: 'Vermífugo',
+        MEDICAMENTO: 'Medicamento',
+        EXAME: 'Exame',
+        CONSULTA: 'Consulta',
+        CIRURGIA: 'Cirurgia',
+        TRATAMENTO: 'Tratamento',
       }
+      return tipos[tipo] || tipo
     },
 
-    async exportarDados(formato = 'excel', params = {}) {
-      try {
-        const response = await api.get('/api/saude/exportar', {
-          params: { ...params, formato },
-          responseType: 'blob',
-        })
-
-        const extension = formato === 'excel' ? 'xlsx' : 'csv'
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `saude_${new Date().getTime()}.${extension}`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
-
-        return true
-      } catch (error) {
-        console.error('Erro ao exportar dados de saúde:', error)
-        throw error
+    getTipoColor(tipo) {
+      const cores = {
+        VACINA: 'green',
+        VERMIFUGO: 'blue',
+        MEDICAMENTO: 'purple',
+        EXAME: 'orange',
+        CONSULTA: 'teal',
+        CIRURGIA: 'red',
+        TRATAMENTO: 'indigo',
       }
+      return cores[tipo] || 'grey'
     },
 
-    // === VALIDAÇÕES E HELPERS ===
+    getStatusAplicacaoColor(status) {
+      const cores = {
+        APLICADO: 'green',
+        PENDENTE: 'orange',
+        ATRASADO: 'red',
+      }
+      return cores[status] || 'grey'
+    },
 
-    validarRegistro(registro) {
+    // === VALIDAÇÕES ===
+    validarFormulario(dados) {
       const erros = []
 
-      if (!registro.ID_ANIMAL) {
+      if (!dados.ID_ANIMAL) {
         erros.push('Animal é obrigatório')
       }
 
-      if (!registro.TIPO_REGISTRO) {
+      if (!dados.TIPO_REGISTRO) {
         erros.push('Tipo de registro é obrigatório')
       }
 
-      if (!registro.DATA_OCORRENCIA) {
+      if (!dados.DATA_OCORRENCIA) {
         erros.push('Data de ocorrência é obrigatória')
       }
 
-      if (registro.DATA_OCORRENCIA && new Date(registro.DATA_OCORRENCIA) > new Date()) {
+      // Validação de data
+      if (
+        dados.DATA_OCORRENCIA &&
+        new Date(dados.DATA_OCORRENCIA) > new Date()
+      ) {
         erros.push('Data de ocorrência não pode ser no futuro')
       }
 
-      if (registro.PROXIMA_APLICACAO && registro.DATA_OCORRENCIA) {
-        if (new Date(registro.PROXIMA_APLICACAO) <= new Date(registro.DATA_OCORRENCIA)) {
+      if (dados.PROXIMA_APLICACAO && dados.DATA_OCORRENCIA) {
+        if (
+          new Date(dados.PROXIMA_APLICACAO) <= new Date(dados.DATA_OCORRENCIA)
+        ) {
           erros.push('Próxima aplicação deve ser após a data de ocorrência')
         }
       }
 
-      if (registro.ID_MEDICAMENTO && !registro.QUANTIDADE_APLICADA) {
-        erros.push('Quantidade é obrigatória quando medicamento do estoque é selecionado')
-      }
-
-      if (registro.CUSTO && registro.CUSTO < 0) {
-        erros.push('Custo não pode ser negativo')
+      // Validação de medicamento
+      if (dados.ID_MEDICAMENTO && !dados.QUANTIDADE_APLICADA) {
+        erros.push(
+          'Quantidade aplicada é obrigatória quando medicamento é selecionado'
+        )
       }
 
       return erros
     },
 
-    // === CACHE E PERFORMANCE ===
-
-    limparCache() {
-      this.registros = []
-      this.proximasAplicacoes = []
-      this.estatisticas = {}
+    // === FORMATAÇÃO ===
+    formatarData(data) {
+      if (!data) return ''
+      return new Date(data).toLocaleDateString('pt-BR')
     },
 
-    // === FILTROS AVANÇADOS ===
-
-    async buscarComFiltros(filtros) {
-      const params = {}
-
-      if (filtros.animal_id) params.animal_id = filtros.animal_id
-      if (filtros.tipo_registro) params.tipo_registro = filtros.tipo_registro
-      if (filtros.data_inicio) params.data_inicio = filtros.data_inicio
-      if (filtros.data_fim) params.data_fim = filtros.data_fim
-      if (filtros.veterinario) params.veterinario = filtros.veterinario
-      if (filtros.medicamento) params.medicamento = filtros.medicamento
-      if (filtros.custo_min) params.custo_min = filtros.custo_min
-      if (filtros.custo_max) params.custo_max = filtros.custo_max
-
-      return await this.listarRegistros(params)
+    formatarCusto(valor) {
+      if (!valor) return ''
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(valor)
     },
 
-    // === INTEGRAÇÕES ===
-
-    async sincronizarComMedicamentos() {
+    // === BUSCAR VETERINÁRIOS ===
+    async buscarVeterinarios(termo = '') {
       try {
-        // Buscar medicamentos com baixo estoque que foram aplicados recentemente
-        const response = await api.get('/api/saude/sincronizar-medicamentos')
-        return response.data
-      } catch (error) {
-        console.error('Erro ao sincronizar com medicamentos:', error)
-        throw error
-      }
-    },
+        // Buscar veterinários únicos dos registros existentes
+        const response = await api.get('/api/saude/', {
+          params: { limit: 1000 },
+        })
 
-    async alertasVencimento() {
-      try {
-        const response = await api.get('/api/saude/alertas-vencimento')
-        return response.data
+        const veterinarios = [
+          ...new Set(
+            response.data.map(r => r.VETERINARIO_RESPONSAVEL).filter(v => v)
+          ),
+        ].map(v => ({
+          value: v,
+          label: v,
+        }))
+
+        if (termo) {
+          return veterinarios.filter(v =>
+            v.label.toLowerCase().includes(termo.toLowerCase())
+          )
+        }
+
+        return veterinarios
       } catch (error) {
-        console.error('Erro ao obter alertas de vencimento:', error)
+        console.error('Erro ao buscar veterinários:', error)
         return []
       }
     },
 
-    // === NOTIFICAÇÕES ===
-
-    async configurarNotificacoes(config) {
-      try {
-        const response = await api.post('/api/saude/configurar-notificacoes', config)
-        return response.data
-      } catch (error) {
-        console.error('Erro ao configurar notificações:', error)
-        throw error
+    // === CALCULAR PRÓXIMA APLICAÇÃO ===
+    calcularProximaAplicacao(tipoRegistro, dataOcorrencia) {
+      const intervalos = {
+        VACINA: 365, // Anual
+        VERMIFUGO: 90, // Trimestral
+        MEDICAMENTO: 0, // Sem repetição automática
+        EXAME: 0, // Conforme necessário
+        CONSULTA: 0, // Conforme necessário
+        CIRURGIA: 0, // Sem repetição
+        TRATAMENTO: 30, // Mensal (dependendo do caso)
       }
+
+      const dias = intervalos[tipoRegistro]
+      if (dias === 0) return null
+
+      const data = new Date(dataOcorrencia)
+      data.setDate(data.getDate() + dias)
+
+      return data.toISOString().split('T')[0] // Formato YYYY-MM-DD
     },
 
-    // === BACKUP/RESTORE ===
-
-    async backupDados() {
+    // === RESUMOS PARA DASHBOARD ===
+    async getDashboardData() {
       try {
-        const response = await api.get('/api/saude/backup', {
-          responseType: 'blob',
-        })
+        const [estatisticas, proximas, consumo] = await Promise.all([
+          this.fetchEstatisticasGerais(),
+          this.fetchProximasAplicacoes(15),
+          this.fetchConsumoPorTipo(3),
+        ])
 
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `backup_saude_${new Date().toISOString().split('T')[0]}.json`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
-
-        return true
+        return {
+          estatisticas,
+          proximasAplicacoes: proximas.length,
+          aplicacoesAtrasadas: proximas.filter(a => a.dias_vencimento < 0)
+            .length,
+          tipoMaisUsado: consumo[0]?.tipo_registro || null,
+        }
       } catch (error) {
-        console.error('Erro ao fazer backup:', error)
-        throw error
+        console.error('Erro ao buscar dados do dashboard:', error)
+        return null
       }
     },
   },

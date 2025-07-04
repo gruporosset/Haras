@@ -1,8 +1,7 @@
-# backend/app/models/ferrageamento.py
 import enum
-from datetime import datetime, timedelta
 
-from sqlalchemy import Column, DateTime, Enum, Float, Integer, String
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.sql import func
 from sqlalchemy.types import CLOB
 
 from .base import Base
@@ -13,15 +12,6 @@ class TipoFerrageamentoEnum(str, enum.Enum):
     CASQUEAMENTO = "CASQUEAMENTO"
     FERRAGEAMENTO_CORRETIVO = "FERRAGEAMENTO_CORRETIVO"
     CASQUEAMENTO_TERAPEUTICO = "CASQUEAMENTO_TERAPEUTICO"
-
-
-class TipoFerraduraEnum(str, enum.Enum):
-    COMUM = "Comum"
-    ORTOPEDICA = "Ortopédica"
-    ALUMINIO = "Alumínio"
-    BORRACHA = "Borracha"
-    COLAGEM = "Colagem"
-    DESCALCO = "Descalço"
 
 
 class MembroTratadoEnum(str, enum.Enum):
@@ -39,96 +29,78 @@ class StatusCascoEnum(str, enum.Enum):
     PROBLEMA = "PROBLEMA"
 
 
-class StatusVencimentoEnum(str, enum.Enum):
-    SEM_AGENDAMENTO = "SEM_AGENDAMENTO"
-    VENCIDO = "VENCIDO"
-    VENCE_SEMANA = "VENCE_SEMANA"
-    VENCE_QUINZENA = "VENCE_QUINZENA"
-    EM_DIA = "EM_DIA"
+class FerrageamentoAnimais(Base):
+    __tablename__ = "FERRAGEAMENTO_ANIMAIS"
 
+    ID = Column(Integer, primary_key=True, autoincrement=True)
+    ID_ANIMAL = Column(Integer, ForeignKey("ANIMAIS.ID"), nullable=False)
+    TIPO_FERRAGEAMENTO = Column(String(30), nullable=False)
+    DATA_OCORRENCIA = Column(DateTime, nullable=False)
+    DESCRICAO = Column(String(1000))
 
-# Extender o modelo SaudeAnimais existente com os novos campos
-# Note: Esta é uma extensão conceitual - na prática, os campos já foram adicionados
-# via ALTER TABLE
-
-
-class FerrageamentoResumo(Base):
-    """View para relatórios de ferrageamento"""
-
-    __tablename__ = "VW_FERRAGEAMENTO_RESUMO"
-
-    ANIMAL_ID = Column("ANIMAL_ID", Integer, primary_key=True)
-    ANIMAL_NOME = Column("ANIMAL_NOME", String(100))
-    NUMERO_REGISTRO = Column("NUMERO_REGISTRO", String(50))
-    REGISTRO_ID = Column("REGISTRO_ID", Integer)
-    TIPO_REGISTRO = Column("TIPO_REGISTRO", Enum(TipoFerrageamentoEnum))
-    DATA_OCORRENCIA = Column("DATA_OCORRENCIA", DateTime)
-    TIPO_FERRADURA = Column("TIPO_FERRADURA", String(100))
-    MEMBRO_TRATADO = Column("MEMBRO_TRATADO", Enum(MembroTratadoEnum))
-    PROBLEMA_DETECTADO = Column("PROBLEMA_DETECTADO", String(500))
-    FERRADOR_RESPONSAVEL = Column("FERRADOR_RESPONSAVEL", String(200))
-    STATUS_CASCO = Column("STATUS_CASCO", Enum(StatusCascoEnum))
-    PROXIMA_AVALIACAO = Column("PROXIMA_AVALIACAO", DateTime)
-    CUSTO = Column("CUSTO", Float)
-    OBSERVACOES = Column("OBSERVACOES", CLOB)
-    DIAS_PROXIMA_AVALIACAO = Column("DIAS_PROXIMA_AVALIACAO", Integer)
-    STATUS_VENCIMENTO = Column("STATUS_VENCIMENTO", Enum(StatusVencimentoEnum))
-
-
-# Mixin para adicionar aos campos de SaudeAnimais
-class FerrageamentoMixin:
-    """Mixin com campos específicos de ferrageamento para SaudeAnimais"""
-
+    # Campos específicos de ferrageamento
     TIPO_FERRADURA = Column(String(100))
-    MEMBRO_TRATADO = Column(Enum(MembroTratadoEnum))
+    MEMBRO_TRATADO = Column(String(50))
     PROBLEMA_DETECTADO = Column(String(500))
     TECNICA_APLICADA = Column(String(200))
     FERRADOR_RESPONSAVEL = Column(String(200))
-    STATUS_CASCO = Column(Enum(StatusCascoEnum))
+    STATUS_CASCO = Column(String(100))
     PROXIMA_AVALIACAO = Column(DateTime)
 
-    def calcular_dias_vencimento(self):
-        """Calcula dias até vencimento da próxima avaliação"""
+    # Campos financeiros e administrativos
+    CUSTO = Column(Float)
+    OBSERVACOES = Column(CLOB)
+    ID_USUARIO_REGISTRO = Column(Integer, ForeignKey("USUARIOS.ID"))
+    DATA_REGISTRO = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Classe para compatibilidade com o código existente
+# Mantém as mesmas funcionalidades que estavam no modelo SaudeAnimais
+class FerrageamentoMixin:
+    """Mixin para manter funcionalidades específicas de ferrageamento"""
+
+    @property
+    def dias_proxima_avaliacao(self):
+        """Calcula dias até próxima avaliação"""
         if not self.PROXIMA_AVALIACAO:
             return None
 
-        delta = self.PROXIMA_AVALIACAO - datetime.now()
+        from datetime import datetime
+
+        delta = self.PROXIMA_AVALIACAO.date() - datetime.now().date()
         return delta.days
 
-    def get_status_vencimento(self):
-        """Retorna status do vencimento"""
+    @property
+    def status_avaliacao(self):
+        """Status da avaliação baseado na proximidade da data"""
         if not self.PROXIMA_AVALIACAO:
-            return StatusVencimentoEnum.SEM_AGENDAMENTO
+            return "SEM_AGENDAMENTO"
 
-        dias = self.calcular_dias_vencimento()
-
-        if dias < 0:
-            return StatusVencimentoEnum.VENCIDO
+        dias = self.dias_proxima_avaliacao
+        if dias is None:
+            return "SEM_AGENDAMENTO"
+        elif dias < 0:
+            return "ATRASADO"
         elif dias <= 7:
-            return StatusVencimentoEnum.VENCE_SEMANA
+            return "URGENTE"
         elif dias <= 15:
-            return StatusVencimentoEnum.VENCE_QUINZENA
+            return "PROXIMO"
         else:
-            return StatusVencimentoEnum.EM_DIA
+            return "OK"
 
-    def calcular_proxima_data(self, modalidade="GERAL"):
-        """Calcula próxima data baseada no tipo e modalidade"""
 
-        intervalos = {
-            "FERRAGEAMENTO": {"CCE": 30, "APARTACAO": 60, "CORRIDA": 35, "GERAL": 45},
-            "CASQUEAMENTO": {"GERAL": 40},
-            "FERRAGEAMENTO_CORRETIVO": {"GERAL": 21},
-            "CASQUEAMENTO_TERAPEUTICO": {"GERAL": 21},
+# Classe de resumo para relatórios (mantém compatibilidade)
+class FerrageamentoResumo:
+    """Classe para resumos e estatísticas de ferrageamento"""
+
+    def __init__(self, tipo_ferrageamento, total_registros, custo_total=None):
+        self.tipo_ferrageamento = tipo_ferrageamento
+        self.total_registros = total_registros
+        self.custo_total = custo_total or 0.0
+
+    def to_dict(self):
+        return {
+            "tipo_ferrageamento": self.tipo_ferrageamento,
+            "total_registros": self.total_registros,
+            "custo_total": self.custo_total,
         }
-
-        tipo_str = (
-            str(self.TIPO_REGISTRO)
-            if hasattr(self, "TIPO_REGISTRO")
-            else "FERRAGEAMENTO"
-        )
-        dias = intervalos.get(tipo_str, {}).get(modalidade, 45)
-
-        data_base = (
-            self.DATA_OCORRENCIA if hasattr(self, "DATA_OCORRENCIA") else datetime.now()
-        )
-        return data_base + timedelta(days=dias)

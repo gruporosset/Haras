@@ -1,4 +1,3 @@
-# backend/app/schemas/saude.py
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -7,6 +6,8 @@ from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class TipoRegistroEnum(str, Enum):
+    """Enum apenas para tipos de saúde - removidos os tipos de ferrageamento"""
+
     VACINA = "VACINA"
     VERMIFUGO = "VERMIFUGO"
     MEDICAMENTO = "MEDICAMENTO"
@@ -35,8 +36,6 @@ class SaudeBase(BaseModel):
 
 
 class SaudeCreate(SaudeBase):
-    # ID_USUARIO_REGISTRO: int
-
     @field_validator("DATA_OCORRENCIA")
     @classmethod
     def validate_data_ocorrencia(cls, v):
@@ -100,9 +99,7 @@ class SaudeResponse(SaudeBase):
         from_attributes = True
 
 
-# Schemas para aplicação rápida
-
-
+# Schemas para aplicação rápida (mantém compatibilidade)
 class AplicacaoRapida(BaseModel):
     ID_ANIMAL: int
     TIPO_REGISTRO: TipoRegistroEnum
@@ -110,78 +107,66 @@ class AplicacaoRapida(BaseModel):
     QUANTIDADE_APLICADA: Optional[float] = Field(None, gt=0)
     MEDICAMENTO_APLICADO: Optional[str] = Field(None, max_length=500)
     DOSE_APLICADA: Optional[str] = Field(None, max_length=100)
-    VETERINARIO_RESPONSAVEL: Optional[str] = Field(None, max_length=200)
+    CUSTO: Optional[float] = Field(None, ge=0)
     OBSERVACOES: Optional[str] = None
 
 
-# Schemas para relatórios e estatísticas
-
-
-class EstatisticasSaude(BaseModel):
+# Schema para histórico de saúde
+class HistoricoSaude(BaseModel):
     animal_id: int
     animal_nome: str
-    total_registros: int
-    tipos_aplicados: dict  # {"VACINA": 5, "MEDICAMENTO": 3}
-    ultima_aplicacao: Optional[datetime] = None
-    proximas_aplicacoes: int
-    custo_total: Optional[float] = None
-    veterinario_principal: Optional[str] = None
+    registros: list
 
 
-class VeterinarioEstatisticas(BaseModel):
-    veterinario: str
-    total_aplicacoes: int
-    animais_atendidos: int
-    tipos_diferentes: int
-    ultimo_atendimento: Optional[str] = None
-
-
+# Schema para próximas aplicações
 class ProximasAplicacoes(BaseModel):
     animal_id: int
     animal_nome: str
     tipo_registro: str
-    data_aplicacao: datetime
-    descricao: str
-    dias_restantes: int
-    medicamento_nome: Optional[str] = None
-    veterinario_responsavel: Optional[str] = None
-    prioridade: str  # URGENTE, NORMAL, BAIXA
+    proxima_aplicacao: datetime
+    dias_vencimento: int
+
+    @field_serializer("proxima_aplicacao")
+    def serialize_dt(self, dt: datetime | None, _info):
+        return dt.strftime("%d/%m/%Y") if dt else None
 
 
-class HistoricoSaude(BaseModel):
-    animal_id: int
-    animal_nome: str
-    registros: list[SaudeResponse]
-    resumo_tipos: dict
-    periodo_analise: str
-    total_custo: Optional[float] = None
-
-
+# Schema para calendário de saúde
 class CalendarioSaude(BaseModel):
     data: datetime
-    eventos: list[dict]  # Lista de aplicações para o dia
-    total_eventos: int
-    tipos_eventos: list[str]
+    eventos: list
+
+    @field_serializer("data")
+    def serialize_dt(self, dt: datetime | None, _info):
+        return dt.strftime("%d/%m/%Y") if dt else None
 
 
+# Schema para estatísticas
+class EstatisticasSaude(BaseModel):
+    total_registros: int
+    registros_mes_atual: int
+    custo_total_mes: float
+    proximas_aplicacoes: int
+    animais_em_tratamento: int
+
+    # Breakdown por tipo
+    total_vacinas: int
+    total_vermifugos: int
+    total_medicamentos: int
+    total_exames: int
+    total_consultas: int
+
+
+# Schema para consumo por tipo
 class ConsumoPorTipo(BaseModel):
     tipo_registro: str
-    total_aplicacoes: int
-    medicamentos_utilizados: int
-    custo_total: Optional[float] = None
-    periodo_analise: str
-    animais_atendidos: int
+    total_registros: int
+    custo_total: float
 
 
 # Schema para autocomplete de medicamentos
-
-
 class MedicamentoAutocomplete(BaseModel):
-    value: int
-    label: str
+    id: int
     nome: str
-    estoque: float
-    unidade: str
-    forma: Optional[str] = None
-    carencia: Optional[int] = None
-    principio_ativo: Optional[str] = None
+    unidade_medida: str
+    estoque_atual: float

@@ -1,15 +1,16 @@
 # backend/app/api/v1/ferrageamento.py
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.animal import Animal
-from app.models.saude import SaudeAnimais
+from app.models.ferrageamento import FerrageamentoAnimais  # NOVO MODELO
 from app.models.user import User
 from app.schemas.ferrageamento import (
     AlertaVencimento,
     EstatisticasFerrageamento,
+    FerradorEstatisticas,
     FerrageamentoCreate,
     FerrageamentoRapido,
     FerrageamentoResponse,
@@ -48,15 +49,15 @@ async def create_ferrageamento(
             "FERRAGEAMENTO_CORRETIVO": 21,
             "CASQUEAMENTO_TERAPEUTICO": 21,
         }
-        intervalo = dias_intervalo.get(registro.TIPO_REGISTRO.value, 45)
+        intervalo = dias_intervalo.get(registro.TIPO_FERRAGEAMENTO.value, 45)
         registro.PROXIMA_AVALIACAO = registro.DATA_OCORRENCIA + timedelta(
             days=intervalo
         )
 
-    # Criar registro na tabela saude_animais
-    db_registro = SaudeAnimais(
+    # Criar registro na nova tabela ferrageamento_animais
+    db_registro = FerrageamentoAnimais(
         ID_ANIMAL=registro.ID_ANIMAL,
-        TIPO_REGISTRO=registro.TIPO_REGISTRO.value,
+        TIPO_FERRAGEAMENTO=registro.TIPO_FERRAGEAMENTO.value,
         DATA_OCORRENCIA=registro.DATA_OCORRENCIA,
         DESCRICAO=registro.DESCRICAO,
         TIPO_FERRADURA=(
@@ -78,154 +79,99 @@ async def create_ferrageamento(
     db.commit()
     db.refresh(db_registro)
 
-    # Buscar dados completos para response
-    resultado = (
-        db.query(SaudeAnimais, Animal.NOME.label("animal_nome"))
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
-        .filter(SaudeAnimais.ID == db_registro.ID)
-        .first()
-    )
-
-    response_data = FerrageamentoResponse.model_validate(resultado[0])
-    response_data.animal_nome = resultado[1]
+    # Preparar resposta com dados do animal
+    response_data = FerrageamentoResponse.model_validate(db_registro)
+    response_data.animal_nome = animal.NOME
 
     return response_data
 
 
-@router.get("/", response_model=dict)
-async def list_ferrageamentos(
+@router.get("/", response_model=List[FerrageamentoResponse])
+async def get_ferrageamentos(
     db: Session = Depends(get_db),
-    animal_id: Optional[int] = Query(None),
-    tipo_registro: Optional[TipoFerrageamentoEnum] = Query(None),
-    ferrador: Optional[str] = Query(None),
-    apenas_vencidos: Optional[bool] = Query(False),
+    animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
+    tipo_ferrageamento: Optional[TipoFerrageamentoEnum] = Query(
+        None, description="Filtrar por tipo"
+    ),
+    ferrador: Optional[str] = Query(None, description="Filtrar por ferrador"),
     data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(50, le=1000),
+    limit: int = Query(50, le=100),
+    offset: int = Query(0, ge=0),
 ):
-    """Listar registros de ferrageamento com filtros e paginação"""
-    offset = (page - 1) * limit
-
+    """Listar registros de ferrageamento"""
     query = (
-        db.query(SaudeAnimais, Animal.NOME.label("animal_nome"))
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
-        .filter(
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            )
-        )
+        db.query(FerrageamentoAnimais, Animal.NOME)
+        .join(Animal, FerrageamentoAnimais.ID_ANIMAL == Animal.ID)
+        .order_by(desc(FerrageamentoAnimais.DATA_OCORRENCIA))
     )
 
     # Aplicar filtros
     if animal_id:
-        query = query.filter(SaudeAnimais.ID_ANIMAL == animal_id)
+        query = query.filter(FerrageamentoAnimais.ID_ANIMAL == animal_id)
 
-    if tipo_registro:
-        query = query.filter(SaudeAnimais.TIPO_REGISTRO == tipo_registro.value)
+    if tipo_ferrageamento:
+        query = query.filter(
+            FerrageamentoAnimais.TIPO_FERRAGEAMENTO == tipo_ferrageamento.value
+        )
 
     if ferrador:
-        query = query.filter(SaudeAnimais.FERRADOR_RESPONSAVEL.ilike(f"%{ferrador}%"))
+        query = query.filter(
+            FerrageamentoAnimais.FERRADOR_RESPONSAVEL.ilike(f"%{ferrador}%")
+        )
 
     if data_inicio:
-        query = query.filter(
-            SaudeAnimais.DATA_OCORRENCIA >= datetime.fromisoformat(data_inicio)
-        )
+        try:
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
+            query = query.filter(FerrageamentoAnimais.DATA_OCORRENCIA >= data_inicio_dt)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de data inválido. Use YYYY-MM-DD",
+            ) from e
 
     if data_fim:
-        query = query.filter(
-            SaudeAnimais.DATA_OCORRENCIA <= datetime.fromisoformat(data_fim)
-        )
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
+            query = query.filter(FerrageamentoAnimais.DATA_OCORRENCIA <= data_fim_dt)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de data inválido. Use YYYY-MM-DD",
+            ) from e
 
-    if apenas_vencidos:
-        data_hoje = datetime.now().date()
-        query = query.filter(SaudeAnimais.PROXIMA_AVALIACAO <= data_hoje)
+    registros = query.offset(offset).limit(limit).all()
 
-    # Contar total
-    total = query.count()
-
-    # Ordenar e paginar
-    registros = (
-        query.order_by(desc(SaudeAnimais.DATA_OCORRENCIA))
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
-
-    # Preparar response
-    resultado = []
+    # Preparar resposta com nomes dos animais
+    result = []
     for registro, animal_nome in registros:
         response_data = FerrageamentoResponse.model_validate(registro)
         response_data.animal_nome = animal_nome
+        result.append(response_data)
 
-        # Calcular dias até próxima avaliação
-        if registro.PROXIMA_AVALIACAO:
-            data_avaliacao = registro.PROXIMA_AVALIACAO.date()
-            data_hoje = datetime.now().date()
-            delta = (data_avaliacao - data_hoje).days
-
-            response_data.dias_proxima_avaliacao = delta
-
-            # Determinar status de vencimento
-            if delta < 0:
-                response_data.status_vencimento = "VENCIDO"
-            elif delta <= 7:
-                response_data.status_vencimento = "VENCE_SEMANA"
-            elif delta <= 15:
-                response_data.status_vencimento = "VENCE_QUINZENA"
-            else:
-                response_data.status_vencimento = "EM_DIA"
-        else:
-            response_data.status_vencimento = "SEM_AGENDAMENTO"
-
-        resultado.append(response_data)
-
-    return {
-        "ferrageamentos": resultado,
-        "total": total,
-        "page": page,
-        "limit": limit,
-        "total_pages": (total + limit - 1) // limit,
-    }
+    return result
 
 
 @router.get("/{registro_id}", response_model=FerrageamentoResponse)
 async def get_ferrageamento(
     registro_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Obter registro específico de ferrageamento"""
-    resultado = (
-        db.query(SaudeAnimais, Animal.NOME.label("animal_nome"))
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
-        .filter(
-            SaudeAnimais.ID == registro_id,
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-        )
+    registro = (
+        db.query(FerrageamentoAnimais, Animal.NOME)
+        .join(Animal, FerrageamentoAnimais.ID_ANIMAL == Animal.ID)
+        .filter(FerrageamentoAnimais.ID == registro_id)
         .first()
     )
 
-    if not resultado:
+    if not registro:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Registro de ferrageamento não encontrado",
+            status_code=status.HTTP_404_NOT_FOUND, detail="Registro não encontrado"
         )
 
-    registro, animal_nome = resultado
-    response_data = FerrageamentoResponse.model_validate(registro)
+    ferrageamento, animal_nome = registro
+    response_data = FerrageamentoResponse.model_validate(ferrageamento)
     response_data.animal_nome = animal_nome
 
     return response_data
@@ -236,22 +182,11 @@ async def update_ferrageamento(
     registro_id: int,
     dados: FerrageamentoUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Atualizar registro de ferrageamento"""
     registro = (
-        db.query(SaudeAnimais)
-        .filter(
-            SaudeAnimais.ID == registro_id,
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-        )
+        db.query(FerrageamentoAnimais)
+        .filter(FerrageamentoAnimais.ID == registro_id)
         .first()
     )
 
@@ -271,29 +206,23 @@ async def update_ferrageamento(
     db.commit()
     db.refresh(registro)
 
-    return FerrageamentoResponse.model_validate(registro)
+    # Buscar nome do animal para resposta
+    animal = db.query(Animal).filter(Animal.ID == registro.ID_ANIMAL).first()
+    response_data = FerrageamentoResponse.model_validate(registro)
+    response_data.animal_nome = animal.NOME if animal else None
+
+    return response_data
 
 
 @router.delete("/{registro_id}")
 async def delete_ferrageamento(
     registro_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Excluir registro de ferrageamento"""
     registro = (
-        db.query(SaudeAnimais)
-        .filter(
-            SaudeAnimais.ID == registro_id,
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-        )
+        db.query(FerrageamentoAnimais)
+        .filter(FerrageamentoAnimais.ID == registro_id)
         .first()
     )
 
@@ -333,18 +262,18 @@ async def aplicacao_rapida(
         "FERRAGEAMENTO_CORRETIVO": 21,
         "CASQUEAMENTO_TERAPEUTICO": 21,
     }
-    intervalo = dias_intervalo.get(dados.TIPO_REGISTRO.value, 45)
+    intervalo = dias_intervalo.get(dados.TIPO_FERRAGEAMENTO.value, 45)
     proxima_data = datetime.now() + timedelta(days=intervalo)
 
     # Criar registro
-    db_registro = SaudeAnimais(
+    db_registro = FerrageamentoAnimais(
         ID_ANIMAL=dados.ID_ANIMAL,
-        TIPO_REGISTRO=dados.TIPO_REGISTRO.value,
+        TIPO_FERRAGEAMENTO=dados.TIPO_FERRAGEAMENTO.value,
         DATA_OCORRENCIA=datetime.now(),
-        DESCRICAO=f"{dados.TIPO_REGISTRO.value} - Aplicação rápida",
+        DESCRICAO=f"{dados.TIPO_FERRAGEAMENTO.value} - Aplicação rápida",
         MEMBRO_TRATADO=dados.MEMBRO_TRATADO.value,
         FERRADOR_RESPONSAVEL=dados.FERRADOR_RESPONSAVEL,
-        STATUS_CASCO=dados.STATUS_CASCO.value,
+        STATUS_CASCO=dados.STATUS_CASCO.value if dados.STATUS_CASCO else None,
         PROXIMA_AVALIACAO=proxima_data,
         CUSTO=dados.CUSTO,
         OBSERVACOES=dados.OBSERVACOES,
@@ -365,28 +294,19 @@ async def aplicacao_rapida(
 @router.get("/alertas/vencimentos", response_model=List[AlertaVencimento])
 async def get_alertas_vencimento(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     dias_antecedencia: int = Query(15, description="Dias de antecedência para alerta"),
 ):
     """Obter alertas de vencimento"""
     data_limite = datetime.now() + timedelta(days=dias_antecedencia)
 
     query = (
-        db.query(SaudeAnimais, Animal.NOME)
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
+        db.query(FerrageamentoAnimais, Animal.NOME)
+        .join(Animal, FerrageamentoAnimais.ID_ANIMAL == Animal.ID)
         .filter(
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-            SaudeAnimais.PROXIMA_AVALIACAO.isnot(None),
-            SaudeAnimais.PROXIMA_AVALIACAO <= data_limite,
+            FerrageamentoAnimais.PROXIMA_AVALIACAO.isnot(None),
+            FerrageamentoAnimais.PROXIMA_AVALIACAO <= data_limite,
         )
-        .order_by(asc(SaudeAnimais.PROXIMA_AVALIACAO))
+        .order_by(asc(FerrageamentoAnimais.PROXIMA_AVALIACAO))
     )
 
     registros = query.all()
@@ -397,20 +317,13 @@ async def get_alertas_vencimento(
         data_hoje = datetime.now().date()
         dias_vencimento = (data_proxima - data_hoje).days
 
-        if dias_vencimento < 0:
-            status_vencimento = "VENCIDO"
-        elif dias_vencimento <= 7:
-            status_vencimento = "VENCE_SEMANA"
-        else:
-            status_vencimento = "VENCE_QUINZENA"
-
         alerta = AlertaVencimento(
             animal_id=registro.ID_ANIMAL,
             animal_nome=animal_nome,
-            tipo_registro=registro.TIPO_REGISTRO,
-            data_vencimento=registro.PROXIMA_AVALIACAO,
+            tipo_ferrageamento=registro.TIPO_FERRAGEAMENTO,
+            data_ultima=registro.DATA_OCORRENCIA,
+            proxima_avaliacao=registro.PROXIMA_AVALIACAO,
             dias_vencimento=dias_vencimento,
-            status_vencimento=status_vencimento,
             ferrador_anterior=registro.FERRADOR_RESPONSAVEL,
             custo_estimado=registro.CUSTO,
         )
@@ -419,289 +332,194 @@ async def get_alertas_vencimento(
     return alertas
 
 
-@router.get("/estatisticas/animais", response_model=List[EstatisticasFerrageamento])
-async def get_estatisticas_animais(
+@router.get("/estatisticas/geral", response_model=EstatisticasFerrageamento)
+async def get_estatisticas_ferrageamento(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    meses_periodo: int = Query(12, description="Período em meses para análise"),
+    ano: Optional[int] = Query(None, description="Ano para estatísticas"),
+    mes: Optional[int] = Query(None, description="Mês para estatísticas"),
 ):
-    """Estatísticas de ferrageamento por animal"""
-    data_limite = datetime.now() - timedelta(days=meses_periodo * 30)
+    """Obter estatísticas gerais de ferrageamento"""
+    base_query = db.query(FerrageamentoAnimais)
 
-    # Buscar animais com registros
-    animais_query = (
-        db.query(Animal.ID, Animal.NOME)
-        .join(SaudeAnimais, Animal.ID == SaudeAnimais.ID_ANIMAL)
+    if ano:
+        base_query = base_query.filter(
+            extract("year", FerrageamentoAnimais.DATA_OCORRENCIA) == ano
+        )
+    if mes:
+        base_query = base_query.filter(
+            extract("month", FerrageamentoAnimais.DATA_OCORRENCIA) == mes
+        )
+
+    # Estatísticas gerais
+    total_registros = base_query.count()
+
+    # Registros do mês atual
+    mes_atual = datetime.now().month
+    ano_atual = datetime.now().year
+    registros_mes_atual = (
+        db.query(FerrageamentoAnimais)
         .filter(
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-            SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+            extract("year", FerrageamentoAnimais.DATA_OCORRENCIA) == ano_atual,
+            extract("month", FerrageamentoAnimais.DATA_OCORRENCIA) == mes_atual,
         )
-        .distinct()
-        .all()
+        .count()
     )
 
-    estatisticas = []
-    for animal_id, animal_nome in animais_query:
-        # Buscar registros do animal
-        registros = (
-            db.query(SaudeAnimais)
-            .filter(
-                SaudeAnimais.ID_ANIMAL == animal_id,
-                SaudeAnimais.TIPO_REGISTRO.in_(
-                    [
-                        "FERRAGEAMENTO",
-                        "CASQUEAMENTO",
-                        "FERRAGEAMENTO_CORRETIVO",
-                        "CASQUEAMENTO_TERAPEUTICO",
-                    ]
-                ),
-                SaudeAnimais.DATA_OCORRENCIA >= data_limite,
-            )
-            .all()
-        )
-
-        # Contar tipos
-        ferrageamentos = [r for r in registros if "FERRAGEAMENTO" in r.TIPO_REGISTRO]
-        casqueamentos = [r for r in registros if "CASQUEAMENTO" in r.TIPO_REGISTRO]
-
-        # Calcular custos
-        custo_total = sum(r.CUSTO for r in registros if r.CUSTO)
-
-        # Últimas datas
-        ultimo_ferrageamento = (
-            max([r.DATA_OCORRENCIA for r in ferrageamentos]) if ferrageamentos else None
-        )
-        ultimo_casqueamento = (
-            max([r.DATA_OCORRENCIA for r in casqueamentos]) if casqueamentos else None
-        )
-
-        # Ferrador principal
-        ferradores = [
-            r.FERRADOR_RESPONSAVEL for r in registros if r.FERRADOR_RESPONSAVEL
-        ]
-        ferrador_principal = (
-            max(set(ferradores), key=ferradores.count) if ferradores else None
-        )
-
-        # Status atual e próxima data
-        ultimo_registro = (
-            max(registros, key=lambda x: x.DATA_OCORRENCIA) if registros else None
-        )
-        status_atual = ultimo_registro.STATUS_CASCO if ultimo_registro else None
-        proxima_data = ultimo_registro.PROXIMA_AVALIACAO if ultimo_registro else None
-
-        # Status de vencimento
-        status_vencimento = "SEM_AGENDAMENTO"
-        if proxima_data:
-            dias = (proxima_data - datetime.now()).days
-            if dias < 0:
-                status_vencimento = "VENCIDO"
-            elif dias <= 7:
-                status_vencimento = "VENCE_SEMANA"
-            elif dias <= 15:
-                status_vencimento = "VENCE_QUINZENA"
-            else:
-                status_vencimento = "EM_DIA"
-
-        estatistica = EstatisticasFerrageamento(
-            animal_id=animal_id,
-            animal_nome=animal_nome,
-            total_ferrageamentos=len(ferrageamentos),
-            total_casqueamentos=len(casqueamentos),
-            custo_total=custo_total if custo_total > 0 else None,
-            ultimo_ferrageamento=ultimo_ferrageamento,
-            ultimo_casqueamento=ultimo_casqueamento,
-            status_atual_casco=status_atual,
-            ferrador_principal=ferrador_principal,
-            proxima_data=proxima_data,
-            status_vencimento=status_vencimento,
-        )
-        estatisticas.append(estatistica)
-
-    # Ordenar por status de vencimento (vencidos primeiro)
-    ordem_status = {
-        "VENCIDO": 0,
-        "VENCE_SEMANA": 1,
-        "VENCE_QUINZENA": 2,
-        "EM_DIA": 3,
-        "SEM_AGENDAMENTO": 4,
-    }
-    estatisticas.sort(key=lambda x: ordem_status.get(x.status_vencimento, 5))
-
-    return estatisticas
-
-
-@router.get("/relatorio/resumo", response_model=RelatorioFerrageamento)
-async def get_relatorio(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    data_inicio: date = Query(..., description="Data início do relatório"),
-    data_fim: date = Query(..., description="Data fim do relatório"),
-    animal_id: Optional[int] = Query(None, description="ID específico do animal"),
-    tipo_registro: Optional[TipoFerrageamentoEnum] = Query(
-        None, description="Tipo específico"
-    ),
-):
-    """Gerar relatório completo de ferrageamento"""
-    # Query base
-    query = (
-        db.query(SaudeAnimais, Animal.NOME.label("animal_nome"))
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
+    # Custo total do mês
+    custo_mes = (
+        db.query(func.sum(FerrageamentoAnimais.CUSTO))
         .filter(
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-            SaudeAnimais.DATA_OCORRENCIA >= data_inicio,
-            SaudeAnimais.DATA_OCORRENCIA <= data_fim,
+            extract("year", FerrageamentoAnimais.DATA_OCORRENCIA) == ano_atual,
+            extract("month", FerrageamentoAnimais.DATA_OCORRENCIA) == mes_atual,
         )
+        .scalar()
+        or 0
     )
 
-    # Aplicar filtros opcionais
-    if animal_id:
-        query = query.filter(SaudeAnimais.ID_ANIMAL == animal_id)
-
-    if tipo_registro:
-        query = query.filter(SaudeAnimais.TIPO_REGISTRO == tipo_registro.value)
-
-    registros_raw = query.order_by(desc(SaudeAnimais.DATA_OCORRENCIA)).all()
-
-    # Preparar dados do relatório
-    registros = []
-    custo_total = 0
-    animais_atendidos = set()
-    ferradores = set()
-    tipos_contagem = {}
-    problemas = []
-
-    for registro, animal_nome in registros_raw:
-        # Adicionar aos registros
-        response_registro = FerrageamentoResponse.model_validate(registro)
-        response_registro.animal_nome = animal_nome
-        registros.append(response_registro)
-
-        # Coletar estatísticas
-        if registro.CUSTO:
-            custo_total += registro.CUSTO
-
-        animais_atendidos.add(registro.ID_ANIMAL)
-
-        if registro.FERRADOR_RESPONSAVEL:
-            ferradores.add(registro.FERRADOR_RESPONSAVEL)
-
-        # Contar tipos
-        tipo = registro.TIPO_REGISTRO
-        tipos_contagem[tipo] = tipos_contagem.get(tipo, 0) + 1
-
-        # Coletar problemas
-        if registro.PROBLEMA_DETECTADO:
-            problemas.append(registro.PROBLEMA_DETECTADO)
-
-    # Problemas mais comuns
-    problemas_comuns = []
-    if problemas:
-        palavras_problemas = []
-        for problema in problemas:
-            palavras_problemas.extend(problema.lower().split())
-
-        # Palavras-chave relevantes
-        keywords = ["rachadura", "laminite", "sensibilidade", "ferimento", "inflamação"]
-        for keyword in keywords:
-            if any(keyword in palavra for palavra in palavras_problemas):
-                problemas_comuns.append(keyword.title())
-
-    relatorio = RelatorioFerrageamento(
-        periodo_inicio=data_inicio,
-        periodo_fim=data_fim,
-        total_registros=len(registros),
-        custo_total=custo_total if custo_total > 0 else None,
-        animais_atendidos=len(animais_atendidos),
-        ferradores_utilizados=len(ferradores),
-        tipos_mais_realizados=tipos_contagem,
-        problemas_mais_comuns=problemas_comuns,
-        registros=registros,
+    # Ferradores ativos
+    ferradores_ativos = (
+        db.query(func.count(func.distinct(FerrageamentoAnimais.FERRADOR_RESPONSAVEL)))
+        .filter(FerrageamentoAnimais.FERRADOR_RESPONSAVEL.isnot(None))
+        .scalar()
+        or 0
     )
 
-    return relatorio
-
-
-@router.get("/grafico/custos-evolucao")
-async def get_custos_evolucao(
-    meses: int = Query(6, ge=1, le=24),
-    db: Session = Depends(get_db),
-):
-    """Evolução mensal de custos de ferrageamento"""
-    data_limite = datetime.now() - timedelta(days=30 * meses)
-
-    resultados = (
-        db.query(
-            extract("year", SaudeAnimais.DATA_OCORRENCIA).label("ano"),
-            extract("month", SaudeAnimais.DATA_OCORRENCIA).label("mes"),
-            func.sum(SaudeAnimais.CUSTO).label("custo_total"),
-            func.count(SaudeAnimais.ID).label("total_registros"),
-        )
+    # Próximas avaliações (próximos 30 dias)
+    data_limite = datetime.now() + timedelta(days=30)
+    proximas_avaliacoes = (
+        db.query(FerrageamentoAnimais)
         .filter(
-            SaudeAnimais.TIPO_REGISTRO.in_(
-                [
-                    "FERRAGEAMENTO",
-                    "CASQUEAMENTO",
-                    "FERRAGEAMENTO_CORRETIVO",
-                    "CASQUEAMENTO_TERAPEUTICO",
-                ]
-            ),
-            SaudeAnimais.DATA_OCORRENCIA >= data_limite,
+            FerrageamentoAnimais.PROXIMA_AVALIACAO.between(datetime.now(), data_limite)
         )
-        .group_by(
-            extract("year", SaudeAnimais.DATA_OCORRENCIA),
-            extract("month", SaudeAnimais.DATA_OCORRENCIA),
-        )
-        .order_by("ano", "mes")
-        .all()
+        .count()
     )
 
-    meses_nomes = [
-        "Jan",
-        "Fev",
-        "Mar",
-        "Abr",
-        "Mai",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Set",
-        "Out",
-        "Nov",
-        "Dez",
+    # Animais atrasados
+    animais_atrasados = (
+        db.query(FerrageamentoAnimais)
+        .filter(FerrageamentoAnimais.PROXIMA_AVALIACAO < datetime.now())
+        .count()
+    )
+
+    # Breakdown por tipo
+    tipos = [
+        "FERRAGEAMENTO",
+        "CASQUEAMENTO",
+        "FERRAGEAMENTO_CORRETIVO",
+        "CASQUEAMENTO_TERAPEUTICO",
     ]
+    totals_por_tipo = {}
+    for tipo in tipos:
+        total = base_query.filter(
+            FerrageamentoAnimais.TIPO_FERRAGEAMENTO == tipo
+        ).count()
+        totals_por_tipo[tipo] = total
 
-    dados = []
-    for r in resultados:
-        ano_atual = datetime.now().year
-        mes_label = (
-            f"{meses_nomes[int(r.mes)-1]}/{r.ano}"
-            if r.ano != ano_atual
-            else meses_nomes[int(r.mes) - 1]
+    return EstatisticasFerrageamento(
+        total_registros=total_registros,
+        registros_mes_atual=registros_mes_atual,
+        custo_total_mes=custo_mes,
+        ferradores_ativos=ferradores_ativos,
+        proximas_avaliacoes=proximas_avaliacoes,
+        animais_atrasados=animais_atrasados,
+        total_ferrageamento=totals_por_tipo.get("FERRAGEAMENTO", 0),
+        total_casqueamento=totals_por_tipo.get("CASQUEAMENTO", 0),
+        total_corretivo=totals_por_tipo.get("FERRAGEAMENTO_CORRETIVO", 0),
+        total_terapeutico=totals_por_tipo.get("CASQUEAMENTO_TERAPEUTICO", 0),
+    )
+
+
+@router.get("/relatorios/ferradores", response_model=List[FerradorEstatisticas])
+async def get_relatorio_ferradores(
+    db: Session = Depends(get_db),
+    ano: Optional[int] = Query(None, description="Ano para relatório"),
+):
+    """Relatório de estatísticas por ferrador"""
+    base_query = db.query(FerrageamentoAnimais).filter(
+        FerrageamentoAnimais.FERRADOR_RESPONSAVEL.isnot(None)
+    )
+
+    if ano:
+        base_query = base_query.filter(
+            extract("year", FerrageamentoAnimais.DATA_OCORRENCIA) == ano
         )
 
-        dados.append(
-            {
-                "mes": mes_label,
-                "custo_total": float(r.custo_total or 0),
-                "total_registros": r.total_registros,
-                "ano": r.ano,
-                "mes_num": r.mes,
-            }
+    # Agrupar por ferrador
+    ferradores_stats = (
+        base_query.with_entities(
+            FerrageamentoAnimais.FERRADOR_RESPONSAVEL,
+            func.count(FerrageamentoAnimais.ID).label("total_atendimentos"),
+            func.sum(FerrageamentoAnimais.CUSTO).label("custo_total"),
+            func.max(FerrageamentoAnimais.DATA_OCORRENCIA).label("ultima_atividade"),
         )
+        .group_by(FerrageamentoAnimais.FERRADOR_RESPONSAVEL)
+        .order_by(desc("total_atendimentos"))
+        .all()
+    )
 
-    return dados
+    resultado = []
+    for stats in ferradores_stats:
+        ferrador_stat = FerradorEstatisticas(
+            ferrador_nome=stats.FERRADOR_RESPONSAVEL,
+            total_atendimentos=stats.total_atendimentos,
+            custo_total=stats.custo_total or 0,
+            ultima_atividade=stats.ultima_atividade,
+        )
+        resultado.append(ferrador_stat)
+
+    return resultado
+
+
+@router.get("/relatorios/detalhado", response_model=List[RelatorioFerrageamento])
+async def get_relatorio_detalhado(
+    db: Session = Depends(get_db),
+    animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
+    data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
+    data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
+):
+    """Relatório detalhado de ferrageamento"""
+    query = (
+        db.query(FerrageamentoAnimais, Animal.NOME)
+        .join(Animal, FerrageamentoAnimais.ID_ANIMAL == Animal.ID)
+        .order_by(desc(FerrageamentoAnimais.DATA_OCORRENCIA))
+    )
+
+    if animal_id:
+        query = query.filter(FerrageamentoAnimais.ID_ANIMAL == animal_id)
+
+    if data_inicio:
+        try:
+            data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
+            query = query.filter(FerrageamentoAnimais.DATA_OCORRENCIA >= data_inicio_dt)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de data inválido. Use YYYY-MM-DD",
+            ) from e
+
+    if data_fim:
+        try:
+            data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
+            query = query.filter(FerrageamentoAnimais.DATA_OCORRENCIA <= data_fim_dt)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de data inválido. Use YYYY-MM-DD",
+            ) from e
+
+    registros = query.all()
+
+    resultado = []
+    for registro, animal_nome in registros:
+        relatorio_item = RelatorioFerrageamento(
+            animal_nome=animal_nome,
+            tipo_ferrageamento=registro.TIPO_FERRAGEAMENTO,
+            data_ocorrencia=registro.DATA_OCORRENCIA,
+            ferrador_responsavel=registro.FERRADOR_RESPONSAVEL,
+            status_casco=registro.STATUS_CASCO,
+            proxima_avaliacao=registro.PROXIMA_AVALIACAO,
+            custo=registro.CUSTO,
+        )
+        resultado.append(relatorio_item)
+
+    return resultado

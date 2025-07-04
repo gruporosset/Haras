@@ -1,26 +1,15 @@
 // frontend/src/stores/ferrageamento.js
 import { defineStore } from 'pinia'
 import api from '../boot/api'
-import { prepareFormData } from 'src/utils/dateUtils'
 import { ErrorHandler } from 'src/utils/errorHandler'
 
 export const useFerrageamentoStore = defineStore('ferrageamento', {
   state: () => ({
+    // Dados principais
     ferrageamentos: [],
-    alertasVencimento: [],
-    estatisticasAnimais: [],
-    estatisticasFerradores: [],
-    relatorio: null,
     loading: false,
-    filters: {
-      animal_id: null,
-      tipo_registro: null,
-      ferrador: '',
-      data_inicio: '',
-      data_fim: '',
-      apenas_vencidos: false,
-      apenas_com_problemas: false,
-    },
+
+    // Paginação e filtros
     pagination: {
       page: 1,
       rowsPerPage: 50,
@@ -28,9 +17,25 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       sortBy: 'DATA_OCORRENCIA',
       descending: true,
     },
+
+    filters: {
+      animal_id: null,
+      tipo_ferrageamento: null, // Atualizado para usar TIPO_FERRAGEAMENTO
+      ferrador: '',
+      data_inicio: '',
+      data_fim: '',
+      apenas_vencidos: false,
+    },
+
+    // Dados específicos
+    alertasVencimento: [],
+    estatisticasGerais: null,
+    relatorioPeriodo: null,
+    ferradores: [],
   }),
 
   getters: {
+    // Getter para tipos de ferrageamento
     tiposFerrageamento: () => [
       { value: 'FERRAGEAMENTO', label: 'Ferrageamento' },
       { value: 'CASQUEAMENTO', label: 'Casqueamento' },
@@ -38,144 +43,94 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       { value: 'CASQUEAMENTO_TERAPEUTICO', label: 'Casqueamento Terapêutico' },
     ],
 
+    // Getter para tipos de ferradura
     tiposFerradura: () => [
-      { value: 'Comum', label: 'Comum' },
-      { value: 'Ortopédica', label: 'Ortopédica' },
-      { value: 'Alumínio', label: 'Alumínio' },
-      { value: 'Borracha', label: 'Borracha' },
-      { value: 'Colagem', label: 'Colagem' },
-      { value: 'Descalço', label: 'Descalço' },
+      { value: 'NORMAL', label: 'Normal' },
+      { value: 'CORRETIVA', label: 'Corretiva' },
+      { value: 'TERAPEUTICA', label: 'Terapêutica' },
+      { value: 'ESPECIAL', label: 'Especial' },
     ],
 
+    // Getter para membros
     membrosOpcoes: () => [
-      { value: 'TODOS', label: 'Todos os membros' },
       { value: 'AD', label: 'Anterior Direito' },
       { value: 'AE', label: 'Anterior Esquerdo' },
       { value: 'PD', label: 'Posterior Direito' },
       { value: 'PE', label: 'Posterior Esquerdo' },
+      { value: 'TODOS', label: 'Todos os membros' },
     ],
 
-    statusCasco: () => [
+    // Getter para status do casco
+    statusCascoOpcoes: () => [
       { value: 'BOM', label: 'Bom' },
       { value: 'REGULAR', label: 'Regular' },
       { value: 'RUIM', label: 'Ruim' },
       { value: 'PROBLEMA', label: 'Problema' },
     ],
 
-    ferrageamentosVencidos: state => {
-      return state.ferrageamentos.filter(
-        f =>
-          f.status_vencimento === 'VENCIDO' ||
-          f.status_vencimento === 'VENCE_SEMANA'
-      )
-    },
-
-    ferrageamentosEmDia: state => {
-      return state.ferrageamentos.filter(f => f.status_vencimento === 'EM_DIA')
-    },
-
-    custoTotalMes: state => {
-      const agora = new Date()
-      const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1)
-
-      return state.ferrageamentos
-        .filter(f => {
-          const dataOcorrencia = new Date(f.DATA_OCORRENCIA)
-          return dataOcorrencia >= inicioMes && f.CUSTO
-        })
-        .reduce((total, f) => total + (f.CUSTO || 0), 0)
-    },
-
-    ferradoresMaisAtivos: state => {
-      const contadorFerradores = {}
-
-      state.ferrageamentos.forEach(f => {
-        if (f.FERRADOR_RESPONSAVEL) {
-          if (!contadorFerradores[f.FERRADOR_RESPONSAVEL]) {
-            contadorFerradores[f.FERRADOR_RESPONSAVEL] = {
-              nome: f.FERRADOR_RESPONSAVEL,
-              total: 0,
-              custo: 0,
-            }
-          }
-          contadorFerradores[f.FERRADOR_RESPONSAVEL].total++
-          contadorFerradores[f.FERRADOR_RESPONSAVEL].custo += f.CUSTO || 0
-        }
-      })
-      return Object.values(contadorFerradores)
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5)
-    },
-
-    estatisticasGerais: state => {
-      const total = state.ferrageamentos.length
-      const vencidos = state.ferrageamentosVencidos.length
-      const emDia = state.ferrageamentosEmDia.length
-      const custoTotal = state.ferrageamentos.reduce(
-        (sum, f) => sum + (f.CUSTO || 0),
-        0
-      )
-
-      return {
-        totalRegistros: total,
-        vencidos,
-        emDia,
-        custoTotal,
-        alertasAtivos: state.alertasVencimento.length,
+    // Getter para alertas por prioridade
+    alertasPorPrioridade: state => {
+      const alertas = {
+        critico: state.alertasVencimento.filter(a => a.dias_vencimento < 0),
+        urgente: state.alertasVencimento.filter(
+          a => a.dias_vencimento >= 0 && a.dias_vencimento <= 7
+        ),
+        proximo: state.alertasVencimento.filter(
+          a => a.dias_vencimento > 7 && a.dias_vencimento <= 15
+        ),
       }
+      return alertas
+    },
+
+    // Getter para ferrageamentos por status
+    ferrageamentosPorStatus: state => {
+      return state.ferrageamentos.reduce((acc, item) => {
+        const status = item.status_avaliacao || 'SEM_AGENDAMENTO'
+        if (!acc[status]) acc[status] = []
+        acc[status].push(item)
+        return acc
+      }, {})
     },
   },
 
   actions: {
-    // === CRUD FERRAGEAMENTO ===
+    // === CRUD BÁSICO ===
     async fetchFerrageamentos(params = {}) {
       this.loading = true
       try {
         const queryParams = {
-          page: params.page || this.pagination.page,
-          limit: params.limit || this.pagination.rowsPerPage,
           ...this.filters,
-          ...params.filters,
+          limit: this.pagination.rowsPerPage,
+          offset: (this.pagination.page - 1) * this.pagination.rowsPerPage,
+          ...params,
         }
 
-        // Converter objetos select para valores
-        if (queryParams.animal_id?.value) {
-          queryParams.animal_id = queryParams.animal_id.value
-        }
-        if (queryParams.tipo_registro?.value) {
-          queryParams.tipo_registro = queryParams.tipo_registro.value
-        }
-
-        const response = await api.get('/api/ferrageamento', {
+        const response = await api.get('/api/ferrageamento/', {
           params: queryParams,
         })
-        this.ferrageamentos = response.data.ferrageamentos
-        this.pagination = {
-          ...this.pagination,
-          page: response.data.page,
-          rowsNumber: response.data.total,
-          rowsPerPage: response.data.limit,
+
+        this.ferrageamentos = response.data
+
+        // Buscar total se necessário para paginação
+        if (params.includeTotal) {
+          const countResponse = await api.get(
+            '/api/ferrageamento/estatisticas/geral'
+          )
+          this.pagination.rowsNumber = countResponse.data.total_registros
         }
 
         return response.data
       } catch (error) {
-        throw (
-          error.response?.data?.detail ||
-          'Erro ao buscar registros de ferrageamento'
-        )
+        ErrorHandler.handle(error, 'Erro ao buscar ferrageamentos')
+        return []
       } finally {
         this.loading = false
       }
     },
 
-    async createFerrageamento(ferrageamentoData) {
+    async createFerrageamento(dados) {
       try {
-        const dados = prepareFormData(ferrageamentoData, [
-          'DATA_OCORRENCIA',
-          'PROXIMA_AVALIACAO',
-        ])
-        const response = await api.post('/api/ferrageamento', dados)
-        await this.fetchFerrageamentos()
+        const response = await api.post('/api/ferrageamento/', dados)
         return response.data
       } catch (error) {
         throw (
@@ -185,32 +140,26 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       }
     },
 
-    async updateFerrageamento(id, ferrageamentoData) {
+    async updateFerrageamento(id, dados) {
       try {
-        const dados = prepareFormData(ferrageamentoData, [
-          'DATA_OCORRENCIA',
-          'PROXIMA_AVALIACAO',
-        ])
         const response = await api.put(`/api/ferrageamento/${id}`, dados)
-        await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
-        throw (
-          error.response?.data?.detail ||
-          'Erro ao atualizar registro de ferrageamento'
-        )
+        throw error.response?.data?.detail || 'Erro ao atualizar registro'
       }
     },
 
     async deleteFerrageamento(id) {
       try {
         await api.delete(`/api/ferrageamento/${id}`)
-        await this.fetchFerrageamentos()
+
+        // Remover da lista local
+        const index = this.ferrageamentos.findIndex(f => f.ID === id)
+        if (index !== -1) {
+          this.ferrageamentos.splice(index, 1)
+        }
       } catch (error) {
-        throw (
-          error.response?.data?.detail ||
-          'Erro ao excluir registro de ferrageamento'
-        )
+        throw error.response?.data?.detail || 'Erro ao excluir registro'
       }
     },
 
@@ -219,28 +168,24 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
         const response = await api.get(`/api/ferrageamento/${id}`)
         return response.data
       } catch (error) {
-        throw (
-          error.response?.data?.detail ||
-          'Erro ao buscar registro de ferrageamento'
-        )
+        throw error.response?.data?.detail || 'Erro ao buscar registro'
       }
     },
 
     // === APLICAÇÃO RÁPIDA ===
-    async aplicacaoRapida(dadosAplicacao) {
+    async aplicacaoRapida(dados) {
       try {
         const response = await api.post(
           '/api/ferrageamento/aplicacao-rapida',
-          dadosAplicacao
+          dados
         )
-        await this.fetchFerrageamentos()
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro na aplicação rápida'
       }
     },
 
-    // === ALERTAS E RELATÓRIOS ===
+    // === ALERTAS E ESTATÍSTICAS ===
     async fetchAlertasVencimento(diasAntecedencia = 15) {
       try {
         const response = await api.get(
@@ -257,35 +202,58 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       }
     },
 
-    async fetchEstatisticasAnimais(mesesPeriodo = 12) {
+    async fetchEstatisticasGerais(params = {}) {
       try {
         const response = await api.get(
-          '/api/ferrageamento/estatisticas/animais',
+          '/api/ferrageamento/estatisticas/geral',
           {
-            params: { meses_periodo: mesesPeriodo },
+            params,
           }
         )
-        this.estatisticasAnimais = response.data
+        this.estatisticasGerais = response.data
         return response.data
       } catch (error) {
-        ErrorHandler.handle(error, 'Erro ao buscar estatísticas de animais')
+        ErrorHandler.handle(error, 'Erro ao buscar estatísticas gerais')
+        return null
+      }
+    },
+
+    async fetchRelatorioFerradores(ano = null) {
+      try {
+        const params = {}
+        if (ano) params.ano = ano
+
+        const response = await api.get(
+          '/api/ferrageamento/relatorios/ferradores',
+          {
+            params,
+          }
+        )
+        this.ferradores = response.data
+        return response.data
+      } catch (error) {
+        ErrorHandler.handle(error, 'Erro ao buscar relatório de ferradores')
         return []
       }
     },
 
-    async gerarRelatorio(filtros) {
+    async fetchRelatorioDetalhado(filtros = {}) {
       try {
-        const response = await api.get('/api/ferrageamento/relatorio/resumo', {
-          params: filtros,
-        })
-        this.relatorio = response.data
+        const response = await api.get(
+          '/api/ferrageamento/relatorios/detalhado',
+          {
+            params: filtros,
+          }
+        )
+        this.relatorioPeriodo = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao gerar relatório'
+        ErrorHandler.handle(error, 'Erro ao buscar relatório detalhado')
+        return []
       }
     },
 
-    // === FILTROS ===
+    // === FILTROS E PAGINAÇÃO ===
     setFilters(newFilters) {
       this.filters = { ...this.filters, ...newFilters }
     },
@@ -293,12 +261,11 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
     clearFilters() {
       this.filters = {
         animal_id: null,
-        tipo_registro: null,
+        tipo_ferrageamento: null,
         ferrador: '',
         data_inicio: '',
         data_fim: '',
         apenas_vencidos: false,
-        apenas_com_problemas: false,
       }
     },
 
@@ -322,117 +289,123 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
         FERRAGEAMENTO: 'blue',
         CASQUEAMENTO: 'green',
         FERRAGEAMENTO_CORRETIVO: 'orange',
-        CASQUEAMENTO_TERAPEUTICO: 'purple',
+        CASQUEAMENTO_TERAPEUTICO: 'red',
       }
       return cores[tipo] || 'grey'
     },
 
-    getStatusVencimentoColor(status) {
+    getStatusCascoColor(status) {
       const cores = {
-        VENCIDO: 'negative',
-        VENCE_SEMANA: 'warning',
-        VENCE_QUINZENA: 'orange',
-        EM_DIA: 'positive',
+        BOM: 'green',
+        REGULAR: 'orange',
+        RUIM: 'red',
+        PROBLEMA: 'red-10',
+      }
+      return cores[status] || 'grey'
+    },
+
+    getStatusAvaliacaoColor(status) {
+      const cores = {
+        OK: 'green',
+        PROXIMO: 'orange',
+        URGENTE: 'red',
+        ATRASADO: 'red-10',
         SEM_AGENDAMENTO: 'grey',
       }
       return cores[status] || 'grey'
     },
 
-    getStatusVencimentoLabel(status) {
-      const labels = {
-        VENCIDO: 'Vencido',
-        VENCE_SEMANA: 'Vence esta semana',
-        VENCE_QUINZENA: 'Vence em até 15 dias',
-        EM_DIA: 'Em dia',
-        SEM_AGENDAMENTO: 'Sem agendamento',
-      }
-      return labels[status] || status
-    },
+    // === BUSCA E AUTOCOMPLETE ===
+    async buscarFerradores(termo = '') {
+      try {
+        const response = await api.get(
+          '/api/ferrageamento/relatorios/ferradores'
+        )
+        const ferradores = response.data.map(f => ({
+          value: f.ferrador_nome,
+          label: `${f.ferrador_nome} (${f.total_atendimentos} atendimentos)`,
+        }))
 
-    getStatusCascoColor(status) {
-      const cores = {
-        BOM: 'positive',
-        REGULAR: 'warning',
-        RUIM: 'orange',
-        PROBLEMA: 'negative',
-      }
-      return cores[status] || 'grey'
-    },
+        if (termo) {
+          return ferradores.filter(f =>
+            f.label.toLowerCase().includes(termo.toLowerCase())
+          )
+        }
 
-    getMembroLabel(membro) {
-      const membros = {
-        TODOS: 'Todos os membros',
-        AD: 'Anterior Direito',
-        AE: 'Anterior Esquerdo',
-        PD: 'Posterior Direito',
-        PE: 'Posterior Esquerdo',
+        return ferradores
+      } catch (error) {
+        console.error('Erro ao buscar ferradores:', error)
+        return []
       }
-      return membros[membro] || membro
-    },
-
-    // == GRAFICOS ==
-    async getCustosEvolucaoMensal(meses) {
-      console.log(meses)
-      const response = await api.get(
-        `/api/ferrageamento/grafico/custos-evolucao?meses=${meses}`
-      )
-      return response.data
     },
 
     // === VALIDAÇÕES ===
-    validarProximaData(dataOcorrencia, proximaAvaliacao) {
-      if (!proximaAvaliacao) return { valido: true }
+    validarFormulario(dados) {
+      const erros = []
 
-      const dataOc = new Date(dataOcorrencia)
-      const dataProx = new Date(proximaAvaliacao)
+      if (!dados.ID_ANIMAL) {
+        erros.push('Animal é obrigatório')
+      }
 
-      if (dataProx <= dataOc) {
-        return {
-          valido: false,
-          erro: 'Data da próxima avaliação deve ser posterior à data de ocorrência',
+      if (!dados.TIPO_FERRAGEAMENTO) {
+        erros.push('Tipo de ferrageamento é obrigatório')
+      }
+
+      if (!dados.DATA_OCORRENCIA) {
+        erros.push('Data de ocorrência é obrigatória')
+      }
+
+      if (!dados.MEMBRO_TRATADO) {
+        erros.push('Membro tratado é obrigatório')
+      }
+
+      // Validação de data
+      if (
+        dados.DATA_OCORRENCIA &&
+        new Date(dados.DATA_OCORRENCIA) > new Date()
+      ) {
+        erros.push('Data de ocorrência não pode ser no futuro')
+      }
+
+      if (dados.PROXIMA_AVALIACAO && dados.DATA_OCORRENCIA) {
+        if (
+          new Date(dados.PROXIMA_AVALIACAO) <= new Date(dados.DATA_OCORRENCIA)
+        ) {
+          erros.push('Próxima avaliação deve ser após a data de ocorrência')
         }
       }
 
-      return { valido: true }
+      return erros
     },
 
-    calcularProximaData(tipoRegistro, dataOcorrencia, modalidade = 'GERAL') {
+    // === FORMATAÇÃO ===
+    formatarData(data) {
+      if (!data) return ''
+      return new Date(data).toLocaleDateString('pt-BR')
+    },
+
+    formatarCusto(valor) {
+      if (!valor) return ''
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(valor)
+    },
+
+    // === CALCULAR PRÓXIMA AVALIAÇÃO ===
+    calcularProximaAvaliacao(tipoFerrageamento, dataOcorrencia) {
       const intervalos = {
-        FERRAGEAMENTO: {
-          CCE: 30,
-          APARTACAO: 60,
-          CORRIDA: 35,
-          GERAL: 45,
-        },
-        CASQUEAMENTO: {
-          GERAL: 40,
-        },
-        FERRAGEAMENTO_CORRETIVO: {
-          GERAL: 21,
-        },
-        CASQUEAMENTO_TERAPEUTICO: {
-          GERAL: 21,
-        },
+        FERRAGEAMENTO: 45,
+        CASQUEAMENTO: 40,
+        FERRAGEAMENTO_CORRETIVO: 21,
+        CASQUEAMENTO_TERAPEUTICO: 21,
       }
 
-      const dias = intervalos[tipoRegistro]?.[modalidade] || 45
+      const dias = intervalos[tipoFerrageamento] || 45
       const data = new Date(dataOcorrencia)
       data.setDate(data.getDate() + dias)
 
-      return data.toISOString().split('T')[0] // Retorna formato YYYY-MM-DD
-    },
-
-    // === DASHBOARD ===
-    async carregarDashboard() {
-      try {
-        await Promise.all([
-          this.fetchFerrageamentos({ limit: 10 }),
-          this.fetchAlertasVencimento(15),
-          this.fetchEstatisticasAnimais(6),
-        ])
-      } catch (error) {
-        ErrorHandler.handle(error, 'Erro ao carregar dashboard')
-      }
+      return data.toISOString().split('T')[0] // Formato YYYY-MM-DD
     },
   },
 })
