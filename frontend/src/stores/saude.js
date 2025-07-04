@@ -201,11 +201,14 @@ export const useSaudeStore = defineStore('saude', {
     },
 
     // === PRÓXIMAS APLICAÇÕES ===
-    async fetchProximasAplicacoes(diasAntecedencia = 30) {
+    async fetchProximasAplicacoes(diasAntecedencia = 365) {
       try {
-        const response = await api.get('/api/saude/proximas-aplicacoes/', {
-          params: { dias_antecedencia: diasAntecedencia },
-        })
+        const response = await api.get(
+          '/api/saude/calendario/proximas-aplicacoes',
+          {
+            params: { dias_antecedencia: diasAntecedencia },
+          }
+        )
         this.proximasAplicacoes = response.data
         return response.data
       } catch (error) {

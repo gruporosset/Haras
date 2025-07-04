@@ -31,6 +31,7 @@ from sqlalchemy.sql import desc, func
 router = APIRouter(prefix="/api/saude", tags=["Saúde"])
 
 
+# ==CRUD==
 @router.post("/", response_model=SaudeResponse, status_code=status.HTTP_201_CREATED)
 async def create_registro_saude(
     saude: SaudeCreate,
@@ -160,21 +161,21 @@ async def get_registros_saude(
         try:
             data_inicio_dt = datetime.strptime(data_inicio, "%Y-%m-%d")
             query = query.filter(SaudeAnimais.DATA_OCORRENCIA >= data_inicio_dt)
-        except ValueError:
+        except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Formato de data inválido. Use YYYY-MM-DD",
-            )
+            ) from e
 
     if data_fim:
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             query = query.filter(SaudeAnimais.DATA_OCORRENCIA <= data_fim_dt)
-        except ValueError:
+        except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Formato de data inválido. Use YYYY-MM-DD",
-            )
+            ) from e
 
     # Contar total para paginação
     total = query.count()
@@ -214,7 +215,6 @@ async def get_registros_saude(
 async def get_registro_saude(
     registro_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """Obter registro específico de saúde"""
     registro = (
@@ -300,6 +300,7 @@ async def delete_registro_saude(
     return {"message": "Registro excluído com sucesso"}
 
 
+# ==APLICACAO RAPIDA==
 @router.post(
     "/aplicacao-rapida",
     response_model=SaudeResponse,
@@ -385,44 +386,131 @@ async def aplicacao_rapida(
     return response_data
 
 
-@router.get("/proximas-aplicacoes/", response_model=List[ProximasAplicacoes])
+# ==CALENDARIO==
+
+
+@router.get("/calendario/proximas-aplicacoes", response_model=List[ProximasAplicacoes])
 async def get_proximas_aplicacoes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    dias_antecedencia: int = Query(30, description="Dias de antecedência"),
+    dias: int = Query(365, description="Próximos X dias"),
 ):
-    """Obter próximas aplicações programadas"""
-    data_limite = datetime.now() + timedelta(days=dias_antecedencia)
+    """Lista próximas aplicações programadas"""
+    data_limite = datetime.now() + timedelta(days=dias)
 
-    query = (
+    registros = (
         db.query(SaudeAnimais, Animal.NOME)
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
+        .join(Animal)
         .filter(
             SaudeAnimais.PROXIMA_APLICACAO.isnot(None),
             SaudeAnimais.PROXIMA_APLICACAO <= data_limite,
             SaudeAnimais.PROXIMA_APLICACAO >= datetime.now(),
         )
         .order_by(SaudeAnimais.PROXIMA_APLICACAO)
+        .all()
     )
 
-    registros = query.all()
+    proximas = []
+    for saude, animal_nome in registros:
+        dias_restantes = (saude.PROXIMA_APLICACAO - datetime.now()).days
 
-    result = []
-    for registro, animal_nome in registros:
-        data_proxima = registro.PROXIMA_APLICACAO.date()
-        data_hoje = datetime.now().date()
-        dias_vencimento = (data_proxima - data_hoje).days
+        print(saude.__dict__)
 
-        proxima = ProximasAplicacoes(
-            animal_id=registro.ID_ANIMAL,
-            animal_nome=animal_nome,
-            tipo_registro=registro.TIPO_REGISTRO,
-            proxima_aplicacao=registro.PROXIMA_APLICACAO,
-            dias_vencimento=dias_vencimento,
+        # Determinar prioridade
+        if dias_restantes <= 3:
+            prioridade = "URGENTE"
+        elif dias_restantes <= 7:
+            prioridade = "NORMAL"
+        else:
+            prioridade = "BAIXA"
+
+        # Buscar nome do medicamento se tiver
+        medicamento_nome = None
+        if saude.ID_MEDICAMENTO:
+            try:
+                medicamento = (
+                    db.query(Medicamento)
+                    .filter(Medicamento.ID == saude.ID_MEDICAMENTO)
+                    .first()
+                )
+                medicamento_nome = medicamento.NOME if medicamento else None
+            except Exception:
+                pass
+
+        proximas.append(
+            ProximasAplicacoes(
+                animal_id=saude.ID_ANIMAL,
+                animal_nome=animal_nome,
+                tipo_registro=saude.TIPO_REGISTRO,
+                data_aplicacao=saude.PROXIMA_APLICACAO,
+                descricao=saude.DESCRICAO
+                or f"{saude.TIPO_REGISTRO} - "
+                f"{saude.MEDICAMENTO_APLICADO or 'Não especificado'}",
+                dias_restantes=dias_restantes,
+                medicamento_nome=medicamento_nome,
+                veterinario_responsavel=saude.VETERINARIO_RESPONSAVEL,
+                prioridade=prioridade,
+            )
         )
-        result.append(proxima)
 
-    return result
+    return proximas
+
+
+@router.get("/calendario/", response_model=List[CalendarioSaude])
+async def get_calendario_saude(
+    db: Session = Depends(get_db),
+    data_inicio: str = Query(..., description="Data início (YYYY-MM-DD)"),
+    data_fim: str = Query(..., description="Data fim (YYYY-MM-DD)"),
+):
+    """Calendário de aplicações programadas"""
+    try:
+        inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
+        fim = datetime.strptime(data_fim, "%Y-%m-%d")
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Formato de data inválido. Use YYYY-MM-DD",
+        ) from e
+
+    # Buscar aplicações no período
+    aplicacoes = (
+        db.query(SaudeAnimais, Animal.NOME)
+        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
+        .filter(SaudeAnimais.PROXIMA_APLICACAO.between(inicio, fim))
+        .all()
+    )
+
+    # Agrupar por data
+    calendario = {}
+    for saude, animal_nome in aplicacoes:
+        data_key = saude.PROXIMA_APLICACAO.date().isoformat()
+
+        if data_key not in calendario:
+            calendario[data_key] = {
+                "data": saude.PROXIMA_APLICACAO,
+                "eventos": [],
+            }
+
+        evento = {
+            "animal_id": saude.ID_ANIMAL,
+            "animal_nome": animal_nome,
+            "tipo": saude.TIPO_REGISTRO,
+            "descricao": saude.DESCRICAO or saude.MEDICAMENTO_APLICADO,
+            "veterinario": saude.VETERINARIO_RESPONSAVEL,
+        }
+
+        calendario[data_key]["eventos"].append(evento)
+
+    # Converter para lista de CalendarioSaude
+    resultado = []
+    for data_key, dados in calendario.items():
+        resultado.append(CalendarioSaude(data=dados["data"], eventos=dados["eventos"]))
+
+    # Ordenar por data
+    resultado.sort(key=lambda x: x.data)
+    return resultado
+
+
+# ==ESTATISTICAS==
 
 
 @router.get("/estatisticas/geral", response_model=EstatisticasSaude)
@@ -510,6 +598,9 @@ async def get_estatisticas_saude(
     )
 
 
+# ==HISTORICO==
+
+
 @router.get("/historico/{animal_id}", response_model=HistoricoSaude)
 async def get_historico_saude(
     animal_id: int,
@@ -560,60 +651,7 @@ async def get_historico_saude(
     )
 
 
-@router.get("/calendario/", response_model=List[CalendarioSaude])
-async def get_calendario_saude(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    data_inicio: str = Query(..., description="Data início (YYYY-MM-DD)"),
-    data_fim: str = Query(..., description="Data fim (YYYY-MM-DD)"),
-):
-    """Calendário de aplicações programadas"""
-    try:
-        inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
-        fim = datetime.strptime(data_fim, "%Y-%m-%d")
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Formato de data inválido. Use YYYY-MM-DD",
-        )
-
-    # Buscar aplicações no período
-    aplicacoes = (
-        db.query(SaudeAnimais, Animal.NOME)
-        .join(Animal, SaudeAnimais.ID_ANIMAL == Animal.ID)
-        .filter(SaudeAnimais.PROXIMA_APLICACAO.between(inicio, fim))
-        .all()
-    )
-
-    # Agrupar por data
-    calendario = {}
-    for saude, animal_nome in aplicacoes:
-        data_key = saude.PROXIMA_APLICACAO.date().isoformat()
-
-        if data_key not in calendario:
-            calendario[data_key] = {
-                "data": saude.PROXIMA_APLICACAO,
-                "eventos": [],
-            }
-
-        evento = {
-            "animal_id": saude.ID_ANIMAL,
-            "animal_nome": animal_nome,
-            "tipo": saude.TIPO_REGISTRO,
-            "descricao": saude.DESCRICAO or saude.MEDICAMENTO_APLICADO,
-            "veterinario": saude.VETERINARIO_RESPONSAVEL,
-        }
-
-        calendario[data_key]["eventos"].append(evento)
-
-    # Converter para lista de CalendarioSaude
-    resultado = []
-    for data_key, dados in calendario.items():
-        resultado.append(CalendarioSaude(data=dados["data"], eventos=dados["eventos"]))
-
-    # Ordenar por data
-    resultado.sort(key=lambda x: x.data)
-    return resultado
+# ==RELATORIOS==
 
 
 @router.get("/relatorio/consumo-por-tipo", response_model=List[ConsumoPorTipo])
@@ -648,6 +686,9 @@ async def get_consumo_por_tipo(
         consumo_list.append(consumo)
 
     return consumo_list
+
+
+# ==AUTOCOMPLETE==
 
 
 @router.get("/medicamentos/autocomplete", response_model=List[MedicamentoAutocomplete])
