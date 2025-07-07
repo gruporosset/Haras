@@ -142,11 +142,26 @@ async def get_ferrageamentos(
 
     registros = query.offset(offset).limit(limit).all()
 
-    # Preparar resposta com nomes dos animais
+    # Preparar resposta com nomes dos animais e dias para proxima avaliacao
     result = []
     for registro, animal_nome in registros:
         response_data = FerrageamentoResponse.model_validate(registro)
+        data_proxima = registro.PROXIMA_AVALIACAO.date()
+        data_hoje = datetime.now().date()
+        dias_proxima_avaliacao = (data_proxima - data_hoje).days if data_proxima else 0
+
+        if dias_proxima_avaliacao >= 30:
+            status_vencimento = "EM_DIA"
+        elif dias_proxima_avaliacao >= 0 and dias_proxima_avaliacao < 30:
+            status_vencimento = "PROXIMO_VENCIMENTO"
+        elif dias_proxima_avaliacao < 0:
+            status_vencimento = "VENCIDO"
+        else:
+            status_vencimento = None
+
         response_data.animal_nome = animal_nome
+        response_data.dias_proxima_avaliacao = dias_proxima_avaliacao
+        response_data.status_vencimento = status_vencimento
         result.append(response_data)
 
     return result

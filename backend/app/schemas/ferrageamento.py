@@ -96,7 +96,7 @@ class FerrageamentoResponse(FerrageamentoBase):
     # Campos relacionados calculados
     animal_nome: Optional[str] = None
     dias_proxima_avaliacao: Optional[int] = None
-    status_avaliacao: Optional[str] = None  # OK, PROXIMO, URGENTE, ATRASADO
+    status_vencimento: Optional[str] = None  # EM_DIA, PROXIMO_VENCIMENTO, VENCIDO
 
     @field_serializer("DATA_OCORRENCIA", "PROXIMA_AVALIACAO", "DATA_REGISTRO")
     def serialize_dt(self, dt: datetime | None, _info):
