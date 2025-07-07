@@ -10,6 +10,7 @@
     <q-card-section>
       <q-form
         @submit="aplicarRapido"
+        ref="formRef"
         class="q-gutter-md"
       >
         <div class="row q-gutter-md">
@@ -107,7 +108,7 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, nextTick } from 'vue'
   import { useFerrageamentoStore } from 'stores/ferrageamento'
   import { useAnimalStore } from 'stores/animal'
   import { ErrorHandler } from 'src/utils/errorHandler'
@@ -122,6 +123,7 @@
   // Estado reativo
   const loadingAplicacao = ref(false)
   const animalOptions = ref([])
+  const formRef = ref(null)
 
   // Formulário de aplicação rápida
   const aplicacaoRapida = ref({
@@ -183,6 +185,9 @@
         CUSTO: null,
         OBSERVACOES: '',
       }
+
+      await nextTick()
+      formRef.value?.resetValidation()
 
       emit('aplicacao-registrada')
     } catch (error) {

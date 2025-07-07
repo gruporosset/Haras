@@ -60,7 +60,7 @@
             />
             <q-select
               v-model="form.STATUS_CASCO"
-              :options="ferrageamentoStore.statusCasco"
+              :options="ferrageamentoStore.statusCascoOpcoes"
               label="Status do Casco"
               emit-value
               map-options

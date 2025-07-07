@@ -94,6 +94,9 @@ async def get_ferrageamentos(
         None, description="Filtrar por tipo"
     ),
     ferrador: Optional[str] = Query(None, description="Filtrar por ferrador"),
+    apenas_vencidos: Optional[bool] = Query(
+        False, description="Filtrar apenas vencidos"
+    ),
     data_inicio: Optional[str] = Query(None, description="Data início (YYYY-MM-DD)"),
     data_fim: Optional[str] = Query(None, description="Data fim (YYYY-MM-DD)"),
     limit: int = Query(50, le=100),
@@ -134,6 +137,16 @@ async def get_ferrageamentos(
         try:
             data_fim_dt = datetime.strptime(data_fim, "%Y-%m-%d")
             query = query.filter(FerrageamentoAnimais.DATA_OCORRENCIA <= data_fim_dt)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de data inválido. Use YYYY-MM-DD",
+            ) from e
+
+    if apenas_vencidos:
+        try:
+            data_hoje = datetime.now().date()
+            query = query.filter(FerrageamentoAnimais.PROXIMA_AVALIACAO <= data_hoje)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

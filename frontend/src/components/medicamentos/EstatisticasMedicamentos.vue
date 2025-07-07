@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-  import { computed, onMounted } from 'vue'
+  import { computed } from 'vue'
   import { useMedicamentoStore } from 'stores/medicamento'
 
   // Emits
@@ -97,24 +97,5 @@
         valorTotal: 0,
       }
     )
-  })
-
-  // Methods
-  async function loadEstatisticas() {
-    try {
-      await medicamentoStore.fetchEstatisticasGerais()
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error)
-    }
-  }
-
-  // Lifecycle
-  onMounted(() => {
-    loadEstatisticas()
-  })
-
-  // Expor métodos
-  defineExpose({
-    loadEstatisticas,
   })
 </script>

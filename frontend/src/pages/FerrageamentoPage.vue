@@ -36,11 +36,11 @@
             icon="warning"
             :badge="ferrageamentoStore.alertasVencimento?.length || undefined"
           />
-          <q-tab
+          <!-- <q-tab
             name="estatisticas"
             label="Estatísticas"
             icon="analytics"
-          />
+          /> -->
           <!-- <q-tab name="relatorios" label="Relatórios" icon="assessment" /> -->
         </q-tabs>
 
@@ -72,9 +72,9 @@
           </q-tab-panel>
 
           <!-- ABA ESTATÍSTICAS -->
-          <q-tab-panel name="estatisticas">
+          <!-- <q-tab-panel name="estatisticas">
             <EstatisticasFerrageamento />
-          </q-tab-panel>
+          </q-tab-panel> -->
 
           <!-- ABA RELATÓRIOS -->
           <!-- <q-tab-panel name="relatorios">
@@ -117,7 +117,7 @@
   // import RelatoriosFerrageamento from 'components/ferrageamento/RelatoriosFerrageamento.vue'
   import AplicacaoRapida from 'components/ferrageamento/AplicacaoRapida.vue'
   import AlertasFerrageamento from 'components/ferrageamento/AlertasFerrageamento.vue'
-  import EstatisticasFerrageamento from 'components/ferrageamento/EstatisticasFerrageamento.vue'
+  // import EstatisticasFerrageamento from 'components/ferrageamento/EstatisticasFerrageamento.vue'
   import ConfirmacaoExclusao from 'components/widgets/ConfirmacaoExclusao.vue'
 
   // Store

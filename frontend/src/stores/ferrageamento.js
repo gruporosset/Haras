@@ -315,6 +315,21 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
       return cores[status] || 'grey'
     },
 
+    getMembroLabel(valor) {
+      const membro = this.membrosOpcoes.find(m => m.value === valor)
+      return membro?.label || valor
+    },
+
+    getTipoFerraduraLabel(valor) {
+      const tipo = this.tiposFerradura.find(t => t.value === valor)
+      return tipo?.label || valor
+    },
+
+    getStatusCascoLabel(valor) {
+      const status = this.statusCascoOpcoes.find(s => s.value === valor)
+      return status?.label || valor
+    },
+
     // === BUSCA E AUTOCOMPLETE ===
     async buscarFerradores(termo = '') {
       try {

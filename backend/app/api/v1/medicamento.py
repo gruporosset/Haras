@@ -296,7 +296,6 @@ async def aplicar_medicamento(
 @router.get("/movimentacoes/lista", response_model=dict)
 async def list_movimentacoes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     medicamento_id: Optional[int] = Query(None),
     animal_id: Optional[int] = Query(None),
     tipo: Optional[TipoMovimentacaoEnum] = Query(None),
@@ -476,7 +475,6 @@ async def get_consumo_por_animal(
 )
 async def get_previsao_consumo(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     dias_analise: int = Query(90, description="Dias para calcular média de consumo"),
 ):
     data_inicio = datetime.now() - timedelta(days=dias_analise)
@@ -546,7 +544,6 @@ async def get_previsao_consumo(
 @router.get("/relatorio/movimentacao-periodo", response_model=List[MovimentacaoEstoque])
 async def get_movimentacao_periodo(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     data_inicio: Optional[str] = Query(None),
     data_fim: Optional[str] = Query(None),
 ):
@@ -618,7 +615,7 @@ async def get_movimentacao_periodo(
 
 
 @router.get("/options/formas-farmaceuticas")
-async def get_formas_farmaceuticas(current_user: User = Depends(get_current_user)):
+async def get_formas_farmaceuticas():
     return [
         {"value": "INJETAVEL", "label": "Injetável"},
         {"value": "ORAL", "label": "Oral"},
@@ -627,7 +624,7 @@ async def get_formas_farmaceuticas(current_user: User = Depends(get_current_user
 
 
 @router.get("/options/unidades-medida")
-async def get_unidades_medida(current_user: User = Depends(get_current_user)):
+async def get_unidades_medida():
     return [
         {"value": "ML", "label": "Mililitros (ml)"},
         {"value": "G", "label": "Gramas (g)"},

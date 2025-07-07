@@ -313,9 +313,7 @@
                 class="text-red"
               >
                 Vencido há
-                {{
-                  Math.abs(getDiasParaVencimento(medicamento.DATA_VALIDADE))
-                }}
+                {{ Math.abs(getDiasParaVencimento(medicamento.DATA_VALIDADE)) }}
                 dias
               </q-item-label>
             </q-item-section>
@@ -499,7 +497,6 @@
   async function loadAlertas() {
     try {
       await medicamentoStore.fetchMedicamentos()
-      await medicamentoStore.fetchAlertasEstoque()
     } catch (error) {
       console.error('Erro ao carregar alertas:', error)
     }
