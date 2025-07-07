@@ -35,7 +35,7 @@
               :rules="[val => !!val || 'Data é obrigatória']"
             />
             <q-select
-              v-model="form.TIPO_REGISTRO"
+              v-model="form.TIPO_FERRAGEAMENTO"
               :options="ferrageamentoStore.tiposFerrageamento"
               label="Tipo *"
               emit-value
@@ -66,9 +66,13 @@
               map-options
               class="col-4"
             />
-            <q-input
+            <q-select
               v-model="form.TIPO_FERRADURA"
+              :options="ferrageamentoStore.tiposFerradura"
               label="Tipo de Ferradura"
+              emit-value
+              map-options
+              clearable
               class="col-3"
             />
           </div>
@@ -313,11 +317,11 @@
         ID: null,
         ID_ANIMAL: null,
         DATA_OCORRENCIA: new Date().toISOString().slice(0, 10),
-        TIPO_REGISTRO: 'FERRAGEAMENTO',
+        TIPO_FERRAGEAMENTO: 'FERRAGEAMENTO',
         MEMBRO_TRATADO: 'TODOS',
         FERRADOR_RESPONSAVEL: '',
         STATUS_CASCO: 'BOM',
-        TIPO_FERRADURA: '',
+        TIPO_FERRADURA: null,
         CUSTO: null,
         PROXIMA_AVALIACAO: '',
         DATA_PREV_PROX_FERRAGEAMENTO: '',

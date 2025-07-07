@@ -19,7 +19,7 @@
               class="col-md-4 col-12"
             />
             <q-select
-              v-model="filtrosRelatorio.tipo_registro"
+              v-model="filtrosRelatorio.tipo_ferrageamento"
               :options="ferrageamentoStore.tiposFerrageamento"
               label="Tipo (opcional)"
               emit-value
@@ -248,7 +248,7 @@
   const filtrosRelatorio = ref({
     data_inicio: '',
     data_fim: '',
-    tipo_registro: null,
+    tipo_ferrageamento: null,
   })
 
   // Colunas das tabelas
@@ -308,7 +308,7 @@
       const params = {
         data_inicio: filtrosRelatorio.value.data_inicio,
         data_fim: filtrosRelatorio.value.data_fim,
-        tipo_registro: filtrosRelatorio.value.tipo_registro,
+        tipo_ferrageamento: filtrosRelatorio.value.tipo_ferrageamento,
       }
 
       relatorio.value = await ferrageamentoStore.gerarRelatorio(params)

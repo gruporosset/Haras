@@ -38,13 +38,13 @@
                 <q-item-section>
                   <q-item-label overline>Tipo</q-item-label>
                   <q-chip
-                    :color="getTipoColor(registroData.TIPO_REGISTRO)"
+                    :color="getTipoColor(registroData.TIPO_FERRAGEAMENTO)"
                     text-color="white"
                     size="sm"
                   >
                     {{
                       ferrageamentoStore.getTipoLabel(
-                        registroData.TIPO_REGISTRO
+                        registroData.TIPO_FERRAGEAMENTO
                       )
                     }}
                   </q-chip>

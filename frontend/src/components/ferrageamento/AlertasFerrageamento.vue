@@ -30,7 +30,7 @@
       >
         <q-item
           v-for="alerta in ferrageamentoStore.alertasVencimento"
-          :key="`${alerta.animal_id}-${alerta.tipo_registro}`"
+          :key="`${alerta.animal_id}-${alerta.tipo_ferrageamento}`"
           clickable
         >
           <q-item-section avatar>
@@ -45,7 +45,7 @@
           <q-item-section>
             <q-item-label>{{ alerta.animal_nome }}</q-item-label>
             <q-item-label caption>
-              {{ ferrageamentoStore.getTipoLabel(alerta.tipo_registro) }}
+              {{ ferrageamentoStore.getTipoLabel(alerta.tipo_ferrageamento) }}
             </q-item-label>
             <q-item-label caption>
               Última: {{ formatDate(alerta.data_ultimo_registro) }}

@@ -29,7 +29,7 @@
           </div>
           <div class="col-md-6 col-12">
             <q-select
-              v-model="aplicacaoRapida.TIPO_REGISTRO"
+              v-model="aplicacaoRapida.TIPO_FERRAGEAMENTO"
               :options="ferrageamentoStore.tiposFerrageamento"
               option-value="value"
               option-label="label"
@@ -126,7 +126,7 @@
   // Formulário de aplicação rápida
   const aplicacaoRapida = ref({
     ID_ANIMAL: null,
-    TIPO_REGISTRO: 'FERRAGEAMENTO',
+    TIPO_FERRAGEAMENTO: 'FERRAGEAMENTO',
     MEMBRO_TRATADO: 'TODOS',
     FERRADOR_RESPONSAVEL: '',
     STATUS_CASCO: 'BOM',
@@ -176,7 +176,7 @@
       // Limpar formulário
       aplicacaoRapida.value = {
         ID_ANIMAL: null,
-        TIPO_REGISTRO: 'FERRAGEAMENTO',
+        TIPO_FERRAGEAMENTO: 'FERRAGEAMENTO',
         MEMBRO_TRATADO: 'TODOS',
         FERRADOR_RESPONSAVEL: '',
         STATUS_CASCO: 'BOM',

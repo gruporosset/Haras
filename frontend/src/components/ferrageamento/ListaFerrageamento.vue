@@ -74,14 +74,16 @@
             </q-td>
           </template>
 
-          <template v-slot:body-cell-TIPO_REGISTRO="props">
+          <template v-slot:body-cell-TIPO_FERRAGEAMENTO="props">
             <q-td :props="props">
               <q-chip
-                :color="getTipoColor(props.row.TIPO_REGISTRO)"
+                :color="getTipoColor(props.row.TIPO_FERRAGEAMENTO)"
                 text-color="white"
                 size="sm"
               >
-                {{ ferrageamentoStore.getTipoLabel(props.row.TIPO_REGISTRO) }}
+                {{
+                  ferrageamentoStore.getTipoLabel(props.row.TIPO_FERRAGEAMENTO)
+                }}
               </q-chip>
             </q-td>
           </template>
@@ -234,9 +236,9 @@
       align: 'left',
     },
     {
-      name: 'TIPO_REGISTRO',
+      name: 'TIPO_FERRAGEAMENTO',
       label: 'Tipo',
-      field: 'TIPO_REGISTRO',
+      field: 'TIPO_FERRAGEAMENTO',
       sortable: true,
       align: 'center',
     },
@@ -305,7 +307,7 @@
   function onFilterChange() {
     const filtros = {
       animal_id: filtroAnimal.value?.value,
-      tipo_registro: filtroTipo.value,
+      tipo_ferrageamento: filtroTipo.value,
       ferrador: filtroFerrador.value,
       apenas_vencidos: filtroVencidos.value,
     }
