@@ -71,7 +71,11 @@
     <DetalhesMovimentacao ref="detalhesRef" />
 
     <!-- Componente de Histórico -->
-    <HistoricoMovimentacao ref="historicoRef" />
+    <HistoricoMovimentacao
+      @visualizar="abrirDetalhes"
+      @editar="abrirEdicao"
+      ref="historicoRef"
+    />
 
     <!-- Confirmação de Exclusão -->
     <ConfirmacaoExclusao

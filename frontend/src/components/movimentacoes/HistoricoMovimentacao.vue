@@ -60,7 +60,7 @@
           <q-timeline-entry
             v-for="item in historico"
             :key="item.ID"
-            :title="formatDate(item.DATA_MOVIMENTACAO)"
+            :title="item.DATA_MOVIMENTACAO"
             :subtitle="getSubtitleMovimentacao(item)"
             :icon="getIconByTipo(item.TIPO_MOVIMENTACAO)"
             :color="getTipoColor(item.TIPO_MOVIMENTACAO)"
@@ -71,10 +71,7 @@
               <div class="row items-center">
                 <div class="col">
                   <div class="text-weight-medium">
-                    {{ formatDate(item.DATA_MOVIMENTACAO) }}
-                  </div>
-                  <div class="text-caption text-grey-6">
-                    {{ formatTime(item.DATA_MOVIMENTACAO) }}
+                    {{ item.DATA_MOVIMENTACAO }}
                   </div>
                 </div>
                 <div class="col-auto">
@@ -199,7 +196,7 @@
                     class="q-mr-xs"
                   />
                   Registrado por {{ item.usuario_nome || 'Sistema' }} em
-                  {{ formatDateTime(item.DATA_REGISTRO) }}
+                  {{ formatDateForDisplay(item.DATA_REGISTRO) }}
                 </div>
               </q-card-section>
 
@@ -286,7 +283,7 @@
 <script setup>
   import { ref, computed } from 'vue'
   import { useMovimentacaoStore } from 'stores/movimentacao'
-  import { formatDate } from 'src/utils/dateUtils'
+  import { formatDateForDisplay } from 'src/utils/dateUtils'
   import { ErrorHandler } from 'src/utils/errorHandler'
 
   // Emits
@@ -301,7 +298,9 @@
   const animalNome = ref('')
 
   // Computed
-  const historico = computed(() => movimentacaoStore.historicoAnimal || [])
+  const historico = computed(
+    () => movimentacaoStore.historicoAnimal?.movimentacoes || []
+  )
 
   // Métodos
   async function openHistoricoDialog(id, nome = '') {
@@ -366,37 +365,6 @@
       RETORNO: 'keyboard_return',
     }
     return icons[tipo] || 'move_to_inbox'
-  }
-
-  function formatTime(dateTime) {
-    if (!dateTime) return ''
-
-    try {
-      const date = new Date(dateTime)
-      return date.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return ''
-    }
-  }
-
-  function formatDateTime(dateTime) {
-    if (!dateTime) return '-'
-
-    try {
-      const date = new Date(dateTime)
-      return date.toLocaleString('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return '-'
-    }
   }
 
   function contarPorTipo(tipo) {
