@@ -1,9 +1,6 @@
 <template>
-  <q-dialog
-    v-model="dialog"
-    full-width
-  >
-    <q-card style="min-width: 900px; max-height: 80vh">
+  <q-dialog v-model="dialog">
+    <q-card style="min-width: 900px; width: 100%; max-height: 90vh">
       <q-card-section>
         <div class="text-h6 text-primary">
           <q-icon
@@ -304,6 +301,7 @@
 
   // Métodos
   async function openHistoricoDialog(id, nome = '') {
+    console.log(id, nome)
     animalId.value = id
     animalNome.value = nome
     dialog.value = true

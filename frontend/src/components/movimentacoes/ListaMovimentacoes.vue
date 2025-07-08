@@ -43,7 +43,7 @@
             </q-select>
           </div>
 
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-2">
             <q-select
               v-model="filtros.tipo"
               :options="movimentacaoStore.tiposMovimentacao"
@@ -146,7 +146,13 @@
                 dense
                 icon="history"
                 color="blue"
-                @click="$emit('ver-historico', props.row.ID_ANIMAL)"
+                @click="
+                  $emit(
+                    'ver-historico',
+                    props.row.ID_ANIMAL,
+                    props.row.animal_nome
+                  )
+                "
               >
                 <q-tooltip>Histórico do Animal</q-tooltip>
               </q-btn>
@@ -270,26 +276,24 @@
   }
 
   async function onFilterChange() {
-    // Aplicar filtros
-    const filters = {}
+    const filtrosF = {
+      ...filtros.value,
+      animal_id: null,
+      tipo_movimentacao: null,
+    }
 
     if (filtros.value.animal?.value) {
-      filters.animal_id = filtros.value.animal.value
+      filtrosF.animal_id = filtros.value.animal.value
     }
 
     if (filtros.value.tipo?.value) {
-      filters.tipo = filtros.value.tipo.value
+      filtrosF.tipo_movimentacao = filtros.value.tipo.value
     }
 
-    if (filtros.value.dataInicio) {
-      filters.data_inicio = filtros.value.dataInicio
-    }
+    filtrosF.data_inicio = filtros.value.dataInicio ?? ''
+    filtrosF.data_fim = filtros.value.dataFim ?? ''
 
-    if (filtros.value.dataFim) {
-      filters.data_fim = filtros.value.dataFim
-    }
-
-    movimentacaoStore.setFilters(filters)
+    movimentacaoStore.setFilters(filtrosF)
     await fetchMovimentacoes()
   }
 

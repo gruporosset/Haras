@@ -4,7 +4,7 @@ ignore=.venv,venv,__pycache__,.git,.pytest_cache,node_modules
 ignore-paths=.venv/.*,venv/.*
 
 [MESSAGES CONTROL]
-disable=C0111,C0114,C0115,W0718,C0103,E1102,R0903,R0902,C0302
+disable=C0111,C0114,C0115,W0718,C0103,E1102,R0903,R0902,C0302,W0622
 
 [FORMAT]
 max-line-length=88

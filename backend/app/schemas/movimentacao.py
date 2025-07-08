@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, field_validator, field_serializer
-from typing import Optional
 from datetime import datetime
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
 class TipoMovimentacaoEnum(str, Enum):
@@ -100,6 +101,8 @@ class LocalizacaoAtual(BaseModel):
     local_externo: Optional[str] = None
     data_ultima_movimentacao: datetime
     tipo_ultima_movimentacao: str
+    localizacao: Optional[str] = None
+    localizacao_tipo: Optional[str] = None
 
     @field_serializer("data_ultima_movimentacao")
     def serialize_dt(self, dt: datetime | None, _info):

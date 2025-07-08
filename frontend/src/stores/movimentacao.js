@@ -33,12 +33,12 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
       { value: 'RETORNO', label: 'Retorno' },
     ],
 
-    movimentacoesByAnimal: (state) => (animalId) => {
-      return state.movimentacoes.filter((m) => m.ID_ANIMAL === animalId)
+    movimentacoesByAnimal: state => animalId => {
+      return state.movimentacoes.filter(m => m.ID_ANIMAL === animalId)
     },
 
-    localizacaoByAnimal: (state) => (animalId) => {
-      return state.localizacoes.find((l) => l.animal_id === animalId)
+    localizacaoByAnimal: state => animalId => {
+      return state.localizacoes.find(l => l.animal_id === animalId)
     },
   },
 
@@ -67,7 +67,9 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
           queryParams.tipo_movimentacao = queryParams.tipo_movimentacao.value
         }
 
-        const response = await api.get('/api/movimentacoes', { params: queryParams })
+        const response = await api.get('/api/movimentacoes', {
+          params: queryParams,
+        })
 
         this.movimentacoes = response.data.movimentacoes
         this.pagination = {
@@ -97,7 +99,10 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
 
     async updateMovimentacao(id, movimentacaoData) {
       try {
-        const response = await api.put(`/api/movimentacoes/${id}`, movimentacaoData)
+        const response = await api.put(
+          `/api/movimentacoes/${id}`,
+          movimentacaoData
+        )
         await this.fetchMovimentacoes()
         return response.data
       } catch (error) {
@@ -116,21 +121,31 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
 
     async fetchHistoricoAnimal(animalId) {
       try {
-        const response = await api.get(`/api/movimentacoes/animal/${animalId}/historico`)
+        const response = await api.get(
+          `/api/movimentacoes/animal/${animalId}/historico`
+        )
         this.historicoAnimal = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar histórico do animal'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar histórico do animal'
+        )
       }
     },
 
     async fetchLocalizacoes() {
       try {
-        const response = await api.get('/api/movimentacoes/relatorio/localizacoes')
+        this.loading = true
+        const response = await api.get(
+          '/api/movimentacoes/relatorio/localizacoes',
+          { params: this.filters }
+        )
         this.localizacoes = response.data
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao buscar localizações'
+      } finally {
+        this.loading = false
       }
     },
 

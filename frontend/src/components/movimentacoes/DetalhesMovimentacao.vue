@@ -1,9 +1,6 @@
 <template>
-  <q-dialog
-    v-model="dialog"
-    full-width
-  >
-    <q-card style="min-width: 700px">
+  <q-dialog v-model="dialog">
+    <q-card style="max-width: 900px; width: 100%">
       <q-card-section>
         <div class="text-h6 text-primary">
           <q-icon
@@ -18,9 +15,9 @@
       </q-card-section>
 
       <q-card-section v-if="movimentacao">
-        <div class="row q-gutter-md">
+        <div class="row q-gutter-md justify-center">
           <!-- Informações do Animal -->
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <q-card
               flat
               bordered
@@ -113,7 +110,7 @@
           </div>
 
           <!-- Origem -->
-          <div class="col-12 col-md-6">
+          <div class="col-12 col-md-5">
             <q-card
               flat
               bordered
@@ -247,7 +244,7 @@
           </div>
 
           <!-- Motivo e Observações -->
-          <div class="col-12">
+          <div class="col-12 col-md-5">
             <q-card
               flat
               bordered
@@ -293,7 +290,7 @@
           </div>
 
           <!-- Informações de Registro -->
-          <div class="col-12">
+          <div class="col-12 col-md-6">
             <q-card
               flat
               bordered

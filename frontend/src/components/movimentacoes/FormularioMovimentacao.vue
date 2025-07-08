@@ -399,7 +399,6 @@
         ID_USUARIO_REGISTRO: authStore.user?.ID,
       }
     }
-
     dialog.value = true
   }
 

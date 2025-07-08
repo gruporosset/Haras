@@ -79,7 +79,6 @@ async def create_movimentacao(
 @router.get("/", response_model=dict)
 async def list_movimentacoes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
     tipo_movimentacao: Optional[TipoMovimentacaoEnum] = Query(
         None, description="Filtrar por tipo"
@@ -139,7 +138,6 @@ async def list_movimentacoes(
 async def get_movimentacao(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     movimentacao = (
         db.query(MovimentacaoAnimais).filter(MovimentacaoAnimais.ID == id).first()
@@ -197,7 +195,6 @@ async def delete_movimentacao(
 async def get_historico_animal(
     animal_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     # Verificar se animal existe
     animal = db.query(Animal).filter(Animal.ID == animal_id).first()
@@ -243,7 +240,11 @@ async def get_historico_animal(
 
 @router.get("/relatorio/localizacoes", response_model=List[LocalizacaoAtual])
 async def get_localizacoes_atuais(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    animal_id: Optional[int] = Query(None, description="Filtrar por animal"),
+    terreno_id: Optional[int] = Query(
+        None, description="Filtrar por terreno (origem ou destino)"
+    ),
+    db: Session = Depends(get_db),
 ):
     # Buscar última movimentação de cada animal
     subquery = (
@@ -255,18 +256,27 @@ async def get_localizacoes_atuais(
         .subquery()
     )
 
-    ultimas_movimentacoes = (
+    query = (
         db.query(MovimentacaoAnimais, Animal.NOME)
-        .join(Animal)
+        .join(Animal, MovimentacaoAnimais.ID_ANIMAL == Animal.ID)
         .join(
             subquery,
             (MovimentacaoAnimais.ID_ANIMAL == subquery.c.ID_ANIMAL)
             & (MovimentacaoAnimais.DATA_MOVIMENTACAO == subquery.c.ultima_data),
         )
-        .all()
     )
 
+    if animal_id:
+        query = query.filter(MovimentacaoAnimais.ID_ANIMAL == animal_id)
+
+    if terreno_id:
+        query = query.filter((MovimentacaoAnimais.ID_TERRENO_DESTINO == terreno_id))
+
+    ultimas_movimentacoes = query.all()
+
     resultado = []
+    localizacao_tipo = None
+    localizacao = None
     for mov, animal_nome in ultimas_movimentacoes:
         terreno_atual = None
         local_externo = None
@@ -278,8 +288,12 @@ async def get_localizacoes_atuais(
             terreno_atual = (
                 terreno.NOME if terreno else f"Terreno #{mov.ID_TERRENO_DESTINO}"
             )
+            localizacao_tipo = "terreno"
+            localizacao = terreno_atual
         elif mov.DESTINO_EXTERNO:
             local_externo = mov.DESTINO_EXTERNO
+            localizacao_tipo = "externo"
+            localizacao = local_externo
 
         resultado.append(
             LocalizacaoAtual(
@@ -289,6 +303,8 @@ async def get_localizacoes_atuais(
                 local_externo=local_externo,
                 data_ultima_movimentacao=mov.DATA_MOVIMENTACAO,
                 tipo_ultima_movimentacao=mov.TIPO_MOVIMENTACAO,
+                localizacao_tipo=localizacao_tipo,
+                localizacao=localizacao,
             )
         )
 
@@ -296,7 +312,7 @@ async def get_localizacoes_atuais(
 
 
 @router.get("/options/tipos")
-async def get_tipos_movimentacao(current_user: User = Depends(get_current_user)):
+async def get_tipos_movimentacao():
     return [
         {"value": "TRANSFERENCIA", "label": "Transferência"},
         {"value": "ENTRADA", "label": "Entrada"},

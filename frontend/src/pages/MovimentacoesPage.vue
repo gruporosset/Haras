@@ -62,13 +62,15 @@
 
     <!-- Componente de Formulário -->
     <FormularioMovimentacao
-      v-model="formularioDialog"
       @saved="onMovimentacaoSaved"
       ref="formularioRef"
     />
 
     <!-- Componente de Detalhes -->
-    <DetalhesMovimentacao ref="detalhesRef" />
+    <DetalhesMovimentacao
+      @editar="abrirEdicao"
+      ref="detalhesRef"
+    />
 
     <!-- Componente de Histórico -->
     <HistoricoMovimentacao
@@ -113,7 +115,6 @@
 
   // Estado reativo
   const activeTab = ref('movimentacoes')
-  const formularioDialog = ref(false)
   const deleteDialog = ref(false)
   const movimentacaoToDelete = ref(null)
 
@@ -130,8 +131,8 @@
     detalhesRef.value?.openViewDialog(movimentacao)
   }
 
-  function abrirHistorico(animalId) {
-    historicoRef.value?.openHistoricoDialog(animalId)
+  function abrirHistorico(animalId, animalNome = '') {
+    historicoRef.value?.openHistoricoDialog(animalId, animalNome)
   }
 
   // Métodos de ação

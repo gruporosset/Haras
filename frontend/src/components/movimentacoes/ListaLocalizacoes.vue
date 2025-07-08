@@ -106,13 +106,18 @@
               >
                 <q-tooltip>Nova Movimentação</q-tooltip>
               </q-btn>
-
               <q-btn
                 flat
                 dense
                 icon="history"
                 color="blue"
-                @click="$emit('ver-historico', props.row.ID_ANIMAL)"
+                @click="
+                  $emit(
+                    'ver-historico',
+                    props.row.animal_id,
+                    props.row.animal_nome
+                  )
+                "
               >
                 <q-tooltip>Ver Histórico</q-tooltip>
               </q-btn>
@@ -129,6 +134,7 @@
   import { useMovimentacaoStore } from 'stores/movimentacao'
   import { useAnimalStore } from 'stores/animal'
   import { useTerrenoStore } from 'stores/terreno'
+  import { ErrorHandler } from 'src/utils/errorHandler'
 
   // Emits
   defineEmits(['nova-movimentacao', 'ver-historico'])
@@ -196,7 +202,7 @@
         label: t.NOME,
       }))
     } catch (error) {
-      console.error('Erro ao carregar opções:', error)
+      ErrorHandler.handle(error, 'Erro ao carregar opções')
     }
   }
 
@@ -221,18 +227,21 @@
   }
 
   async function onFilterChange() {
-    // Aplicar filtros
-    const filters = {}
+    const filtrosF = {
+      ...filtros.value,
+      animal_id: null,
+      terreno_id: null,
+    }
 
     if (filtros.value.animal?.value) {
-      filters.animal_id = filtros.value.animal.value
+      filtrosF.animal_id = filtros.value.animal.value
     }
 
     if (filtros.value.terreno?.value) {
-      filters.terreno_id = filtros.value.terreno.value
+      filtrosF.terreno_id = filtros.value.terreno.value
     }
 
-    movimentacaoStore.setFiltersLocalizacoes(filters)
+    movimentacaoStore.setFilters(filtrosF)
     await fetchLocalizacoes()
   }
 
@@ -251,7 +260,7 @@
     try {
       await movimentacaoStore.fetchLocalizacoes()
     } catch (error) {
-      console.error('Erro ao carregar localizações:', error)
+      ErrorHandler.handle(error, 'Erro ao carregar localizações')
     }
   }
 
