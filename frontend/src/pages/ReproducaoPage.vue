@@ -2,7 +2,13 @@
   <q-page class="q-pa-sm">
     <q-card>
       <q-card-section>
-        <div class="text-h5">Gerenciar Reprodução</div>
+        <div class="text-h5 q-mb-md text-primary">
+          <q-icon
+            name="favorite"
+            class="q-mr-sm"
+          />
+          Controle Reprodutivo
+        </div>
       </q-card-section>
 
       <q-card-section class="q-pt-none">

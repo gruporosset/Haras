@@ -79,42 +79,51 @@ export const useManejoStore = defineStore('manejo', {
     statusEstoque: () => [
       { value: 'SEM_ESTOQUE', label: 'Sem Estoque', color: 'red' },
       { value: 'ESTOQUE_BAIXO', label: 'Estoque Baixo', color: 'orange' },
-      { value: 'VENCIMENTO_PROXIMO', label: 'Vencimento Próximo', color: 'purple' },
+      {
+        value: 'VENCIMENTO_PROXIMO',
+        label: 'Vencimento Próximo',
+        color: 'purple',
+      },
       { value: 'OK', label: 'OK', color: 'green' },
     ],
 
     // === PRODUTOS FILTRADOS ===
-    produtosAtivos: (state) => state.produtos.filter((p) => p.ATIVO === 'S'),
+    produtosAtivos: state => state.produtos.filter(p => p.ATIVO === 'S'),
 
-    produtosByTipo: (state) => (tipo) => {
-      return state.produtos.filter((p) => p.TIPO_PRODUTO === tipo && p.ATIVO === 'S')
-    },
-
-    produtosComEstoqueBaixo: (state) => {
+    produtosByTipo: state => tipo => {
       return state.produtos.filter(
-        (p) =>
-          p.ATIVO === 'S' &&
-          (p.status_estoque === 'ESTOQUE_BAIXO' || p.status_estoque === 'SEM_ESTOQUE'),
+        p => p.TIPO_PRODUTO === tipo && p.ATIVO === 'S'
       )
     },
 
-    produtosVencendoProximo: (state) => {
+    produtosComEstoqueBaixo: state => {
       return state.produtos.filter(
-        (p) => p.ATIVO === 'S' && p.status_estoque === 'VENCIMENTO_PROXIMO',
+        p =>
+          p.ATIVO === 'S' &&
+          (p.status_estoque === 'ESTOQUE_BAIXO' ||
+            p.status_estoque === 'SEM_ESTOQUE')
+      )
+    },
+
+    produtosVencendoProximo: state => {
+      return state.produtos.filter(
+        p => p.ATIVO === 'S' && p.status_estoque === 'VENCIMENTO_PROXIMO'
       )
     },
 
     // === ESTATÍSTICAS PRODUTOS ===
-    estatisticasProdutos: (state) => {
-      const ativos = state.produtos.filter((p) => p.ATIVO === 'S')
-      const comEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) > 0)
+    estatisticasProdutos: state => {
+      const ativos = state.produtos.filter(p => p.ATIVO === 'S')
+      const comEstoque = ativos.filter(p => (p.ESTOQUE_ATUAL || 0) > 0)
       const estoqueBaixo = ativos.filter(
-        (p) => (p.ESTOQUE_ATUAL || 0) <= (p.ESTOQUE_MINIMO || 0) && (p.ESTOQUE_ATUAL || 0) > 0,
+        p =>
+          (p.ESTOQUE_ATUAL || 0) <= (p.ESTOQUE_MINIMO || 0) &&
+          (p.ESTOQUE_ATUAL || 0) > 0
       )
-      const semEstoque = ativos.filter((p) => (p.ESTOQUE_ATUAL || 0) === 0)
+      const semEstoque = ativos.filter(p => (p.ESTOQUE_ATUAL || 0) === 0)
       const valorTotal = ativos.reduce(
         (sum, p) => sum + (p.ESTOQUE_ATUAL || 0) * (p.PRECO_UNITARIO || 0),
-        0,
+        0
       )
 
       return {
@@ -124,22 +133,30 @@ export const useManejoStore = defineStore('manejo', {
         semEstoque: semEstoque.length,
         valorTotalEstoque: valorTotal,
         percentualComEstoque:
-          ativos.length > 0 ? ((comEstoque.length / ativos.length) * 100).toFixed(1) : 0,
+          ativos.length > 0
+            ? ((comEstoque.length / ativos.length) * 100).toFixed(1)
+            : 0,
       }
     },
 
     // === ESTATÍSTICAS GERAIS ===
-    estatisticasGerais: (state) => {
+    estatisticasGerais: state => {
       const totalAplicacoes = state.aplicacoes.length
-      const custoTotal = state.aplicacoes.reduce((sum, a) => sum + (a.CUSTO_TOTAL || 0), 0)
-      const terrenosManejados = new Set(state.aplicacoes.map((a) => a.ID_TERRENO)).size
+      const custoTotal = state.aplicacoes.reduce(
+        (sum, a) => sum + (a.CUSTO_TOTAL || 0),
+        0
+      )
+      const terrenosManejados = new Set(state.aplicacoes.map(a => a.ID_TERRENO))
+        .size
 
       return {
         totalAplicacoes,
         custoTotal: custoTotal.toFixed(2),
         terrenosManejados,
         mediaAplicacoesPorTerreno:
-          terrenosManejados > 0 ? (totalAplicacoes / terrenosManejados).toFixed(1) : 0,
+          terrenosManejados > 0
+            ? (totalAplicacoes / terrenosManejados).toFixed(1)
+            : 0,
       }
     },
   },
@@ -169,7 +186,9 @@ export const useManejoStore = defineStore('manejo', {
           queryParams.ativo = queryParams.ativo.value
         }
 
-        const response = await api.get('/api/manejo/produtos', { params: queryParams })
+        const response = await api.get('/api/manejo/produtos', {
+          params: queryParams,
+        })
 
         this.produtos = response.data.produtos || []
         this.pagination = {
@@ -188,51 +207,30 @@ export const useManejoStore = defineStore('manejo', {
     },
 
     async createProduto(produtoData) {
-      this.loading = true
-      try {
-        // Converter valores dos selects
-        const data = { ...produtoData }
-        if (data.TIPO_PRODUTO?.value) {
-          data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
-        }
-
-        const response = await api.post('/api/manejo/produtos', data)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar produto'
-      } finally {
-        this.loading = false
+      // Converter valores dos selects
+      const data = { ...produtoData }
+      if (data.TIPO_PRODUTO?.value) {
+        data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
       }
+
+      const response = await api.post('/api/manejo/produtos', data)
+      return response.data
     },
 
     async updateProduto(id, produtoData) {
-      this.loading = true
-      try {
-        // Converter valores dos selects
-        const data = { ...produtoData }
-        if (data.TIPO_PRODUTO?.value) {
-          data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
-        }
-
-        const response = await api.put(`/api/manejo/produtos/${id}`, data)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar produto'
-      } finally {
-        this.loading = false
+      // Converter valores dos selects
+      const data = { ...produtoData }
+      if (data.TIPO_PRODUTO?.value) {
+        data.TIPO_PRODUTO = data.TIPO_PRODUTO.value
       }
+
+      const response = await api.put(`/api/manejo/produtos/${id}`, data)
+      return response.data
     },
 
     async deleteProduto(id) {
-      this.loading = true
-      try {
-        await api.delete(`/api/manejo/produtos/${id}`)
-        return true
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir produto'
-      } finally {
-        this.loading = false
-      }
+      await api.delete(`/api/manejo/produtos/${id}`)
+      return true
     },
 
     async getProdutoById(id) {
@@ -246,10 +244,15 @@ export const useManejoStore = defineStore('manejo', {
 
     async getAutocompleProdutos(params = {}) {
       try {
-        const response = await api.get('/api/manejo/produtos/autocomplete', { params })
+        const response = await api.get('/api/manejo/produtos/autocomplete', {
+          params,
+        })
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar autocomplete de produtos'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar autocomplete de produtos'
+        )
       }
     },
 
@@ -260,7 +263,9 @@ export const useManejoStore = defineStore('manejo', {
         this.alertasEstoque = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar alertas de estoque'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar alertas de estoque'
+        )
       }
     },
 
@@ -297,7 +302,9 @@ export const useManejoStore = defineStore('manejo', {
           queryParams.tipo_movimentacao = queryParams.tipo_movimentacao.value
         }
 
-        const response = await api.get('/api/manejo/estoque/movimentacoes', { params: queryParams })
+        const response = await api.get('/api/manejo/estoque/movimentacoes', {
+          params: queryParams,
+        })
         this.movimentacoes = response.data.movimentacoes || []
 
         // Atualizar paginação
@@ -319,7 +326,10 @@ export const useManejoStore = defineStore('manejo', {
     async entradaEstoque(entradaData) {
       this.loading = true
       try {
-        const response = await api.post('/api/manejo/estoque/entrada', entradaData)
+        const response = await api.post(
+          '/api/manejo/estoque/entrada',
+          entradaData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao registrar entrada'
@@ -343,7 +353,10 @@ export const useManejoStore = defineStore('manejo', {
     async ajusteEstoque(ajusteData) {
       this.loading = true
       try {
-        const response = await api.post('/api/manejo/estoque/ajuste', ajusteData)
+        const response = await api.post(
+          '/api/manejo/estoque/ajuste',
+          ajusteData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao registrar ajuste'
@@ -383,7 +396,9 @@ export const useManejoStore = defineStore('manejo', {
           queryParams.tipo_produto = queryParams.tipo_produto.value
         }
 
-        const response = await api.get('/api/manejo/aplicacoes', { params: queryParams })
+        const response = await api.get('/api/manejo/aplicacoes', {
+          params: queryParams,
+        })
         this.aplicacoes = response.data.aplicacoes || []
 
         this.pagination = {
@@ -416,7 +431,10 @@ export const useManejoStore = defineStore('manejo', {
     async updateAplicacao(id, aplicacaoData) {
       this.loading = true
       try {
-        const response = await api.put(`/api/manejo/aplicacoes/${id}`, aplicacaoData)
+        const response = await api.put(
+          `/api/manejo/aplicacoes/${id}`,
+          aplicacaoData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar aplicação'
@@ -455,7 +473,9 @@ export const useManejoStore = defineStore('manejo', {
           queryParams.terreno_id = queryParams.terreno_id.value
         }
 
-        const response = await api.get('/api/manejo/analises-solo', { params: queryParams })
+        const response = await api.get('/api/manejo/analises-solo', {
+          params: queryParams,
+        })
         this.analisesSolo = response.data.analises || []
 
         this.pagination = {
@@ -476,7 +496,10 @@ export const useManejoStore = defineStore('manejo', {
     async createAnaliseSolo(analiseData) {
       this.loading = true
       try {
-        const response = await api.post('/api/manejo/analises-solo', analiseData)
+        const response = await api.post(
+          '/api/manejo/analises-solo',
+          analiseData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao criar análise'
@@ -488,7 +511,10 @@ export const useManejoStore = defineStore('manejo', {
     async updateAnaliseSolo(id, analiseData) {
       this.loading = true
       try {
-        const response = await api.put(`/api/manejo/analises-solo/${id}`, analiseData)
+        const response = await api.put(
+          `/api/manejo/analises-solo/${id}`,
+          analiseData
+        )
         return response.data
       } catch (error) {
         throw error.response?.data?.detail || 'Erro ao atualizar análise'
@@ -522,7 +548,7 @@ export const useManejoStore = defineStore('manejo', {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
-          },
+          }
         )
         return response.data
       } catch (error) {
@@ -536,16 +562,21 @@ export const useManejoStore = defineStore('manejo', {
       this.loading = true
       try {
         // Fazer requisição para download
-        const response = await api.get(`/api/manejo/analises-solo/${analiseId}/download-laudo`, {
-          responseType: 'blob', // Importante para arquivos binários
-        })
+        const response = await api.get(
+          `/api/manejo/analises-solo/${analiseId}/download-laudo`,
+          {
+            responseType: 'blob', // Importante para arquivos binários
+          }
+        )
 
         // Obter nome do arquivo do header Content-Disposition ou usar padrão
         let nomeArquivo = `laudo_analise_${analiseId}.pdf`
 
         const contentDisposition = response.headers['content-disposition']
         if (contentDisposition) {
-          const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          const match = contentDisposition.match(
+            /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+          )
           if (match && match[1]) {
             nomeArquivo = match[1].replace(/['"]/g, '')
           }
@@ -584,10 +615,14 @@ export const useManejoStore = defineStore('manejo', {
 
     async getLaudoInfo(analiseId) {
       try {
-        const response = await api.get(`/api/manejo/analises-solo/${analiseId}/laudo-info`)
+        const response = await api.get(
+          `/api/manejo/analises-solo/${analiseId}/laudo-info`
+        )
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao obter informações do laudo'
+        throw (
+          error.response?.data?.detail || 'Erro ao obter informações do laudo'
+        )
       }
     },
 
@@ -597,34 +632,50 @@ export const useManejoStore = defineStore('manejo', {
 
     async getConsumoTerreno(params = {}) {
       try {
-        const response = await api.get('/api/manejo/relatorios/consumo-terreno', { params })
+        const response = await api.get(
+          '/api/manejo/relatorios/consumo-terreno',
+          { params }
+        )
         this.consumoTerreno = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar consumo por terreno'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar consumo por terreno'
+        )
       }
     },
 
     async getPrevisaoConsumo(tipoProducto = null) {
       try {
         const params = tipoProducto ? { tipo_produto: tipoProducto } : {}
-        const response = await api.get('/api/manejo/relatorios/previsao-consumo', { params })
+        const response = await api.get(
+          '/api/manejo/relatorios/previsao-consumo',
+          { params }
+        )
         this.previsaoConsumo = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar previsão de consumo'
+        )
       }
     },
 
     async getTerrenosLiberacao(diasFuturo = 30) {
       try {
-        const response = await api.get('/api/manejo/relatorios/terrenos-liberacao', {
-          params: { dias_futuro: diasFuturo },
-        })
+        const response = await api.get(
+          '/api/manejo/relatorios/terrenos-liberacao',
+          {
+            params: { dias_futuro: diasFuturo },
+          }
+        )
         this.terrenosLiberacao = response.data.liberacoes || []
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar terrenos para liberação'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar terrenos para liberação'
+        )
       }
     },
 
@@ -635,10 +686,14 @@ export const useManejoStore = defineStore('manejo', {
     async loadProdutoOptions(apenasComEstoque = false) {
       try {
         const params = { apenas_com_estoque: apenasComEstoque }
-        const response = await api.get('/api/manejo/produtos/autocomplete', { params })
+        const response = await api.get('/api/manejo/produtos/autocomplete', {
+          params,
+        })
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao carregar opções de produtos'
+        throw (
+          error.response?.data?.detail || 'Erro ao carregar opções de produtos'
+        )
       }
     },
 

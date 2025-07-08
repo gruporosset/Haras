@@ -235,57 +235,36 @@ export const useRacaoStore = defineStore('racao', {
     },
 
     async createProduto(produtoData) {
-      this.loading = true
-      try {
-        // Converter objetos select para valores
-        if (produtoData.TIPO_ALIMENTO?.value) {
-          produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
-        }
-        const dados = prepareFormData(produtoData, [
-          'DATA_FABRICACAO',
-          'DATA_VALIDADE',
-        ])
-
-        const response = await api.post('/api/racao/produtos', dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar produto'
-      } finally {
-        this.loading = false
+      // Converter objetos select para valores
+      if (produtoData.TIPO_ALIMENTO?.value) {
+        produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
       }
+      const dados = prepareFormData(produtoData, [
+        'DATA_FABRICACAO',
+        'DATA_VALIDADE',
+      ])
+
+      const response = await api.post('/api/racao/produtos', dados)
+      return response.data
     },
 
     async updateProduto(id, produtoData) {
-      this.loading = true
-      try {
-        // Converter objetos select para valores
-        if (produtoData.TIPO_ALIMENTO?.value) {
-          produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
-        }
-        const dados = prepareFormData(produtoData, [
-          'DATA_FABRICACAO',
-          'DATA_VALIDADE',
-        ])
-
-        const response = await api.put(`/api/racao/produtos/${id}`, dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar produto'
-      } finally {
-        this.loading = false
+      // Converter objetos select para valores
+      if (produtoData.TIPO_ALIMENTO?.value) {
+        produtoData.TIPO_ALIMENTO = produtoData.TIPO_ALIMENTO.value
       }
+      const dados = prepareFormData(produtoData, [
+        'DATA_FABRICACAO',
+        'DATA_VALIDADE',
+      ])
+
+      const response = await api.put(`/api/racao/produtos/${id}`, dados)
+      return response.data
     },
 
     async deleteProduto(id) {
-      this.loading = true
-      try {
-        await api.delete(`/api/racao/produtos/${id}`)
-        return true
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir produto'
-      } finally {
-        this.loading = false
-      }
+      await api.delete(`/api/racao/produtos/${id}`)
+      return true
     },
 
     async autocompleProdutos(query = '') {

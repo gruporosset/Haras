@@ -129,37 +129,22 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
     },
 
     async createFerrageamento(dados) {
-      try {
-        const response = await api.post('/api/ferrageamento/', dados)
-        return response.data
-      } catch (error) {
-        throw (
-          error.response?.data?.detail ||
-          'Erro ao criar registro de ferrageamento'
-        )
-      }
+      const response = await api.post('/api/ferrageamento/', dados)
+      return response.data
     },
 
     async updateFerrageamento(id, dados) {
-      try {
-        const response = await api.put(`/api/ferrageamento/${id}`, dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar registro'
-      }
+      const response = await api.put(`/api/ferrageamento/${id}`, dados)
+      return response.data
     },
 
     async deleteFerrageamento(id) {
-      try {
-        await api.delete(`/api/ferrageamento/${id}`)
+      await api.delete(`/api/ferrageamento/${id}`)
 
-        // Remover da lista local
-        const index = this.ferrageamentos.findIndex(f => f.ID === id)
-        if (index !== -1) {
-          this.ferrageamentos.splice(index, 1)
-        }
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir registro'
+      // Remover da lista local
+      const index = this.ferrageamentos.findIndex(f => f.ID === id)
+      if (index !== -1) {
+        this.ferrageamentos.splice(index, 1)
       }
     },
 
@@ -174,15 +159,11 @@ export const useFerrageamentoStore = defineStore('ferrageamento', {
 
     // === APLICAÇÃO RÁPIDA ===
     async aplicacaoRapida(dados) {
-      try {
-        const response = await api.post(
-          '/api/ferrageamento/aplicacao-rapida',
-          dados
-        )
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro na aplicação rápida'
-      }
+      const response = await api.post(
+        '/api/ferrageamento/aplicacao-rapida',
+        dados
+      )
+      return response.data
     },
 
     // === ALERTAS E ESTATÍSTICAS ===

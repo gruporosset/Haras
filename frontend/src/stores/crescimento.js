@@ -24,17 +24,17 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
   getters: {
     // Estatísticas rápidas
-    totalMedicoes: (state) => state.crescimentos.length,
+    totalMedicoes: state => state.crescimentos.length,
 
-    animaisComMedicoes: (state) => {
-      const animais = new Set(state.crescimentos.map((c) => c.animal_nome))
+    animaisComMedicoes: state => {
+      const animais = new Set(state.crescimentos.map(c => c.animal_nome))
       return animais.size
     },
 
-    mediaGanhoPeso: (state) => {
+    mediaGanhoPeso: state => {
       const ganhosPositivos = state.crescimentos
-        .filter((c) => c.ganho_peso && c.ganho_peso > 0)
-        .map((c) => c.ganho_peso)
+        .filter(c => c.ganho_peso && c.ganho_peso > 0)
+        .map(c => c.ganho_peso)
 
       if (ganhosPositivos.length === 0) return 0
 
@@ -42,15 +42,15 @@ export const useCrescimentoStore = defineStore('crescimento', {
       return (soma / ganhosPositivos.length).toFixed(2)
     },
 
-    ultimasMedicoes: (state) => {
+    ultimasMedicoes: state => {
       return state.crescimentos.slice(0, 5) // 5 mais recentes
     },
 
     // Dados para gráficos
-    dadosGraficoPeso: (state) => (animalId) => {
+    dadosGraficoPeso: state => animalId => {
       return state.historicoAnimal
-        .filter((h) => h.medicao.ID_ANIMAL === animalId && h.medicao.PESO)
-        .map((h) => ({
+        .filter(h => h.medicao.ID_ANIMAL === animalId && h.medicao.PESO)
+        .map(h => ({
           data: h.medicao.DATA_MEDICAO,
           peso: h.medicao.PESO,
           ganho: h.variacao_peso || 0,
@@ -58,10 +58,10 @@ export const useCrescimentoStore = defineStore('crescimento', {
         .sort((a, b) => new Date(a.data) - new Date(b.data))
     },
 
-    dadosGraficoAltura: (state) => (animalId) => {
+    dadosGraficoAltura: state => animalId => {
       return state.historicoAnimal
-        .filter((h) => h.medicao.ID_ANIMAL === animalId && h.medicao.ALTURA)
-        .map((h) => ({
+        .filter(h => h.medicao.ID_ANIMAL === animalId && h.medicao.ALTURA)
+        .map(h => ({
           data: h.medicao.DATA_MEDICAO,
           altura: h.medicao.ALTURA,
           variacao: h.variacao_altura || 0,
@@ -87,7 +87,9 @@ export const useCrescimentoStore = defineStore('crescimento', {
           queryParams.animal_id = queryParams.animal_id.value
         }
 
-        const response = await api.get('/api/crescimento', { params: queryParams })
+        const response = await api.get('/api/crescimento', {
+          params: queryParams,
+        })
 
         this.crescimentos = response.data.registros
         this.pagination = {
@@ -99,7 +101,10 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar registros de crescimento'
+        throw (
+          error.response?.data?.detail ||
+          'Erro ao buscar registros de crescimento'
+        )
       } finally {
         this.loading = false
       }
@@ -115,43 +120,35 @@ export const useCrescimentoStore = defineStore('crescimento', {
     },
 
     async createCrescimento(crescimentoData) {
-      try {
-        const response = await api.post('/api/crescimento', crescimentoData)
-        await this.fetchCrescimentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar registro de crescimento'
-      }
+      const response = await api.post('/api/crescimento', crescimentoData)
+      await this.fetchCrescimentos()
+      return response.data
     },
 
     async updateCrescimento(id, crescimentoData) {
-      try {
-        const response = await api.put(`/api/crescimento/${id}`, crescimentoData)
-        await this.fetchCrescimentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar registro de crescimento'
-      }
+      const response = await api.put(`/api/crescimento/${id}`, crescimentoData)
+      await this.fetchCrescimentos()
+      return response.data
     },
 
     async deleteCrescimento(id) {
-      try {
-        await api.delete(`/api/crescimento/${id}`)
-        await this.fetchCrescimentos()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir registro de crescimento'
-      }
+      await api.delete(`/api/crescimento/${id}`)
+      await this.fetchCrescimentos()
     },
 
     // === HISTÓRICO E RELATÓRIOS ===
     async fetchHistoricoAnimal(animalId) {
       this.loading = true
       try {
-        const response = await api.get(`/api/crescimento/animal/${animalId}/historico`)
+        const response = await api.get(
+          `/api/crescimento/animal/${animalId}/historico`
+        )
         this.historicoAnimal = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar histórico do animal'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar histórico do animal'
+        )
       } finally {
         this.loading = false
       }
@@ -166,7 +163,9 @@ export const useCrescimentoStore = defineStore('crescimento', {
         this.estatisticasGerais = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar estatísticas gerais'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar estatísticas gerais'
+        )
       } finally {
         this.loading = false
       }
@@ -179,7 +178,9 @@ export const useCrescimentoStore = defineStore('crescimento', {
         this.comparacaoMedidas = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar comparação de medidas'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar comparação de medidas'
+        )
       } finally {
         this.loading = false
       }
@@ -222,7 +223,7 @@ export const useCrescimentoStore = defineStore('crescimento', {
         form.CIRCUNFERENCIA_TORACICA,
         form.COMPRIMENTO_CORPO,
       ]
-      if (!medidas.some((medida) => medida && medida > 0)) {
+      if (!medidas.some(medida => medida && medida > 0)) {
         erros.push('Pelo menos uma medida deve ser informada')
       }
 
@@ -286,7 +287,7 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
     // === BUSCA E FILTROS ===
     getCrescimentosByAnimal(animalId) {
-      return this.crescimentos.filter((c) => c.ID_ANIMAL === animalId)
+      return this.crescimentos.filter(c => c.ID_ANIMAL === animalId)
     },
 
     getUltimaMedicaoAnimal(animalId) {
@@ -308,9 +309,11 @@ export const useCrescimentoStore = defineStore('crescimento', {
 
     // === EXPORTAÇÃO ===
     prepararDadosExportacao(animalId = null) {
-      let dados = animalId ? this.getCrescimentosByAnimal(animalId) : this.crescimentos
+      let dados = animalId
+        ? this.getCrescimentosByAnimal(animalId)
+        : this.crescimentos
 
-      return dados.map((crescimento) => ({
+      return dados.map(crescimento => ({
         Animal: crescimento.animal_nome,
         Data: crescimento.DATA_MEDICAO,
         'Peso (kg)': crescimento.PESO || '-',

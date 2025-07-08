@@ -13,7 +13,7 @@
             use-input
             @filter="filterFemeas"
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-2"
           />
           <q-select
             v-model="reproducaoStore.filters.parceiro_id"
@@ -23,7 +23,7 @@
             use-input
             @filter="filterMachos"
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-2"
           />
           <q-select
             v-model="reproducaoStore.filters.tipo_cobertura"
@@ -31,7 +31,7 @@
             label="Tipo"
             clearable
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-2"
           />
           <q-select
             v-model="reproducaoStore.filters.resultado"
@@ -39,19 +39,19 @@
             label="Resultado"
             clearable
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-1"
           />
           <CalendarioComponent
             v-model="reproducaoStore.filters.data_inicio"
             label="Data Início"
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-2"
           />
           <CalendarioComponent
             v-model="reproducaoStore.filters.data_fim"
             label="Data Fim"
             @update:model-value="onFilterChange"
-            class="col-2"
+            class="col-12 col-md-2"
           />
         </div>
       </q-card-section>

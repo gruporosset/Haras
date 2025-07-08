@@ -131,35 +131,20 @@ export const useMedicamentoStore = defineStore('medicamento', {
     },
 
     async createMedicamento(medicamentoData) {
-      try {
-        const response = await api.post('/api/medicamentos', medicamentoData)
-        await this.fetchMedicamentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar medicamento'
-      }
+      const response = await api.post('/api/medicamentos', medicamentoData)
+      await this.fetchMedicamentos()
+      return response.data
     },
 
     async updateMedicamento(id, medicamentoData) {
-      try {
-        const response = await api.put(
-          `/api/medicamentos/${id}`,
-          medicamentoData
-        )
-        await this.fetchMedicamentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar medicamento'
-      }
+      const response = await api.put(`/api/medicamentos/${id}`, medicamentoData)
+      await this.fetchMedicamentos()
+      return response.data
     },
 
     async deleteMedicamento(id) {
-      try {
-        await api.delete(`/api/medicamentos/${id}`)
-        await this.fetchMedicamentos()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir medicamento'
-      }
+      await api.delete(`/api/medicamentos/${id}`)
+      await this.fetchMedicamentos()
     },
 
     async getMedicamento(id) {
@@ -173,29 +158,21 @@ export const useMedicamentoStore = defineStore('medicamento', {
 
     // === ESTOQUE ===
     async entradaEstoque(entradaData) {
-      try {
-        const response = await api.post(
-          '/api/medicamentos/entrada-estoque',
-          entradaData
-        )
-        await this.fetchMedicamentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao registrar entrada'
-      }
+      const response = await api.post(
+        '/api/medicamentos/entrada-estoque',
+        entradaData
+      )
+      await this.fetchMedicamentos()
+      return response.data
     },
 
     async aplicarMedicamento(aplicacaoData) {
-      try {
-        const response = await api.post(
-          '/api/medicamentos/aplicar-medicamento',
-          aplicacaoData
-        )
-        await this.fetchMedicamentos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao aplicar medicamento'
-      }
+      const response = await api.post(
+        '/api/medicamentos/aplicar-medicamento',
+        aplicacaoData
+      )
+      await this.fetchMedicamentos()
+      return response.data
     },
 
     // === MOVIMENTAÇÕES ===

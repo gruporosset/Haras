@@ -45,15 +45,17 @@ export const useReproducaoStore = defineStore('reproducao', {
       { value: 'FALHADO', label: 'Falhado' },
     ],
 
-    gestacoesAtivas: (state) =>
+    gestacoesAtivas: state =>
       state.reproducoes.filter(
-        (r) => r.STATUS_REPRODUCAO === 'A' && r.RESULTADO_DIAGNOSTICO === 'POSITIVO',
+        r =>
+          r.STATUS_REPRODUCAO === 'A' && r.RESULTADO_DIAGNOSTICO === 'POSITIVO'
       ),
 
-    eventosPrioritarios: (state) => state.calendarioEventos.filter((e) => e.dias_restantes <= 7),
+    eventosPrioritarios: state =>
+      state.calendarioEventos.filter(e => e.dias_restantes <= 7),
 
-    reproducoesByEgua: (state) => (eguaId) => {
-      return state.reproducoes.filter((r) => r.ID_EGUA === eguaId)
+    reproducoesByEgua: state => eguaId => {
+      return state.reproducoes.filter(r => r.ID_EGUA === eguaId)
     },
   },
 
@@ -76,6 +78,12 @@ export const useReproducaoStore = defineStore('reproducao', {
         if (queryParams.egua_id?.value) {
           queryParams.egua_id = queryParams.egua_id.value
         }
+        if (queryParams.parceiro_id?.value) {
+          queryParams.parceiro_id = queryParams.parceiro_id.value
+        }
+        if (queryParams.tipo_cobertura?.value) {
+          queryParams.tipo_cobertura = queryParams.tipo_cobertura.value
+        }
         if (queryParams.resultado?.value) {
           queryParams.resultado = queryParams.resultado.value
         }
@@ -83,7 +91,9 @@ export const useReproducaoStore = defineStore('reproducao', {
           queryParams.status = queryParams.status.value
         }
 
-        const response = await api.get('/api/reproducao', { params: queryParams })
+        const response = await api.get('/api/reproducao', {
+          params: queryParams,
+        })
 
         this.reproducoes = response.data.reproducoes
         this.pagination = {
@@ -102,37 +112,27 @@ export const useReproducaoStore = defineStore('reproducao', {
     },
 
     async createReproducao(reproducaoData) {
-      try {
-        const response = await api.post('/api/reproducao', reproducaoData)
-        await this.fetchReproducoes()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar reprodução'
-      }
+      const response = await api.post('/api/reproducao', reproducaoData)
+      await this.fetchReproducoes()
+      return response.data
     },
 
     async updateReproducao(id, reproducaoData) {
-      try {
-        const response = await api.put(`/api/reproducao/${id}`, reproducaoData)
-        await this.fetchReproducoes()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar reprodução'
-      }
+      const response = await api.put(`/api/reproducao/${id}`, reproducaoData)
+      await this.fetchReproducoes()
+      return response.data
     },
 
     async deleteReproducao(id) {
-      try {
-        await api.delete(`/api/reproducao/${id}`)
-        await this.fetchReproducoes()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir reprodução'
-      }
+      await api.delete(`/api/reproducao/${id}`)
+      await this.fetchReproducoes()
     },
 
     async fetchHistoricoEgua(eguaId) {
       try {
-        const response = await api.get(`/api/reproducao/egua/${eguaId}/historico`)
+        const response = await api.get(
+          `/api/reproducao/egua/${eguaId}/historico`
+        )
         this.historicoEgua = response.data
         return response.data
       } catch (error) {
@@ -143,7 +143,10 @@ export const useReproducaoStore = defineStore('reproducao', {
     async fetchEstatisticas(ano = null) {
       try {
         const params = ano ? { ano } : {}
-        const response = await api.get('/api/reproducao/relatorio/estatisticas', { params })
+        const response = await api.get(
+          '/api/reproducao/relatorio/estatisticas',
+          { params }
+        )
         this.estatisticas = response.data
         return response.data
       } catch (error) {
@@ -153,11 +156,15 @@ export const useReproducaoStore = defineStore('reproducao', {
 
     async fetchCalendarioEventos(dias = 60) {
       try {
-        const response = await api.get(`/api/reproducao/calendario/eventos?dias=${dias}`)
+        const response = await api.get(
+          `/api/reproducao/calendario/eventos?dias=${dias}`
+        )
         this.calendarioEventos = response.data
         return response.data
       } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao buscar eventos do calendário'
+        throw (
+          error.response?.data?.detail || 'Erro ao buscar eventos do calendário'
+        )
       }
     },
 

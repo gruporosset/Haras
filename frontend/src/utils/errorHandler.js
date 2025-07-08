@@ -45,12 +45,13 @@ export class ErrorHandler {
    */
   static extractMessage(error, defaultMessage) {
     // 1. Verificar se é erro do backend (FastAPI validation)
+    console.log(error?.response?.data?.detail)
     if (error?.response?.data?.detail) {
       const detail = error.response.data.detail
 
       // Se detail é array (validation errors)
       if (Array.isArray(detail)) {
-        const messages = detail.map((err) => {
+        const messages = detail.map(err => {
           // Formatar mensagem com campo se disponível
           const field = err.loc?.length > 1 ? err.loc[err.loc.length - 1] : null
           const fieldLabel = this.getFieldLabel(field)
@@ -84,7 +85,10 @@ export class ErrorHandler {
     }
 
     // 4. Verificar se é erro de rede
-    if (error?.code === 'NETWORK_ERROR' || error?.message?.includes('Network Error')) {
+    if (
+      error?.code === 'NETWORK_ERROR' ||
+      error?.message?.includes('Network Error')
+    ) {
       return 'Erro de conexão. Verifique sua internet.'
     }
 

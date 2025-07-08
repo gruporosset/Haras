@@ -88,35 +88,23 @@ export const useMovimentacaoStore = defineStore('movimentacao', {
     },
 
     async createMovimentacao(movimentacaoData) {
-      try {
-        const response = await api.post('/api/movimentacoes', movimentacaoData)
-        await this.fetchMovimentacoes()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar movimentação'
-      }
+      const response = await api.post('/api/movimentacoes', movimentacaoData)
+      await this.fetchMovimentacoes()
+      return response.data
     },
 
     async updateMovimentacao(id, movimentacaoData) {
-      try {
-        const response = await api.put(
-          `/api/movimentacoes/${id}`,
-          movimentacaoData
-        )
-        await this.fetchMovimentacoes()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar movimentação'
-      }
+      const response = await api.put(
+        `/api/movimentacoes/${id}`,
+        movimentacaoData
+      )
+      await this.fetchMovimentacoes()
+      return response.data
     },
 
     async deleteMovimentacao(id) {
-      try {
-        await api.delete(`/api/movimentacoes/${id}`)
-        await this.fetchMovimentacoes()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir movimentação'
-      }
+      await api.delete(`/api/movimentacoes/${id}`)
+      await this.fetchMovimentacoes()
     },
 
     async fetchHistoricoAnimal(animalId) {

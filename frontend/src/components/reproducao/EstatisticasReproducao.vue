@@ -67,7 +67,7 @@
         </q-card>
       </div>
 
-      <div class="col-12 col-md-3">
+      <div class="col-12 col-md-2">
         <q-card>
           <q-card-section class="text-center">
             <q-icon
@@ -182,7 +182,7 @@
         </q-card>
       </div>
 
-      <div class="col-12 col-md-6">
+      <div class="col-12 col-md-5">
         <q-card>
           <q-card-section>
             <div class="text-h6">Indicadores de Performance</div>

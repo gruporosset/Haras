@@ -126,32 +126,20 @@ export const useAnimalStore = defineStore('animal', {
     },
 
     async createAnimal(animalData) {
-      try {
-        const response = await api.post('/api/animais', animalData)
-        await this.fetchAnimais() // Recarregar lista
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar animal'
-      }
+      const response = await api.post('/api/animais', animalData)
+      await this.fetchAnimais() // Recarregar lista
+      return response.data
     },
 
     async updateAnimal(id, animalData) {
-      try {
-        const response = await api.put(`/api/animais/${id}`, animalData)
-        await this.fetchAnimais() // Recarregar lista
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar animal'
-      }
+      const response = await api.put(`/api/animais/${id}`, animalData)
+      await this.fetchAnimais() // Recarregar lista
+      return response.data
     },
 
     async deleteAnimal(id) {
-      try {
-        await api.delete(`/api/animais/${id}`)
-        await this.fetchAnimais() // Recarregar lista
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir animal'
-      }
+      await api.delete(`/api/animais/${id}`)
+      await this.fetchAnimais() // Recarregar lista
     },
 
     async getGenealogia(id) {
@@ -165,19 +153,15 @@ export const useAnimalStore = defineStore('animal', {
     },
 
     async uploadFoto(id, foto) {
-      try {
-        const formData = new FormData()
-        formData.append('foto', foto)
+      const formData = new FormData()
+      formData.append('foto', foto)
 
-        const response = await api.post(`/api/animais/${id}/foto`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+      const response = await api.post(`/api/animais/${id}/foto`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
 
-        await this.fetchAnimais() // Recarregar lista para atualizar foto
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao enviar foto'
-      }
+      await this.fetchAnimais() // Recarregar lista para atualizar foto
+      return response.data
     },
 
     async loadParentOptions() {

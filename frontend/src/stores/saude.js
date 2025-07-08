@@ -140,44 +140,32 @@ export const useSaudeStore = defineStore('saude', {
     },
 
     async createRegistro(formData) {
-      try {
-        const dados = prepareFormData(formData, [
-          'DATA_OCORRENCIA',
-          'PROXIMA_APLICACAO',
-        ])
+      const dados = prepareFormData(formData, [
+        'DATA_OCORRENCIA',
+        'PROXIMA_APLICACAO',
+      ])
 
-        const response = await api.post('/api/saude/', dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar registro de saúde'
-      }
+      const response = await api.post('/api/saude/', dados)
+      return response.data
     },
 
     async updateRegistro(id, formData) {
-      try {
-        const dados = prepareFormData(formData, [
-          'DATA_OCORRENCIA',
-          'PROXIMA_APLICACAO',
-        ])
+      const dados = prepareFormData(formData, [
+        'DATA_OCORRENCIA',
+        'PROXIMA_APLICACAO',
+      ])
 
-        const response = await api.put(`/api/saude/${id}`, dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar registro'
-      }
+      const response = await api.put(`/api/saude/${id}`, dados)
+      return response.data
     },
 
     async deleteRegistro(id) {
-      try {
-        await api.delete(`/api/saude/${id}`)
+      await api.delete(`/api/saude/${id}`)
 
-        // Remover da lista local
-        const index = this.registros.findIndex(r => r.ID === id)
-        if (index !== -1) {
-          this.registros.splice(index, 1)
-        }
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir registro'
+      // Remover da lista local
+      const index = this.registros.findIndex(r => r.ID === id)
+      if (index !== -1) {
+        this.registros.splice(index, 1)
       }
     },
 
@@ -192,14 +180,10 @@ export const useSaudeStore = defineStore('saude', {
 
     // === APLICAÇÃO RÁPIDA ===
     async aplicacaoRapida(formData) {
-      try {
-        const dados = prepareFormData(formData)
+      const dados = prepareFormData(formData)
 
-        const response = await api.post('/api/saude/aplicacao-rapida', dados)
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro na aplicação rápida'
-      }
+      const response = await api.post('/api/saude/aplicacao-rapida', dados)
+      return response.data
     },
 
     // === PRÓXIMAS APLICAÇÕES ===

@@ -93,7 +93,6 @@ async def create_reproducao(
 @router.get("/", response_model=dict)
 async def list_reproducoes(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     egua_id: Optional[int] = Query(None, description="Filtrar por égua"),
     parceiro_id: Optional[int] = Query(None, description="Filtrar por parceiro"),
     tipo_cobertura: Optional[TipoCoberturaEnum] = Query(

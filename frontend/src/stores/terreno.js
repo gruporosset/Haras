@@ -20,17 +20,28 @@ export const useTerrenoStore = defineStore('terreno', {
   }),
 
   getters: {
-    terrenosDisponiveis: (state) => state.terrenos.filter((t) => t.STATUS_TERRENO === 'DISPONIVEL'),
-    terrenosOcupados: (state) => state.terrenos.filter((t) => t.STATUS_TERRENO === 'OCUPADO'),
+    terrenosDisponiveis: state =>
+      state.terrenos.filter(t => t.STATUS_TERRENO === 'DISPONIVEL'),
+    terrenosOcupados: state =>
+      state.terrenos.filter(t => t.STATUS_TERRENO === 'OCUPADO'),
 
-    terrenoById: (state) => (id) => state.terrenos.find((t) => t.ID === id),
+    terrenoById: state => id => state.terrenos.find(t => t.ID === id),
 
-    estatisticas: (state) => {
+    estatisticas: state => {
       const total = state.terrenos.length
-      const disponiveis = state.terrenos.filter((t) => t.STATUS_TERRENO === 'DISPONIVEL').length
-      const ocupados = state.terrenos.filter((t) => t.STATUS_TERRENO === 'OCUPADO').length
-      const manutencao = state.terrenos.filter((t) => t.STATUS_TERRENO === 'MANUTENÇÃO').length
-      const areaTotal = state.terrenos.reduce((sum, t) => sum + (t.AREA_HECTARES || 0), 0)
+      const disponiveis = state.terrenos.filter(
+        t => t.STATUS_TERRENO === 'DISPONIVEL'
+      ).length
+      const ocupados = state.terrenos.filter(
+        t => t.STATUS_TERRENO === 'OCUPADO'
+      ).length
+      const manutencao = state.terrenos.filter(
+        t => t.STATUS_TERRENO === 'MANUTENÇÃO'
+      ).length
+      const areaTotal = state.terrenos.reduce(
+        (sum, t) => sum + (t.AREA_HECTARES || 0),
+        0
+      )
 
       return {
         total,
@@ -88,32 +99,20 @@ export const useTerrenoStore = defineStore('terreno', {
     },
 
     async createTerreno(terrenoData) {
-      try {
-        const response = await api.post('/api/terrenos', terrenoData)
-        await this.fetchTerrenos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao criar terreno'
-      }
+      const response = await api.post('/api/terrenos', terrenoData)
+      await this.fetchTerrenos()
+      return response.data
     },
 
     async updateTerreno(id, terrenoData) {
-      try {
-        const response = await api.put(`/api/terrenos/${id}`, terrenoData)
-        await this.fetchTerrenos()
-        return response.data
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao atualizar terreno'
-      }
+      const response = await api.put(`/api/terrenos/${id}`, terrenoData)
+      await this.fetchTerrenos()
+      return response.data
     },
 
     async deleteTerreno(id) {
-      try {
-        await api.delete(`/api/terrenos/${id}`)
-        await this.fetchTerrenos()
-      } catch (error) {
-        throw error.response?.data?.detail || 'Erro ao excluir terreno'
-      }
+      await api.delete(`/api/terrenos/${id}`)
+      await this.fetchTerrenos()
     },
 
     setFilters(newFilters) {
